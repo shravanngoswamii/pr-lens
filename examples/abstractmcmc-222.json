@@ -1,0 +1,278 @@
+{
+  "version": 1,
+  "id": "abstractmcmc-222",
+  "title": "Restore the initial value fallback errors",
+  "summary": "Multi-chain sampling with unsupported initial values now reaches the intended ArgumentError. Moving @nospecialize into the method body lets Julia define the two fallback methods.",
+  "review": {
+    "url": "https://github.com/TuringLang/AbstractMCMC.jl/pull/222",
+    "title": "Fix `@nospecialize` usage",
+    "base": "418afe0df723635aa6c228eb7b12c09a849c8380",
+    "head": "3aac86be81ea389a3c03e15a3b601c4b67884bcf",
+    "checkedAt": "2026-11-09T22:04:29Z"
+  },
+  "sources": [
+    {
+      "id": "pr",
+      "label": "PR title, body and discussion",
+      "url": "https://github.com/TuringLang/AbstractMCMC.jl/pull/222"
+    },
+    {
+      "id": "julia-issue",
+      "label": "Julia issue 49512: @nospecialize argument validation",
+      "url": "https://github.com/JuliaLang/julia/issues/49512"
+    },
+    {
+      "id": "base-fallbacks",
+      "label": "Base fallback definitions",
+      "url": "https://github.com/TuringLang/AbstractMCMC.jl/blob/418afe0df723635aa6c228eb7b12c09a849c8380/src/sample.jl#L915-L949"
+    },
+    {
+      "id": "head-fallbacks",
+      "label": "Head fallback definitions and specific methods",
+      "url": "https://github.com/TuringLang/AbstractMCMC.jl/blob/3aac86be81ea389a3c03e15a3b601c4b67884bcf/src/sample.jl#L915-L955"
+    },
+    {
+      "id": "sample-no-rng",
+      "label": "Public ensemble sample without an RNG",
+      "url": "https://github.com/TuringLang/AbstractMCMC.jl/blob/3aac86be81ea389a3c03e15a3b601c4b67884bcf/src/sample.jl#L64-L75"
+    },
+    {
+      "id": "sample-rng",
+      "label": "Public ensemble sample with an RNG",
+      "url": "https://github.com/TuringLang/AbstractMCMC.jl/blob/3aac86be81ea389a3c03e15a3b601c4b67884bcf/src/sample.jl#L96-L106"
+    },
+    {
+      "id": "serial",
+      "label": "Serial ensemble validation and chain setup",
+      "url": "https://github.com/TuringLang/AbstractMCMC.jl/blob/3aac86be81ea389a3c03e15a3b601c4b67884bcf/src/sample.jl#L855-L906"
+    },
+    {
+      "id": "threads",
+      "label": "Threaded ensemble validation",
+      "url": "https://github.com/TuringLang/AbstractMCMC.jl/blob/3aac86be81ea389a3c03e15a3b601c4b67884bcf/src/sample.jl#L524-L581"
+    },
+    {
+      "id": "distributed",
+      "label": "Distributed ensemble validation",
+      "url": "https://github.com/TuringLang/AbstractMCMC.jl/blob/3aac86be81ea389a3c03e15a3b601c4b67884bcf/src/sample.jl#L712-L755"
+    },
+    {
+      "id": "new-tests",
+      "label": "PR regression cases",
+      "url": "https://github.com/TuringLang/AbstractMCMC.jl/blob/3aac86be81ea389a3c03e15a3b601c4b67884bcf/test/sample.jl#L944-L959"
+    },
+    {
+      "id": "release-plan",
+      "label": "Maintainer reply on patch release, November 3",
+      "url": "https://github.com/TuringLang/AbstractMCMC.jl/pull/222#issuecomment-6608126565"
+    }
+  ],
+  "sections": [
+    {
+      "id": "purpose",
+      "title": "Why the annotation moves",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "The PR body links Julia issue 49512. In the old syntax, @nospecialize consumes the function definition rather than defining the fallback method. The PR writes each fallback as a function and puts a bare @nospecialize inside its body.",
+          "refs": [
+            "pr",
+            "julia-issue",
+            "base-fallbacks",
+            "head-fallbacks"
+          ]
+        },
+        {
+          "type": "text",
+          "text": "The Nothing methods accept the default value. The AbstractArray methods check length against nchains. Other input types select the restored fallback, which throws an ArgumentError naming initial_params or initial_state. These are validators for the ensemble sample methods.",
+          "refs": [
+            "head-fallbacks",
+            "serial",
+            "threads",
+            "distributed"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "behavior",
+      "title": "Same input on both revisions",
+      "blocks": [
+        {
+          "type": "code",
+          "title": "Public call used for the state case",
+          "language": "julia",
+          "code": "using AbstractMCMC, Random\nstruct ProbeModel <: AbstractMCMC.AbstractModel end\nstruct ProbeSampler <: AbstractMCMC.AbstractSampler end\nsample(MersenneTwister(42), ProbeModel(), ProbeSampler(),\n       MCMCSerial(), 3, 4; progress=false, initial_state=10)"
+        },
+        {
+          "type": "compare",
+          "title": "Unsupported initial_state = 10",
+          "before": "Base 418afe0: MethodError from check_initial_state(::Int64, ::Int64). The generic fallback method is absent.",
+          "after": "Head 3aac86b: ArgumentError: initial_state must be specified as a vector of length equal to the number of chains or `nothing`. The generic fallback method exists.",
+          "refs": [
+            "base-fallbacks",
+            "head-fallbacks"
+          ]
+        },
+        {
+          "type": "text",
+          "text": "The probe made the same calls with MCMCSerial(), MCMCThreads() and MCMCDistributed(). It also passed initial_params=(a=1.0, b=2.0) with the default initial_state. All six calls produced MethodError on base and ArgumentError on head. No sampler step ran in these invalid-input cases."
+        }
+      ]
+    },
+    {
+      "id": "design",
+      "title": "Where the fallback sits",
+      "blocks": [
+        {
+          "type": "diagram",
+          "id": "serial-validation",
+          "title": "The initial_state rejection path at head",
+          "direction": "LR",
+          "text": "This selected source path follows the running example with an explicit RNG and MCMCSerial(). The initial_params check returns first because its value is nothing. An integer initial_state selects the restored generic fallback. MCMCThreads and MCMCDistributed call the same validators.",
+          "refs": [
+            "sample-rng",
+            "serial",
+            "threads",
+            "distributed",
+            "head-fallbacks"
+          ],
+          "nodes": [
+            {
+              "id": "sample-rng",
+              "label": "sample",
+              "kind": "method",
+              "signature": "StatsBase.sample(rng::Random.AbstractRNG, model::AbstractModel, sampler::AbstractSampler, parallel::AbstractMCMCEnsemble, N::Integer, nchains::Integer; kwargs...)",
+              "text": "Forwards to the internal mcmcsample implementation selected by the ensemble value.",
+              "refs": [
+                "sample-rng"
+              ]
+            },
+            {
+              "id": "serial",
+              "label": "mcmcsample",
+              "kind": "method",
+              "signature": "mcmcsample(rng::Random.AbstractRNG, model::AbstractModel, sampler::AbstractSampler, ::MCMCSerial, N::Integer, nchains::Integer; progressname=\"Sampling\", initial_params=nothing, initial_state=nothing, kwargs...)",
+              "text": "Checks initial_params, then initial_state, before generating chain seeds and sampling each chain.",
+              "refs": [
+                "serial"
+              ]
+            },
+            {
+              "id": "state",
+              "label": "state fallback",
+              "kind": "method",
+              "signature": "check_initial_state(x::Any, n::Any)",
+              "text": "Restored generic method. Nothing and AbstractArray have more specific methods. The generic method throws an error for other input types.",
+              "refs": [
+                "head-fallbacks"
+              ]
+            },
+            {
+              "id": "argument-error",
+              "label": "ArgumentError",
+              "kind": "type",
+              "text": "The fallback error states which keyword must be an array with one value per chain or nothing. The literal message says vector.",
+              "refs": [
+                "head-fallbacks"
+              ]
+            }
+          ],
+          "edges": [
+            {
+              "id": "select-serial",
+              "from": "sample-rng",
+              "to": "serial",
+              "label": "calls",
+              "status": "source",
+              "text": "The MCMCSerial ensemble argument selects this default mcmcsample method. This diagram does not enumerate custom downstream overloads.",
+              "refs": [
+                "sample-rng",
+                "serial"
+              ]
+            },
+            {
+              "id": "validate-state",
+              "from": "serial",
+              "to": "state",
+              "label": "calls",
+              "status": "source",
+              "text": "Line 879 is reached only after check_initial_params returns. The fallback is selected when initial_state is neither Nothing nor AbstractArray.",
+              "refs": [
+                "serial",
+                "head-fallbacks"
+              ]
+            },
+            {
+              "id": "reject-state",
+              "from": "state",
+              "to": "argument-error",
+              "label": "throws",
+              "status": "source",
+              "text": "The generic method unconditionally throws the initial_state ArgumentError.",
+              "refs": [
+                "head-fallbacks"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "checks",
+      "title": "Evidence and limits",
+      "blocks": [
+        {
+          "type": "finding",
+          "status": "verified",
+          "title": "The intended error replaces the missing-method error",
+          "text": "Julia 1.10.12 executed the public API on the exact base and head. hasmethod also reported no matching fallback for the probe input types on base and a matching fallback on head. The public calls establish the error change for these concrete inputs. The diagram records source relationships.",
+          "refs": [
+            "base-fallbacks",
+            "head-fallbacks",
+            "new-tests"
+          ]
+        },
+        {
+          "type": "check",
+          "status": "passed",
+          "title": "Both revisions passed the focused probe",
+          "text": "Each revision passed 12 invalid-input assertions and 5 serial controls. The controls rejected short arrays and sampled with default nothing, a matching initial_params array, and a matching initial_state array. Both runs used the same resolved dependency manifest, two Julia threads and one process. The portable probe is examples/abstractmcmc-222.jl. The recorded results and evidence fingerprints are in examples/evidence.json."
+        },
+        {
+          "type": "check",
+          "status": "passed",
+          "title": "The HTML works offline",
+          "text": "Opened the generated file in Chrome with the page context offline. The diagram rendered without an HTTP request or page error. Zoom, keyboard and drag pan, fit, all node selectors, source-link targets, disclosures and JSON export worked. The exported JSON matched the input. A 390-pixel viewport had no page overflow."
+        },
+        {
+          "type": "details",
+          "title": "Revisions, source coverage and reproduction",
+          "text": "The PR API base is 418afe0df723635aa6c228eb7b12c09a849c8380. The head is 3aac86be81ea389a3c03e15a3b601c4b67884bcf. git merge-base returned the same base. Comparisons and runtime checks use this pair.\n\nRead the PR title, body, all issue comments, the approval review, the empty inline review list, Julia issue 49512 and its comments. Searched src, test and docs for both validators and initial-value consumers. Checked all three default ensemble callers, the unchanged Nothing and AbstractArray methods, and the single-chain step interface.\n\nRun REVIEW_REVISION=base julia --startup-file=no --threads=2 --project=/path/to/base-env examples/abstractmcmc-222.jl and repeat with head for both values. Use environments containing the respective exact package checkouts. The reviewed package version was 5.17.0. The recorded manifest fingerprint is in examples/evidence.json.",
+          "refs": [
+            "pr",
+            "julia-issue",
+            "head-fallbacks",
+            "threads",
+            "distributed",
+            "serial"
+          ]
+        },
+        {
+          "type": "check",
+          "status": "unverified",
+          "title": "Checks outside this focused explanation",
+          "text": "The full package suite, downstream packages, alternate Julia versions and actual multi-process sampling were not run. Invalid distributed inputs fail before worker sampling starts. No performance claim or additional defect is established by this document."
+        },
+        {
+          "type": "text",
+          "text": "The PR is merged at the metadata snapshot. On November 3, the maintainer said a patch release would follow fixes to CI on main. This review does not check release status.",
+          "refs": [
+            "pr",
+            "release-plan"
+          ]
+        }
+      ]
+    }
+  ]
+}

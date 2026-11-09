@@ -1,0 +1,643 @@
+{
+  "version": 1,
+  "id": "dynamicppl-1529",
+  "title": "Model-owned bindings in DynamicPPL",
+  "summary": "PR #1529 puts conditioning and fixing on Model. Follow the stored values, the three evaluation paths, and the downstream hooks that need a migration.",
+  "review": {
+    "url": "https://github.com/TuringLang/DynamicPPL.jl/pull/1529",
+    "title": "bindings: model-owned bindings in a smaller implementation",
+    "base": "8580f5b9b278ad38a02c147456a5518fd050c7a8",
+    "head": "2585c3bbf6667df8d2fa088fcbd270727889c469",
+    "checkedAt": "2026-11-09T22:08:29Z"
+  },
+  "sources": [
+    {
+      "id": "pr",
+      "label": "PR title, approach and local migration report",
+      "url": "https://github.com/TuringLang/DynamicPPL.jl/pull/1529"
+    },
+    {
+      "id": "model",
+      "label": "Head: Model fields",
+      "url": "https://github.com/TuringLang/DynamicPPL.jl/blob/2585c3bbf6667df8d2fa088fcbd270727889c469/src/model.jl#L90-L109"
+    },
+    {
+      "id": "binding",
+      "label": "Head: roots, roles and binding table",
+      "url": "https://github.com/TuringLang/DynamicPPL.jl/blob/2585c3bbf6667df8d2fa088fcbd270727889c469/src/binding.jl#L1-L84"
+    },
+    {
+      "id": "roles",
+      "label": "Head: argument and local role lookup",
+      "url": "https://github.com/TuringLang/DynamicPPL.jl/blob/2585c3bbf6667df8d2fa088fcbd270727889c469/src/conditionfix.jl#L17-L92"
+    },
+    {
+      "id": "compile",
+      "label": "Head: role branches emitted by the compiler",
+      "url": "https://github.com/TuringLang/DynamicPPL.jl/blob/2585c3bbf6667df8d2fa088fcbd270727889c469/src/compiler.jl#L529-L650"
+    },
+    {
+      "id": "handlers",
+      "label": "Head: latent, observation and tracked-value handlers",
+      "url": "https://github.com/TuringLang/DynamicPPL.jl/blob/2585c3bbf6667df8d2fa088fcbd270727889c469/src/model.jl#L505-L596"
+    },
+    {
+      "id": "accumulate",
+      "label": "Head: observation accumulation over VarInfo",
+      "url": "https://github.com/TuringLang/DynamicPPL.jl/blob/2585c3bbf6667df8d2fa088fcbd270727889c469/src/abstract_varinfo.jl#L282-L290"
+    },
+    {
+      "id": "tracked",
+      "label": "Head: compiler emits model-based tracked-value call",
+      "url": "https://github.com/TuringLang/DynamicPPL.jl/blob/2585c3bbf6667df8d2fa088fcbd270727889c469/src/compiler.jl#L409-L427"
+    },
+    {
+      "id": "old-observe",
+      "label": "Base: compiler emits context-based observation call",
+      "url": "https://github.com/TuringLang/DynamicPPL.jl/blob/8580f5b9b278ad38a02c147456a5518fd050c7a8/src/compiler.jl#L450-L513"
+    },
+    {
+      "id": "old-tracked",
+      "label": "Base: compiler emits context-based tracked-value call",
+      "url": "https://github.com/TuringLang/DynamicPPL.jl/blob/8580f5b9b278ad38a02c147456a5518fd050c7a8/src/compiler.jl#L392-L411"
+    },
+    {
+      "id": "migration",
+      "label": "Head: condition/fix migration guide",
+      "url": "https://github.com/TuringLang/DynamicPPL.jl/blob/2585c3bbf6667df8d2fa088fcbd270727889c469/docs/src/conditionfix.md"
+    },
+    {
+      "id": "smc",
+      "label": "Tested Turing: SMCContext observation hook",
+      "url": "https://github.com/TuringLang/Turing.jl/blob/67a9f804e376a1fc18ed8362532458063f443864/src/mcmc/particle_mcmc.jl#L197-L211"
+    },
+    {
+      "id": "produce",
+      "label": "Tested Turing: particle likelihood accumulator",
+      "url": "https://github.com/TuringLang/Turing.jl/blob/67a9f804e376a1fc18ed8362532458063f443864/src/mcmc/particle_mcmc.jl#L221-L249"
+    },
+    {
+      "id": "saved",
+      "label": "Tested Turing: context-based tracked-value hook",
+      "url": "https://github.com/TuringLang/Turing.jl/blob/67a9f804e376a1fc18ed8362532458063f443864/src/mcmc/particle_mcmc.jl#L305-L313"
+    },
+    {
+      "id": "followup",
+      "label": "Related author plan: explicit evaluation inputs and Turing migration",
+      "url": "https://github.com/TuringLang/DynamicPPL.jl/pull/1503"
+    },
+    {
+      "id": "map-accumulator",
+      "label": "Head: selected accumulator update",
+      "url": "https://github.com/TuringLang/DynamicPPL.jl/blob/2585c3bbf6667df8d2fa088fcbd270727889c469/src/abstract_varinfo.jl#L312-L320"
+    }
+  ],
+  "sections": [
+    {
+      "id": "approach",
+      "title": "Problem and approach",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "Conditioning supplies observed values. Fixing supplies values without adding their density. This PR moves both into a binding table owned by Model, replacing CondFixContext. Model equality and hashing include the bindings.",
+          "refs": [
+            "pr",
+            "model"
+          ]
+        },
+        {
+          "type": "text",
+          "text": "A model argument on the left of ~ is an observation by default. Whole missing or nothing arguments, and missing elements of a top-level Array, are latent. The model draws latent values into a copy of supported storage. The caller's arguments stay unchanged.",
+          "refs": [
+            "pr",
+            "migration"
+          ]
+        },
+        {
+          "type": "code",
+          "title": "Running example: two readings of a latent mean",
+          "language": "julia",
+          "code": "using DynamicPPL, Distributions, Random\n\n@model function readings(y)\n    mu ~ Normal()\n    for i in eachindex(y)\n        y[i] ~ Normal(mu, 1)\n    end\n    return y\nend\nm = readings([1.0, 2.0])\nchanged = condition(m; y=[1.0, 3.0])\npartial = decondition(m, @varname(y[2]))\nchanged(Xoshiro(1))\npartial(Xoshiro(1))"
+        }
+      ]
+    },
+    {
+      "id": "ownership",
+      "title": "Type relationships",
+      "blocks": [
+        {
+          "type": "diagram",
+          "id": "binding-ownership",
+          "title": "Bindings belong to the model",
+          "text": "A binding records how a model variable gets its value. Select a type for its fields and role.",
+          "direction": "TB",
+          "nodes": [
+            {
+              "id": "model",
+              "label": "Model",
+              "kind": "type",
+              "text": "Wraps the model function and its arguments. Its values field owns the binding table. It also stores context and removal tuples.",
+              "refs": [
+                "model"
+              ]
+            },
+            {
+              "id": "table",
+              "label": "BindingTable",
+              "kind": "type",
+              "text": "Stores roots in a VarNamedTuple, a named collection that can address fields and indices.",
+              "refs": [
+                "binding"
+              ],
+              "signature": "BindingTable{V<:VarNamedTuple}: roots::V"
+            },
+            {
+              "id": "root",
+              "label": "BindingRoot",
+              "kind": "type",
+              "text": "Groups a root value, its storage and its constraints. A whole bound value may use BoundValue. Partial values can use a tree instead.",
+              "refs": [
+                "binding"
+              ],
+              "signature": "BindingRoot{V,S,C}: value::V, storage::S, constraints::C"
+            },
+            {
+              "id": "bound",
+              "label": "BoundValue",
+              "kind": "type",
+              "text": "Wraps a supplied value. The R type parameter records its binding role.",
+              "refs": [
+                "binding"
+              ],
+              "signature": "BoundValue{R<:BindingRole,T}: value::T"
+            },
+            {
+              "id": "role",
+              "label": "BindingRole",
+              "kind": "type",
+              "text": "Abstract parent of the three role types below. The role is a type parameter of BoundValue, not a field in BindingRole.",
+              "refs": [
+                "binding"
+              ]
+            },
+            {
+              "id": "condition",
+              "label": "ConditionRole",
+              "kind": "type",
+              "text": "Marks an explicit observation from condition. It contributes likelihood.",
+              "refs": [
+                "binding",
+                "compile"
+              ]
+            },
+            {
+              "id": "argument",
+              "label": "ArgumentRole",
+              "kind": "type",
+              "text": "Marks an argument-backed binding. Role lookup maps its bound values to the observed path.",
+              "refs": [
+                "binding",
+                "roles"
+              ]
+            },
+            {
+              "id": "fixed",
+              "label": "FixRole",
+              "kind": "type",
+              "text": "Marks a fixed value. The generated tilde branch reads it without adding density.",
+              "refs": [
+                "binding",
+                "compile"
+              ]
+            }
+          ],
+          "edges": [
+            {
+              "id": "owns",
+              "from": "model",
+              "to": "table",
+              "label": "stores",
+              "status": "source",
+              "text": "Model.values is constrained to BindingTable.",
+              "refs": [
+                "model"
+              ]
+            },
+            {
+              "id": "roots",
+              "from": "table",
+              "to": "root",
+              "label": "maps names to",
+              "status": "source",
+              "text": "The constructor builds a BindingRoot per relevant argument name.",
+              "refs": [
+                "roles"
+              ]
+            },
+            {
+              "id": "whole",
+              "from": "root",
+              "to": "bound",
+              "label": "may store",
+              "status": "source",
+              "text": "For whole bindings, root.value can hold a BoundValue. This edge does not cover every partial representation.",
+              "refs": [
+                "binding",
+                "roles"
+              ]
+            },
+            {
+              "id": "role-param",
+              "from": "bound",
+              "to": "role",
+              "label": "constrains role by",
+              "status": "source",
+              "text": "The R parameter is constrained to BindingRole.",
+              "refs": [
+                "binding"
+              ]
+            },
+            {
+              "id": "condition-subtype",
+              "from": "condition",
+              "to": "role",
+              "label": "subtype of",
+              "status": "source",
+              "text": "Declared in binding.jl.",
+              "refs": [
+                "binding"
+              ]
+            },
+            {
+              "id": "argument-subtype",
+              "from": "argument",
+              "to": "role",
+              "label": "subtype of",
+              "status": "source",
+              "text": "Declared in binding.jl.",
+              "refs": [
+                "binding"
+              ]
+            },
+            {
+              "id": "fixed-subtype",
+              "from": "fixed",
+              "to": "role",
+              "label": "subtype of",
+              "status": "source",
+              "text": "Declared in binding.jl.",
+              "refs": [
+                "binding"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "details",
+          "title": "Storage and scope",
+          "text": "BindingRoot also carries constraints, including the owner, role and storage for partial bindings. A partial binding such as y[2] => value needs storage at binding time. The head supports the container families listed in the PR body and rejects unsupported partial edits. The diagram shows selected relationships, not every type or field.",
+          "refs": [
+            "binding",
+            "pr"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "evaluation",
+      "title": "Evaluation paths",
+      "blocks": [
+        {
+          "type": "diagram",
+          "id": "tilde-paths",
+          "title": "One tilde statement, three paths",
+          "text": "This is selected source control flow emitted by generate_tilde. The arrows do not claim that every branch runs for every input.",
+          "direction": "TB",
+          "nodes": [
+            {
+              "id": "site",
+              "label": "y[i] ~ Normal(mu, 1)",
+              "kind": "value",
+              "text": "The running example observes y unless its binding role says otherwise. Submodels have a separate path and are outside this diagram.",
+              "refs": [
+                "compile"
+              ]
+            },
+            {
+              "id": "lookup",
+              "label": "_argument_role",
+              "kind": "method",
+              "text": "Reads the model binding and local argument value to choose a role. Local variables use _local_role instead.",
+              "refs": [
+                "roles"
+              ],
+              "signature": "_argument_role(model, vn, argument, local_value)"
+            },
+            {
+              "id": "read-fixed",
+              "label": "_bound_data_at",
+              "kind": "method",
+              "text": "Reads fixed data, checks placeholders and assigns the LHS. The fixed branch does not add prior or likelihood density.",
+              "refs": [
+                "compile",
+                "roles"
+              ],
+              "signature": "_bound_data_at(model, vn, root, local_value)"
+            },
+            {
+              "id": "assume",
+              "label": "tilde_assume!!",
+              "kind": "method",
+              "text": "Handles a latent variable. Applies the model prefix and then delegates to the context-based overload.",
+              "refs": [
+                "handlers"
+              ],
+              "signature": "tilde_assume!!(model::Model, context::AbstractContext, right::Distribution, vn::VarName, template::Any, vi::AbstractVarInfo)"
+            },
+            {
+              "id": "observe",
+              "label": "tilde_observe!!",
+              "kind": "method",
+              "text": "Handles an observation. Applies prefix metadata, checks the value and accumulates likelihood.",
+              "refs": [
+                "handlers"
+              ],
+              "signature": "tilde_observe!!(prefix, prefix_template, right::Distribution, left, vn, template, vi)"
+            }
+          ],
+          "edges": [
+            {
+              "id": "choose",
+              "from": "site",
+              "to": "lookup",
+              "label": "calls to choose role",
+              "status": "source",
+              "text": "For an argument LHS, the emitted code calls _argument_role.",
+              "refs": [
+                "compile"
+              ]
+            },
+            {
+              "id": "fixed-path",
+              "from": "site",
+              "to": "read-fixed",
+              "label": "FixRole: reads",
+              "status": "source",
+              "text": "This branch reads the fixed value and bypasses the two tilde handlers shown here.",
+              "refs": [
+                "compile"
+              ]
+            },
+            {
+              "id": "latent-path",
+              "from": "site",
+              "to": "assume",
+              "label": "nothing: calls",
+              "status": "source",
+              "text": "A role of nothing selects the latent path for an ordinary distribution.",
+              "refs": [
+                "compile"
+              ]
+            },
+            {
+              "id": "observed-path",
+              "from": "site",
+              "to": "observe",
+              "label": "observed: calls",
+              "status": "source",
+              "text": "A non-fixed, non-nothing role selects observation. ArgumentRole-backed values map to ConditionRole in lookup.",
+              "refs": [
+                "compile",
+                "binding"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "compare",
+          "title": "Same input, different binding behavior",
+          "before": "condition(m; y=[1.0, 3.0]) returns [1.0, 2.0]. At mu=0.0 its log likelihood is -4.337877066409345. The supplied argument still wins.",
+          "after": "The same call returns [1.0, 3.0]. Its log likelihood is -6.837877066409346. The model-owned binding overrides the argument.",
+          "refs": [
+            "old-observe",
+            "roles"
+          ]
+        },
+        {
+          "type": "compare",
+          "title": "Removing one observation",
+          "before": "decondition(m, @varname(y[2])) returns [1.0, 2.0] with Xoshiro(1). The argument element stays observed.",
+          "after": "The same call returns [1.0, 0.46089361482929836] with Xoshiro(1). The second element is latent. Calling the original m still returns [1.0, 2.0]."
+        },
+        {
+          "type": "text",
+          "text": "fix(decondition(m, :y); y=[1.0, 2.0]) has log likelihood 0.0 at mu=0.0 on both revisions. Fixed y contributes no likelihood. These comparisons were rerun with examples/dynamicppl-1529.jl on the exact base and head under Julia 1.13.3."
+        }
+      ]
+    },
+    {
+      "id": "downstream",
+      "title": "Downstream migration",
+      "blocks": [
+        {
+          "type": "compare",
+          "title": "Observation and := entry points",
+          "before": "The compiler passes __model__.context to tilde_observe!! and store_coloneq_value!!. Turing at 67a9f80 specializes those calls on SMCContext and copies the resulting VarInfo into the particle.",
+          "after": "Observation passes prefix metadata. Tracked-value storage passes Model. Those calls select new overloads. The tested SMCContext mirroring methods no longer handle these generated paths.",
+          "refs": [
+            "old-observe",
+            "old-tracked",
+            "compile",
+            "tracked",
+            "smc",
+            "saved"
+          ]
+        },
+        {
+          "type": "diagram",
+          "id": "downstream-paths",
+          "title": "Observation and tracked-value hooks at the head",
+          "text": "The head calls these overloads with prefix metadata or Model. The tested Turing hooks still dispatch on SMCContext, its particle evaluation context.",
+          "direction": "TB",
+          "nodes": [
+            {
+              "id": "eval",
+              "label": "Generated evaluator",
+              "kind": "value",
+              "text": "Source generated for observation and := sites. A tracked assignment such as saved := 2mu stores a derived value when extraction is enabled.",
+              "refs": [
+                "compile",
+                "tracked"
+              ]
+            },
+            {
+              "id": "observe",
+              "label": "tilde_observe!!",
+              "kind": "method",
+              "text": "The head overload takes prefix metadata rather than a context.",
+              "refs": [
+                "handlers"
+              ],
+              "signature": "tilde_observe!!(prefix, prefix_template, right::Distribution, left, vn, template, vi)"
+            },
+            {
+              "id": "accumulate",
+              "label": "accumulate_observe!! (VarInfo)",
+              "kind": "method",
+              "text": "Maps the observation over VarInfo accumulators. An accumulator stores an evaluation result such as log likelihood.",
+              "refs": [
+                "accumulate"
+              ],
+              "signature": "accumulate_observe!!(vi::AbstractVarInfo, right, left, vn, template)"
+            },
+            {
+              "id": "particle",
+              "label": "accumulate_observe!! (particle)",
+              "kind": "method",
+              "text": "Turing overload for ProduceLogLikelihoodAccumulator. It computes loglikelihood and calls acclogp, which yields the increment to the particle filter.",
+              "refs": [
+                "produce"
+              ],
+              "signature": "accumulate_observe!!(acc::ProduceLogLikelihoodAccumulator, dist, left, vn, template)"
+            },
+            {
+              "id": "tracked",
+              "label": "store_coloneq_value!!",
+              "kind": "method",
+              "text": "The head overload takes Model and sends the tracked value to its raw-value accumulator.",
+              "refs": [
+                "handlers"
+              ],
+              "signature": "store_coloneq_value!!(model::Model, vn::VarName, right::Any, template::Any, vi::AbstractVarInfo)"
+            },
+            {
+              "id": "map",
+              "label": "map_accumulator!!",
+              "kind": "method",
+              "text": "Updates the raw-value accumulator selected by RAW_VALUE_ACCNAME. The callback invokes store_colon_eq!!.",
+              "refs": [
+                "handlers",
+                "map-accumulator"
+              ],
+              "signature": "map_accumulator!!(func, vi::AbstractVarInfo, accname::Val)"
+            }
+          ],
+          "edges": [
+            {
+              "id": "observes",
+              "from": "eval",
+              "to": "observe",
+              "label": "calls for observations",
+              "status": "source",
+              "text": "The compiler passes prefix and prefix_template directly.",
+              "refs": [
+                "compile"
+              ]
+            },
+            {
+              "id": "accumulates",
+              "from": "observe",
+              "to": "accumulate",
+              "label": "calls",
+              "status": "source",
+              "text": "The selected head handler calls accumulate_observe!!.",
+              "refs": [
+                "handlers"
+              ]
+            },
+            {
+              "id": "particle-acc",
+              "from": "accumulate",
+              "to": "particle",
+              "label": "dispatches for particle accumulator",
+              "status": "source",
+              "text": "This source relationship applies when the VarInfo contains Turing's ProduceLogLikelihoodAccumulator. It is not a trace of every observation.",
+              "refs": [
+                "accumulate",
+                "produce"
+              ]
+            },
+            {
+              "id": "tracks",
+              "from": "eval",
+              "to": "tracked",
+              "label": "calls for tracked values",
+              "status": "source",
+              "text": "Only when is_extracting_colon_eq_values returns true.",
+              "refs": [
+                "tracked"
+              ]
+            },
+            {
+              "id": "raw",
+              "from": "tracked",
+              "to": "map",
+              "label": "calls",
+              "status": "source",
+              "text": "The callback stores the tracked value in the selected raw-value accumulator.",
+              "refs": [
+                "handlers"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "finding",
+          "status": "verified",
+          "title": "The tested Turing revision needs a metadata migration",
+          "text": "Existing review probes paired Turing 67a9f804e376a1fc18ed8362532458063f443864 with this base and head. For SMC and PG, the base passed 60 metadata checks. The head had 40 failed checks and 20 errors: saved loglikelihood was zero and a trailing := value was absent. These are results for that tested source revision. The author reports separate local Turing changes in the PR body.",
+          "refs": [
+            "smc",
+            "saved",
+            "pr"
+          ]
+        },
+        {
+          "type": "finding",
+          "status": "suggestion",
+          "title": "Link the downstream migration used by the author",
+          "text": "The PR body already reports local Turing changes. A source link to that migration would let reviewers compare its observation and tracked-value handling with the tested hooks. The related explicit-evaluation PR also describes these migration points.",
+          "refs": [
+            "pr",
+            "followup"
+          ]
+        },
+        {
+          "type": "details",
+          "title": "Reused evidence and limits",
+          "text": "The earlier evidence is in dynamicppl-bindings-review/checkpoint.json, particle-metadata.jl, particle-metadata-base.log and particle-metadata-head.log in the workspace worklogs. Its recorded DynamicPPL SHAs match this snapshot. Its Turing checkout is still 67a9f80 and its source hooks were inspected again. The 60-check particle run was not repeated for this document. No result here evaluates the author's unlinked local Turing migration."
+        }
+      ]
+    },
+    {
+      "id": "checks",
+      "title": "Checks and limits",
+      "blocks": [
+        {
+          "type": "check",
+          "status": "passed",
+          "title": "Current PR and exact source pair",
+          "text": "PR metadata, issue comments, inline comments and review submissions were refreshed on 2026-11-10. The discussion contained bot reports and no human review discussion. Base and head still match the historical review. The merge base equals the recorded base. Linked predecessor and follow-up descriptions were read."
+        },
+        {
+          "type": "check",
+          "status": "passed",
+          "title": "Public example on both revisions",
+          "text": "The same readings model was run on the base and head using the existing dependency environments and Julia 1.13.3. It checked argument override, partial deconditioning, original argument preservation and fixed-value likelihood. Small outputs and environment fingerprints are recorded in examples/evidence.json."
+        },
+        {
+          "type": "check",
+          "status": "passed",
+          "title": "Helpers against real definitions",
+          "text": "The diff helper reported 50 changed Julia files. Reflection checked BindingRoot fields and selected tilde_observe!! signatures and bodies. Source and downstream hook searches support the selected relationships. These checks do not establish all runtime call paths."
+        },
+        {
+          "type": "check",
+          "status": "unverified",
+          "title": "Complete runtime coverage and the local migration",
+          "text": "No complete call graph or performance conclusion is claimed. The earlier full DynamicPPL suite results were not rerun for this document. The author's local Turing migration was not available as a source revision in the PR body."
+        }
+      ]
+    }
+  ]
+}

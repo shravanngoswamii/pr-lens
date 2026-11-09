@@ -1,0 +1,123 @@
+{
+  "dynamicppl-1529": {
+    "base": "8580f5b9b278ad38a02c147456a5518fd050c7a8",
+    "head": "2585c3bbf6667df8d2fa088fcbd270727889c469",
+    "rerun": {
+      "probe": "dynamicppl-1529.jl",
+      "julia": "1.13.3",
+      "base": {
+        "condition_likelihood": -4.337877066409345,
+        "condition_return": [
+          1.0,
+          2.0
+        ],
+        "fixed_likelihood": 0.0,
+        "julia": "1.13.3",
+        "original_return": [
+          1.0,
+          2.0
+        ],
+        "partial_return": [
+          1.0,
+          2.0
+        ]
+      },
+      "head": {
+        "condition_likelihood": -6.837877066409346,
+        "condition_return": [
+          1.0,
+          3.0
+        ],
+        "fixed_likelihood": 0.0,
+        "julia": "1.13.3",
+        "original_return": [
+          1.0,
+          2.0
+        ],
+        "partial_return": [
+          1.0,
+          0.46089361482929836
+        ]
+      },
+      "base_manifest_sha256": "fc2db55314bce6376bd04f7017abd036e039921c3d630af6564a1f8f906270b2",
+      "head_manifest_sha256": "c310bc22de8fd25e86f8eaeda9d4ecd820ade35f49fbdb4651e5a861776a4c3e"
+    },
+    "helpers": {
+      "changed_julia_files": 50,
+      "binding_root_fields": [
+        {
+          "name": "value",
+          "type": "V"
+        },
+        {
+          "name": "storage",
+          "type": "S"
+        },
+        {
+          "name": "constraints",
+          "type": "C"
+        }
+      ],
+      "selected_observation_method": {
+        "file": "src/model.jl",
+        "line": 561
+      },
+      "compiler_body_scope": "Lowered and unoptimized typed bodies for Nothing prefixes, Normal{Float64}, Float64 observation y, NoTemplate, and the default VarInfo accumulator tuple. No execution tracing."
+    },
+    "reused": {
+      "probe": "particle-metadata.jl",
+      "julia": "1.13.3",
+      "turing": "67a9f804e376a1fc18ed8362532458063f443864",
+      "base": {
+        "pass": 60
+      },
+      "head": {
+        "fail": 40,
+        "error": 20
+      },
+      "scope": "Prior paired SMC/PG probe, not rerun for this document. No claim about the author's unlinked local Turing migration. Original logs remain in the workspace worklogs, not this repository.",
+      "checkpoint_sha256": "40775ff80bfa5906ab0f733cbfd5232e55b849ce73b01bfa779fda555e0b073f",
+      "base_log_sha256": "825e7e4da1014ec62cb00e2490ac67fc35070bb3b665aee2fb8e03bffbffb29f",
+      "head_log_sha256": "92cb53fd05103de1ce619891d8cdc04d0ee8f26787522bf5d461d70fa10d64a1"
+    }
+  },
+  "abstractmcmc-222": {
+    "base": "418afe0df723635aa6c228eb7b12c09a849c8380",
+    "head": "3aac86be81ea389a3c03e15a3b601c4b67884bcf",
+    "probe": "abstractmcmc-222.jl",
+    "julia": "1.10.12",
+    "threads": 2,
+    "processes": 1,
+    "per_revision": {
+      "invalid_input_assertions_passed": 12,
+      "serial_control_assertions_passed": 5
+    },
+    "base_errors": "MethodError",
+    "head_errors": "ArgumentError",
+    "base_manifest_sha256": "2301b9f78cc7d23cef74cb9a7bff18c59bbf2d1aab1d1ea29945db93db87f4e8",
+    "head_manifest_sha256": "2301b9f78cc7d23cef74cb9a7bff18c59bbf2d1aab1d1ea29945db93db87f4e8",
+    "base_log_sha256": "5b529aa640206b1e5757a7eb23a210b22391d4f3a3bbea0dfbca57eb41d68448",
+    "head_log_sha256": "2ca7b0e03836c974fd29775624b43851353a1059107c619bb9439baa97fac558",
+    "scope": "Six public invalid-input calls across the three ensemble modes. Serial controls ran. Distributed worker sampling did not run.",
+    "offline_browser": {
+      "passed": true,
+      "offline": true,
+      "externalRequests": [],
+      "pageErrors": [],
+      "checks": [
+        "all five sections present",
+        "one graph rendered",
+        "zoom button",
+        "arrow-key pan",
+        "drag pan",
+        "keyboard fit",
+        "all four node selectors",
+        "keyboard node activation",
+        "commit-pinned source links",
+        "all disclosure areas opened",
+        "editable JSON export identical",
+        "390px width has no page overflow"
+      ]
+    }
+  }
+}
