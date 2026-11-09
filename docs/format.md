@@ -32,6 +32,7 @@ Use real, full commit SHAs in a review.
 `review.base` records the PR API's base revision.
 If the diff uses a different merge base, record its SHA in optional `review.diffBase` and explain which pair the behavior checks used.
 `checkedAt` records when the PR metadata was read, in UTC.
+UTC timestamps may use fractional seconds and either `Z` or `+00:00`.
 Document, section, diagram, node, edge and source IDs start with a letter and contain only letters, digits, `_` and `-`.
 Keep IDs stable when revising a document.
 Section IDs, diagram IDs and source IDs are each unique across the document.

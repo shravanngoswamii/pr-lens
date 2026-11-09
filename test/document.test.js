@@ -6,6 +6,12 @@ import { document } from './fixture.js';
 
 test('accepts cycles and references across sections', () => assert.equal(validate(document()).id, 'tiny'));
 
+test('accepts UTC timestamps from common ISO serializers', () => {
+  for (const checkedAt of ['2026-11-10T00:00:00Z', '2026-11-10T00:00:00.123Z', '2026-11-10T00:00:00.123456+00:00']) {
+    const doc = document(); doc.review.checkedAt = checkedAt; assert.equal(validate(doc).review.checkedAt, checkedAt);
+  }
+});
+
 test('rejects broken references, typos, duplicate ids, unsafe URLs and moving code links', () => {
   for (const [edit, message] of [
     [d => { d.sections[0].blocks[0].edges[0].to = 'absent'; }, /unknown node absent/],
