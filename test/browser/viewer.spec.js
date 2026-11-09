@@ -1,0 +1,90 @@
+import { test, expect } from '@playwright/test';
+import { mkdtemp, writeFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { render } from '../../src/render.js';
+import { document } from '../fixture.js';
+
+let dir;
+let url;
+test.beforeAll(async () => {
+  dir = await mkdtemp(join(tmpdir(), 'review-docs-'));
+  const doc = document();
+  doc.sections[0].blocks.push(
+    { type: 'compare', title: 'A comparison', before: 'Old behavior.', after: 'New behavior.' },
+    { type: 'code', title: 'A public call', code: 'f(1)', language: 'julia' },
+    { type: 'finding', status: 'suggestion', title: 'Explain this choice', text: 'Keep it small.' },
+    { type: 'check', status: 'unverified', title: 'Other inputs', text: 'Only Int was inspected.' },
+    { type: 'details', title: 'Supporting evidence', text: 'One selected signature.', refs: ['code'] },
+  );
+  await writeFile(join(dir, 'review.html'), await render(doc));
+  url = pathToFileURL(join(dir, 'review.html')).href;
+});
+test.afterAll(async () => rm(dir, { recursive: true, force: true }));
+
+test('opens offline, selects nodes, pans, zooms, fits and exports its editable source', async ({ page, context }) => {
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+  const requests = [];
+  page.on('request', r => { if (/^https?:/.test(r.url())) requests.push(r.url()); });
+  await context.setOffline(true);
+  await page.goto(url);
+  await expect(page.locator('figure')).toHaveAttribute('data-ready', 'true');
+  const svg = page.locator('.viewport svg');
+  const initial = await svg.getAttribute('viewBox');
+  await page.getByRole('button', { name: 'Zoom in', exact: true }).click();
+  await expect(page.locator('output')).toHaveText('125%');
+  const viewport = page.locator('.viewport');
+  await viewport.focus();
+  await page.keyboard.press('ArrowRight');
+  expect(await svg.getAttribute('viewBox')).not.toEqual(initial);
+  await page.getByRole('button', { name: 'Fit to view', exact: true }).click();
+  await expect(svg).toHaveAttribute('viewBox', initial);
+  const box = await viewport.boundingBox();
+  await page.mouse.move(box.x + 20, box.y + 20);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 80, box.y + 60, { steps: 4 });
+  await page.mouse.up();
+  expect(await svg.getAttribute('viewBox')).not.toEqual(initial);
+  await page.getByRole('button', { name: 'Fit to view', exact: true }).click();
+  await page.getByRole('button', { name: 'type: Int', exact: true }).focus();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.selection h4').first()).toHaveText('Int');
+  await page.getByRole('button', { name: 'method: f', exact: true }).click();
+  await expect(page.locator('.selection code')).toHaveText('f(x::Int)');
+  await expect(page.locator('.selection a').first()).toHaveAttribute('href', document().sources[0].url);
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Save editable JSON' }).click();
+  const download = await downloadPromise;
+  const stream = await download.createReadStream();
+  const parts = [];
+  for await (const chunk of stream) parts.push(chunk);
+  const saved = JSON.parse(Buffer.concat(parts).toString());
+  expect(saved.sections[0].blocks[0]).toEqual(document().sections[0].blocks[0]);
+  expect(requests).toEqual([]);
+  expect(errors).toEqual([]);
+});
+
+test('keeps all content readable at a narrow width', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(url);
+  await expect(page.locator('figure')).toHaveAttribute('data-ready', 'true');
+  await page.getByText('Supporting evidence', { exact: true }).click();
+  await expect(page.getByText('One selected signature.', { exact: true })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test('treats hostile prose, code and graph labels as text', async ({ page }) => {
+  const doc = document();
+  const hostile = '</script><img src=x onerror="window.pwned=1"> %%{init: {}}%%';
+  doc.title = hostile;
+  doc.sections[0].blocks[0].nodes[0].label = hostile;
+  doc.sections[0].blocks.push({ type: 'code', title: 'Literal text', code: hostile });
+  await writeFile(join(dir, 'hostile.html'), await render(doc));
+  await page.goto(pathToFileURL(join(dir, 'hostile.html')).href);
+  await expect(page.locator('figure')).toHaveAttribute('data-ready', 'true');
+  await expect(page.locator('h1')).toHaveText(hostile);
+  expect(await page.locator('img').count()).toBe(0);
+  expect(await page.evaluate(() => window.pwned)).toBeUndefined();
+});

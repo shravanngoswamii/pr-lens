@@ -34,10 +34,11 @@ export function validate(doc) {
   identifier(doc.id, '$.id');
   string(doc.title, '$.title');
   string(doc.summary, '$.summary');
-  object(doc.review, '$.review', ['url', 'title', 'base', 'head', 'checkedAt']);
+  object(doc.review, '$.review', ['url', 'title', 'base', 'head', 'diffBase', 'checkedAt']);
   string(doc.review.title, '$.review.title');
   if (!/^https:\/\/github\.com\/[^/?#]+\/[^/?#]+\/pull\/[1-9]\d*$/.test(doc.review.url)) fail('$.review.url', 'expected a GitHub PR URL');
   for (const key of ['base', 'head']) if (!SHA.test(doc.review[key])) fail(`$.review.${key}`, 'expected a full 40-character commit SHA');
+  if (doc.review.diffBase !== undefined && !SHA.test(doc.review.diffBase)) fail('$.review.diffBase', 'expected a full 40-character commit SHA');
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(doc.review.checkedAt) || !Number.isFinite(Date.parse(doc.review.checkedAt))) fail('$.review.checkedAt', 'expected a UTC timestamp such as 2026-11-10T00:00:00Z');
   array(doc.sources, '$.sources');
   doc.sources.forEach((source, i) => {
