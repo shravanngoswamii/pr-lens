@@ -23,7 +23,7 @@ Focus the graph to pan with arrow keys, zoom with `+` and `-`, and fit with `0`.
 The node selector also works with a keyboard.
 “Save editable JSON” recovers the original document from the HTML.
 
-For the shorter command, add this checkout's `bin` directory to `PATH`, or run `npm link` locally.
+For the shorter `review-docs` command, run `npm link` locally.
 There is no package publication step.
 
 ## Agent workflow
