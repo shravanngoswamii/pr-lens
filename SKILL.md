@@ -29,6 +29,7 @@ gh api --paginate repos/OWNER/REPO/pulls/NUMBER/comments
 Record exact base and head SHAs and the metadata check time.
 Inspect `git status` before using local source.
 Use separate checkouts when the local revision or work differs.
+Fetch the PR head explicitly when a normal clone lacks it, for example `git fetch origin refs/pull/NUMBER/head`.
 Do not update, reset or clean an existing working tree to make evidence fit.
 Check `git merge-base BASE HEAD` and record `review.diffBase` if it differs from the PR base used in `review.base`.
 State the actual source pair used for comparisons.
@@ -85,6 +86,7 @@ node bin/review-docs.js render /path/to/review.json --out /path/to/review.html
 Validation catches structural mistakes, not incorrect design claims.
 Open the generated HTML itself in a browser with network disabled.
 Check every section, graph and expandable area for readable text, clipping and useful explanations.
+If labels shrink too far at fit-to-view, simplify the diagram or split it around separate questions.
 Try zoom, pan, fit, keyboard node selection and source links.
 Check that code links use the reviewed SHAs and correct lines.
 Open links online separately when necessary.
