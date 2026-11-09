@@ -1,0 +1,19 @@
+name: Check the tool
+on: [push]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: julia-actions/setup-julia@v3.0.3
+        with:
+          version: '1.10'
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm test
