@@ -80,11 +80,29 @@ test('treats hostile prose, code and graph labels as text', async ({ page }) => 
   const hostile = '</script><img src=x onerror="window.pwned=1"> %%{init: {}}%%';
   doc.title = hostile;
   doc.sections[0].blocks[0].nodes[0].label = hostile;
+  doc.sections[0].blocks[0].nodes[1].label = 'Literal &#58; & [x]';
+  doc.sections[0].blocks[0].edges[0].label = 'calls: f(x[1]) & &#58;';
   doc.sections[0].blocks.push({ type: 'code', title: 'Literal text', code: hostile });
   await writeFile(join(dir, 'hostile.html'), await render(doc));
   await page.goto(pathToFileURL(join(dir, 'hostile.html')).href);
   await expect(page.locator('figure')).toHaveAttribute('data-ready', 'true');
   await expect(page.locator('h1')).toHaveText(hostile);
   expect(await page.locator('img').count()).toBe(0);
+  await expect(page.locator('.edgeLabel text')).toHaveText('calls: f(x[1]) & &#58;');
+  await expect(page.getByRole('button', { name: 'type: Literal &#58; & [x]', exact: true })).toBeVisible();
   expect(await page.evaluate(() => window.pwned)).toBeUndefined();
+});
+
+test('preserves labels on cycles and parallel edges', async ({ page }) => {
+  const doc = document();
+  const graph = doc.sections[0].blocks[0];
+  for (const [id, from, to, label, status] of [
+    ['uses', 'f', 't', 'uses: type', 'possible'],
+    ['back', 't', 'f', 'selects overload', 'source'],
+    ['stores', 'f', 't', 'stores result', 'observed'],
+  ]) graph.edges.push({ id, from, to, label, status, text: 'Synthetic fixture relationship.' });
+  await writeFile(join(dir, 'cycles.html'), await render(doc));
+  await page.goto(pathToFileURL(join(dir, 'cycles.html')).href);
+  await expect(page.locator('figure')).toHaveAttribute('data-ready', 'true');
+  await expect(page.locator('.edgeLabel text')).toHaveText(graph.edges.map(edge => edge.label));
 });

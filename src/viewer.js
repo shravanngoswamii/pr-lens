@@ -23,7 +23,7 @@ const addRefs = (ids, parent) => {
 };
 
 mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: 'base',
-  flowchart: { htmlLabels: false, useMaxWidth: false, curve: 'basis' },
+  flowchart: { htmlLabels: false, useMaxWidth: false, curve: 'basis', wrappingWidth: 320 },
   themeVariables: { fontFamily: 'system-ui, sans-serif', fontSize: '16px', primaryColor: '#eef3ee', primaryTextColor: '#1f3027', primaryBorderColor: '#466853', lineColor: '#52655a', edgeLabelBackground: '#ffffff' },
 });
 
@@ -60,12 +60,27 @@ async function draw(graph, index) {
     const result = await mermaid.render(`diagram${index}`, syntax);
     viewport.innerHTML = result.svg;
     svg = viewport.querySelector('svg');
+    // Mermaid 12 leaves entities in edge labels. Restore the original as SVG text.
+    svg.querySelectorAll('.edgeLabels > .edgeLabel').forEach((group, i) => {
+      const text = group.querySelector('text');
+      text.textContent = graph.edges[i].label;
+      text.setAttribute('x', '0');
+      text.setAttribute('y', '0');
+      text.setAttribute('dominant-baseline', 'middle');
+      group.querySelector('.label').removeAttribute('transform');
+      const rect = group.querySelector('rect.background');
+      const box = text.getBBox();
+      for (const [key, value] of Object.entries({ x: box.x - 4, y: box.y - 2, width: box.width + 8, height: box.height + 4 })) rect?.setAttribute(key, value);
+    });
     svg.removeAttribute('style');
     svg.setAttribute('width', '100%');
     svg.setAttribute('height', '100%');
     svg.setAttribute('aria-label', graph.title);
     const original = svg.viewBox.baseVal;
     const initial = { x: original.x, y: original.y, w: original.width, h: original.height };
+    const size = () => figure.style.setProperty('--graph-height', `${Math.ceil(Math.min(680, Math.max(360, initial.h * Math.min(1, viewport.clientWidth / initial.w))))}px`);
+    new ResizeObserver(size).observe(viewport);
+    size();
     let view = { ...initial };
     const update = () => {
       svg.setAttribute('viewBox', `${view.x} ${view.y} ${view.w} ${view.h}`);
@@ -88,7 +103,7 @@ async function draw(graph, index) {
     }));
     let drag = null;
     let moved = false;
-        svg.addEventListener('pointerdown', event => {
+    svg.addEventListener('pointerdown', event => {
       if (event.button !== 0) return;
       moved = false;
       drag = { x: event.clientX, y: event.clientY, view: { ...view } };
