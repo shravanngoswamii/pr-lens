@@ -1,12 +1,14 @@
 import { readFile } from 'node:fs/promises';
 import { build } from 'esbuild';
 import { validate } from './document.js';
+import { emptyFeedback, validateFeedback } from './feedback.js';
 
 const escape = value => String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const paragraphs = text => text.split(/\n\s*\n/).map(p => `<p>${escape(p)}</p>`).join('');
 
-export async function render(input) {
+export async function render(input, { feedback } = {}) {
   const doc = validate(input);
+  feedback = validateFeedback(feedback ?? emptyFeedback(doc), doc);
   const sources = new Map(doc.sources.map(source => [source.id, source]));
   const refs = ids => !ids?.length ? '' : `<ul class="refs">${ids.map(id => {
     const source = sources.get(id);
@@ -31,15 +33,22 @@ export async function render(input) {
         <details><summary>Generated Mermaid</summary><pre class="mermaid-source"></pre></details>${citations}</figure>`;
     }
   };
-  const css = await readFile(new URL('./viewer.css', import.meta.url), 'utf8');
+  const [css, font, license] = await Promise.all([
+    readFile(new URL('./viewer.css', import.meta.url), 'utf8'),
+    readFile(new URL('../assets/geist-latin.ttf', import.meta.url)),
+    readFile(new URL('../assets/Geist-OFL.txt', import.meta.url), 'utf8'),
+  ]);
   const bundle = await build({ entryPoints: [new URL('./viewer.js', import.meta.url).pathname], bundle: true, write: false, format: 'iife', minify: true, legalComments: 'inline', target: 'es2022' });
   const script = bundle.outputFiles[0].text.replace(/<\/script/gi, '<\\/script');
   const data = JSON.stringify(doc).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
+  const feedbackData = JSON.stringify(feedback).replace(/</g, '\\u003c');
   return `<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>${escape(doc.title)}</title><style>${css}</style></head>
-<body><a class="skip" href="#content">Skip to review</a><div class="document"><nav aria-label="Sections"><a class="home" href="#content">Review docs</a>${doc.sections.map(section => `<a href="#section-${section.id}">${escape(section.title)}</a>`).join('')}<a href="#sources">Sources</a><button type="button" id="download" hidden>Save editable JSON</button></nav>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>${escape(doc.title)}</title><style>@font-face{font-family:Geist;src:url(data:font/ttf;base64,${font.toString('base64')}) format('truetype');font-weight:100 900;font-display:swap}${css}</style></head>
+<body><a class="skip" href="#content">Skip to review</a><div class="viewer-bar"><a class="home" href="#content">Review docs</a><details class="contents"><summary>Contents</summary><nav class="action-menu" aria-label="Sections">${doc.sections.map(section => `<a href="#section-${section.id}">${escape(section.title)}</a>`).join('')}<a href="#sources">Sources</a></nav></details>
+<div class="viewer-actions" data-runtime hidden><button type="button" id="comments-toggle" aria-expanded="false" aria-controls="feedback-panel">Comments (0)</button><details class="save-menu"><summary>Save</summary><div class="action-menu"><button type="button" id="save-review">HTML with comments</button><button type="button" id="download">Save editable JSON</button><button type="button" id="export-feedback">Export feedback</button><button type="button" id="import-feedback">Import feedback</button><input type="file" id="feedback-file" accept=".json,application/json" hidden></div></details></div></div>
+<div class="workspace"><div class="document">
 <main id="content"><header><h1>${escape(doc.title)}</h1><p class="lead">${escape(doc.summary)}</p><a href="${escape(doc.review.url)}" target="_blank" rel="noopener noreferrer">${escape(doc.review.title)}</a><details class="revisions"><summary>Reviewed revisions and scope</summary><dl><dt>Base</dt><dd><code>${doc.review.base}</code></dd><dt>Head</dt><dd><code>${doc.review.head}</code></dd>${doc.review.diffBase ? `<dt>Diff base</dt><dd><code>${doc.review.diffBase}</code></dd>` : ''}<dt>PR checked</dt><dd>${escape(doc.review.checkedAt)}</dd></dl><p>This document records the reviewed snapshot. Source links support the analysis. Structural validation does not prove call relationships.</p></details></header>
-${doc.sections.map(section => `<section id="section-${section.id}"><h2>${escape(section.title)}</h2>${section.blocks.map(blockHTML).join('')}</section>`).join('')}
-<section id="sources"><h2>Sources</h2>${refs(doc.sources.map(source => source.id))}</section><footer>Generated with review-docs. Explanations and relationships are agent-authored.</footer></main></div>
-<script id="review-data" type="application/json">${data}</script><script>${script}</script></body></html>`;
+${doc.sections.map(section => `<section id="section-${section.id}" data-section="${section.id}"><div class="section-heading"><h2>${escape(section.title)}</h2><button type="button" class="comment-link" data-runtime hidden aria-label="Comment on ${escape(section.title)}" data-comment-target="${escape(JSON.stringify({ section: section.id }))}">Comment</button></div>${section.blocks.map(blockHTML).join('')}</section>`).join('')}
+<section id="sources"><h2>Sources</h2>${refs(doc.sources.map(source => source.id))}</section><footer>Generated with review-docs. Explanations and relationships are agent-authored.</footer></main></div><aside id="feedback-panel" class="feedback-panel" aria-labelledby="feedback-title" hidden></aside></div>
+<template id="font-license"><pre>${escape(license)}</pre></template><script id="review-data" type="application/json">${data}</script><script id="feedback-data" type="application/json">${feedbackData}</script><script>${script}</script></body></html>`;
 }

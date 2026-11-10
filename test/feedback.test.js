@@ -47,6 +47,7 @@ test('rejects malformed feedback and files for a different review', () => {
     f => { f.comments[0].target = { node: 'f' }; },
     f => { f.comments[0].status = 'unknown'; },
     f => { f.comments[0].head = 'main'; },
+    f => { delete f.comments[0].id; },
     f => { f.comments[0].updatedAt = 'invalid'; },
     f => { f.comments.push(comment()); },
     f => { f.comments[0].html = '<b>not supported</b>'; },

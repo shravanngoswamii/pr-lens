@@ -55,6 +55,7 @@ test('opens offline, selects nodes, pans, zooms, fits and exports its editable s
   await expect(page.locator('.selection code')).toHaveText('f(x::Int)');
   await expect(page.locator('.selection a').first()).toHaveAttribute('href', document().sources[0].url);
   const downloadPromise = page.waitForEvent('download');
+  await page.locator('.save-menu > summary').click();
   await page.getByRole('button', { name: 'Save editable JSON' }).click();
   const download = await downloadPromise;
   const stream = await download.createReadStream();
@@ -67,7 +68,7 @@ test('opens offline, selects nodes, pans, zooms, fits and exports its editable s
 });
 
 test('keeps all content readable at a narrow width', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
+  await page.setViewportSize({ width: 320, height: 844 });
   await page.goto(url);
   await expect(page.locator('figure')).toHaveAttribute('data-ready', 'true');
   await page.getByText('Supporting evidence', { exact: true }).click();

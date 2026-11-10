@@ -1,7 +1,9 @@
 import mermaid from 'mermaid';
 import { toMermaid } from './document.js';
+import { initFeedback } from './feedback-viewer.js';
 
 const doc = JSON.parse(document.querySelector('#review-data').textContent);
+initFeedback(doc);
 const sources = new Map(doc.sources.map(source => [source.id, source]));
 const element = (tag, text, parent) => {
   const node = document.createElement(tag);
@@ -22,9 +24,9 @@ const addRefs = (ids, parent) => {
   }
 };
 
-mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: 'base',
+mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: 'base', look: 'classic',
   flowchart: { htmlLabels: false, useMaxWidth: false, curve: 'basis', wrappingWidth: 320 },
-  themeVariables: { fontFamily: 'system-ui, sans-serif', fontSize: '16px', primaryColor: '#eef3ee', primaryTextColor: '#1f3027', primaryBorderColor: '#466853', lineColor: '#52655a', edgeLabelBackground: '#ffffff' },
+  themeVariables: { fontFamily: 'Geist, system-ui, sans-serif', fontSize: '16px', primaryColor: '#ffffff', primaryTextColor: '#171717', primaryBorderColor: '#a3a3a3', lineColor: '#737373', edgeLabelBackground: '#f7f7f7' },
 });
 
 async function draw(graph, index) {
@@ -43,6 +45,9 @@ async function draw(graph, index) {
     element('p', node.text, selection);
     if (node.signature) element('code', node.signature, element('pre', '', selection));
     addRefs(node.refs, selection);
+    const comment = element('button', 'Comment on this node', selection);
+    comment.type = 'button';
+    comment.dataset.commentTarget = JSON.stringify({ section: figure.closest('section').dataset.section, diagram: graph.id, node: node.id });
     const related = graph.edges.filter(edge => edge.from === node.id || edge.to === node.id);
     if (related.length) element('h4', 'Relationships', selection);
     for (const edge of related) {
@@ -70,7 +75,7 @@ async function draw(graph, index) {
       group.querySelector('.label').removeAttribute('transform');
       const rect = group.querySelector('rect.background');
       const box = text.getBBox();
-      for (const [key, value] of Object.entries({ x: box.x - 4, y: box.y - 2, width: box.width + 8, height: box.height + 4 })) rect?.setAttribute(key, value);
+      if (box.width) for (const [key, value] of Object.entries({ x: box.x - 4, y: box.y - 2, width: box.width + 8, height: box.height + 4 })) rect?.setAttribute(key, value);
     });
     svg.removeAttribute('style');
     svg.setAttribute('width', '100%');
@@ -177,6 +182,7 @@ download.addEventListener('click', () => {
 });
 
 async function start() {
+  await document.fonts.ready;
   for (const [index, graph] of doc.sections.flatMap(section => section.blocks.filter(block => block.type === 'diagram')).entries()) await draw(graph, index);
   document.documentElement.dataset.ready = 'true';
 }
