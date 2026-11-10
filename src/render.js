@@ -5,6 +5,7 @@ import { emptyFeedback, validateFeedback, buildTaskPrompt } from './feedback.js'
 import { suggestedDiff } from './diff.js';
 import { coverage, definitionURL } from './inventory.js';
 import { graphView } from './design.js';
+import { chapters } from './chapters.js';
 
 const escape = value => String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const paragraphs = text => text.split(/\n\s*\n/).map(p => `<p>${escape(p)}</p>`).join('');
@@ -15,11 +16,13 @@ export async function render(input, { feedback } = {}) {
   const reviewPath = new URL(doc.review.url).pathname.split('/');
   const scope = `${reviewPath[1]}/${reviewPath[2]} #${reviewPath[4]}`;
   const sources = new Map(doc.sources.map(source => [source.id, source]));
+  const reading = chapters(doc);
+  const citation = ids => !ids?.length ? '' : `<sup class="citations">${ids.map(id => `<a href="#source-${id}" data-view="sources" data-source="${id}" aria-label="Source ${doc.sources.findIndex(source => source.id === id) + 1}: ${escape(sources.get(id).label)}">${doc.sources.findIndex(source => source.id === id) + 1}</a>`).join(', ')}</sup>`;
   const refs = (ids, expanded = false) => {
     if (!ids?.length) return '';
     const list = `<ul class="refs">${ids.map(id => {
       const source = sources.get(id);
-      return `<li><a href="${escape(source.url)}" target="_blank" rel="noopener noreferrer">${escape(source.label)}</a></li>`;
+      return `<li${expanded ? ` id="source-${id}" tabindex="-1"` : ''}><a href="${escape(source.url)}" target="_blank" rel="noopener noreferrer">${expanded ? `${doc.sources.indexOf(source) + 1}. ` : ''}${escape(source.label)}</a></li>`;
     }).join('')}</ul>`;
     return expanded ? list : `<details class="source-list"><summary>Sources (${ids.length})</summary>${list}</details>`;
   };
@@ -37,9 +40,9 @@ export async function render(input, { feedback } = {}) {
   };
   const blockHTML = (block, id, sectionId) => {
     const title = escape(block.title ?? '');
-    const citations = refs(block.refs);
+    const citations = citation(block.refs);
     switch (block.type) {
-      case 'text': return `${paragraphs(block.text)}${citations}`;
+      case 'text': return paragraphs(block.text).replace(/<\/p>$/, `${citations}</p>`);
       case 'code': return `<div class="example"><h3>${title}</h3><pre><code>${escape(block.code)}</code></pre>${citations}</div>`;
       case 'compare': return `<div class="comparison"><h3>${title}</h3><div class="columns"><div><h4>Before</h4>${paragraphs(block.before)}</div><div><h4>After</h4>${paragraphs(block.after)}</div></div>${citations}</div>`;
       case 'details': return `<details><summary>${title}</summary>${paragraphs(block.text)}${citations}</details>`;
@@ -82,9 +85,9 @@ export async function render(input, { feedback } = {}) {
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>${escape(doc.title)}</title><style>@font-face{font-family:"IBM Plex Sans";src:url(data:font/ttf;base64,${font.toString('base64')}) format('truetype');font-weight:100 700;font-display:swap}${css}</style></head>
 <body><a class="skip" href="#content">Skip to review</a>
 <aside class="sidebar" id="view-navigation" aria-label="Review navigation">
-<a class="home" data-view="section-${doc.sections[0].id}" href="#section-${doc.sections[0].id}"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M5 6h5v5H5zM14 13h5v5h-5zM7.5 11v4.5H14M10 8.5h6.5V13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>Review docs</a>
+<a class="home" data-view="${reading[0].id}" href="#${reading[0].id}"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M5 6h5v5H5zM14 13h5v5h-5zM7.5 11v4.5H14M10 8.5h6.5V13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>Review docs</a>
 <a class="review-scope" href="${escape(doc.review.url)}" target="_blank" rel="noopener noreferrer">${escape(scope)}</a>
-<nav aria-label="Views">${doc.sections.map(section => `<a data-view="section-${section.id}" href="#section-${section.id}">${escape(section.title)}</a>`).join('')}<a data-view="sources" href="#sources">Sources</a></nav>
+<nav aria-label="Views">${reading.map(chapter => `<a data-view="${chapter.id}" href="#${chapter.id}"${chapter.supporting ? ' class="supporting-link"' : ''}>${escape(chapter.title)}</a>`).join('')}<a data-view="sources" href="#sources">Sources</a></nav>
 <details class="review-context"><summary>About this review</summary></details></aside>
 <div class="viewer-bar"><button type="button" id="views-toggle" data-runtime hidden aria-expanded="false" aria-controls="view-navigation">Views</button><div class="review-title"><h1>${escape(doc.title)}</h1></div>
 <div class="viewer-actions" data-runtime hidden><button type="button" id="comments-toggle" aria-expanded="false" aria-controls="feedback-panel">Comments (0)</button><details class="save-menu"><summary>Save</summary><div class="action-menu"><button type="button" id="save-review">HTML with comments</button><button type="button" id="download">Save editable JSON</button><button type="button" id="export-feedback">Export feedback</button><button type="button" id="import-feedback">Import feedback</button><input type="file" id="feedback-file" accept=".json,application/json" hidden></div></details></div></div>

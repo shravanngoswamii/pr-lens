@@ -1,3 +1,5 @@
+import { chapters } from './chapters.js';
+
 export function initWorkspace(doc, draw) {
   const root = document.documentElement;
   const main = document.querySelector('main');
@@ -5,6 +7,15 @@ export function initWorkspace(doc, draw) {
   const toggle = document.querySelector('#views-toggle');
   const routes = new Map();
   const sections = [...main.querySelectorAll(':scope > section')];
+  main.querySelector('.chapter-outline')?.remove();
+  const outline = document.createElement('nav');
+  outline.className = 'chapter-outline';
+  outline.setAttribute('aria-label', 'In Details');
+  main.prepend(outline);
+  const reading = chapters(doc);
+  const grouped = Boolean(doc.sections[0].group);
+  root.classList.toggle('grouped-review', grouped);
+  const chapterFor = section => reading.find(chapter => chapter.sections.includes(section.dataset.section));
   const graphs = new Map(doc.sections.flatMap(section => section.blocks.filter(block => block.type === 'diagram')).map((graph, index) => [graph.id, { graph, index }]));
   document.querySelector('.chapter-pager')?.remove();
   const pager = document.createElement('nav');
@@ -59,29 +70,41 @@ export function initWorkspace(doc, draw) {
       });
     }
   }
+  for (const chapter of reading) routes.set(chapter.id, { section: sections.find(section => section.id === `section-${chapter.sections[0]}`), chapter });
   const meta = document.querySelector('.review-meta');
   if (meta) document.querySelector('.review-context').append(meta);
-  const fallback = sections[0].id;
+  const fallback = reading[0].id;
 
-  function pageLink(section, label) {
+  function pageLink(chapter, label) {
     const link = document.createElement('a');
-    link.href = `#${section.id}`;
-    link.dataset.view = section.id;
+    link.href = `#${chapter.id}`;
+    link.dataset.view = chapter.id;
     const direction = document.createElement('span');
     direction.textContent = label;
     const title = document.createElement('strong');
-    title.textContent = section.querySelector('h2').textContent;
+    title.textContent = chapter.title;
     link.append(direction, title);
     return link;
   }
   async function show(id, focus = false) {
     const route = routes.get(id) ?? routes.get(current) ?? routes.get(fallback);
     current = routes.has(id) ? id : current ?? fallback;
+    const chapter = route.chapter ?? chapterFor(route.section);
+    outline.replaceChildren();
+    outline.hidden = !chapter?.supporting || Boolean(route.figure);
+    if (!outline.hidden) for (const id of chapter.sections) {
+      const section = sections.find(section => section.dataset.section === id);
+      const link = document.createElement('a');
+      link.href = `#${section.id}`;
+      link.dataset.view = section.id;
+      link.textContent = section.querySelector('h2').textContent;
+      outline.append(link);
+    }
     root.dataset.view = current;
     root.dataset.mode = route.figure ? 'diagram' : 'chapter';
     for (const section of sections) {
       restore(section);
-      section.hidden = section !== route.section;
+      section.hidden = route.figure || !grouped || !chapter ? section !== route.section : !chapter.sections.includes(section.dataset.section);
     }
     main.querySelectorAll('figure[data-graph]').forEach(figure => { figure.hidden = false; });
     if (route.figure) {
@@ -99,19 +122,25 @@ export function initWorkspace(doc, draw) {
       if (notes.children.length > 1) route.figure.querySelector('.inspector').append(notes);
       section.querySelectorAll('figure[data-graph]').forEach(figure => { figure.hidden = figure !== route.figure; });
     }
-    const index = sections.indexOf(route.section);
+    const sequence = reading.filter(chapter => !chapter.supporting);
+    const index = sequence.indexOf(chapter);
     pager.replaceChildren();
-    if (index > 0) pager.append(pageLink(sections[index - 1], 'Previous'));
-    if (index < sections.length - 1) pager.append(pageLink(sections[index + 1], 'Next'));
+    if (index > 0) pager.append(pageLink(sequence[index - 1], 'Previous'));
+    if (index >= 0 && index < sequence.length - 1) pager.append(pageLink(sequence[index + 1], 'Next'));
+    if (chapter?.supporting || !chapter) pager.append(pageLink(sequence.at(-1), 'Back to review'));
     for (const link of document.querySelectorAll('a[data-view]')) {
       const target = routes.get(link.dataset.view);
-      const active = target?.section === route.section && (!link.closest('.diagram-tabs') || target.figure === route.figure);
+      const active = (target?.chapter ? target.chapter === chapter : target?.section === route.section) && (!link.closest('.diagram-tabs') || target.figure === route.figure);
       active ? link.setAttribute('aria-current', 'page') : link.removeAttribute('aria-current');
     }
     menu(false);
     document.dispatchEvent(new CustomEvent('review:navigate'));
     if (focus) route.section.querySelector('h2')?.focus({ preventScroll: true });
-    const visible = route.figure ? [route.figure] : [...route.section.querySelectorAll('figure[data-graph]')];
+    if (grouped && !route.figure) {
+      if (route.chapter) main.scrollTop = 0;
+      else route.section.scrollIntoView({ block: 'start' });
+    }
+    const visible = route.figure ? [route.figure] : [...main.querySelectorAll(':scope > section:not([hidden]) figure[data-graph]')];
     for (const figure of visible) {
       if (figure.dataset.ready) continue;
       const { graph, index } = graphs.get(figure.dataset.graph);
@@ -127,6 +156,7 @@ export function initWorkspace(doc, draw) {
     event.preventDefault();
     history.pushState(null, '', link.getAttribute('href'));
     const route = await show(link.dataset.view, true);
+    if (link.dataset.source) document.getElementById(`source-${link.dataset.source}`)?.focus();
     if (link.dataset.node && route.figure) document.dispatchEvent(new CustomEvent('review:select-node', { detail: { diagram: route.figure.dataset.graph, node: link.dataset.node } }));
   });
   window.addEventListener('hashchange', () => show(location.hash.slice(1)));

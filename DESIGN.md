@@ -10,6 +10,9 @@ The bundled font is unmodified Google Fonts revision `0b58fb370093f9a9f4ff785d94
 
 Open the first chapter with its explanation visible.
 Previous and Next follow the authored order.
+Group the reading path under Overview, Changes, Design and Review when useful.
+Keep inventories, reference trees and wording edits in Details outside that path.
+Use numbered citations without interrupting paragraphs.
 Place diagrams beside their explanation and result.
 Explore diagram opens the focused canvas with node details on the right.
 Back to explanation restores the chapter's original order.

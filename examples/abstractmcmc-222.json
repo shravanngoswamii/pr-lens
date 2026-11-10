@@ -109,7 +109,8 @@
             "head-fallbacks"
           ]
         }
-      ]
+      ],
+      "group": "overview"
     },
     {
       "id": "purpose",
@@ -144,7 +145,8 @@
             "distributed"
           ]
         }
-      ]
+      ],
+      "group": "overview"
     },
     {
       "id": "behavior",
@@ -178,7 +180,8 @@
           "type": "text",
           "text": "All six invalid calls across MCMCSerial, MCMCThreads and MCMCDistributed changed from MethodError to ArgumentError. No sampler step ran. The second case used initial_params=(a=1.0, b=2.0)."
         }
-      ]
+      ],
+      "group": "changes"
     },
     {
       "id": "design",
@@ -377,7 +380,8 @@
             "distributed"
           ]
         }
-      ]
+      ],
+      "group": "design"
     },
     {
       "id": "review-actions",
@@ -428,7 +432,8 @@
             "distributed"
           ]
         }
-      ]
+      ],
+      "group": "review"
     },
     {
       "id": "linked-context",
@@ -682,7 +687,8 @@
             }
           ]
         }
-      ]
+      ],
+      "group": "details"
     },
     {
       "id": "definition-groups",
@@ -763,7 +769,8 @@
             ]
           }
         }
-      ]
+      ],
+      "group": "details"
     },
     {
       "id": "definitions",
@@ -1104,7 +1111,8 @@
           ],
           "omissions": []
         }
-      ]
+      ],
+      "group": "details"
     },
     {
       "id": "checks",
@@ -1149,7 +1157,8 @@
             "release-plan"
           ]
         }
-      ]
+      ],
+      "group": "review"
     }
   ]
 }

@@ -46,11 +46,16 @@ Validation checks shape and references, not remote contents or design claims.
 
 ## Blocks
 
-Sections have `{ id, title, blocks }`.
+Sections have `{ id, title, group?, blocks }`.
 `sections` and `blocks` must be nonempty.
 All blocks accept optional `refs`.
 `?` marks an optional field.
-Chapters open in source order, starting with the first section.
+Set `group` on every section to use Overview, Changes, Design, Review and Details.
+Values are `overview`, `changes`, `design`, `review` and `details`.
+Empty groups are omitted.
+Sections keep their order within each group.
+Details stays outside Previous and Next.
+Without groups, chapters follow source order.
 Keep the main explanation visible in `text`, `compare` or `table` blocks.
 Diagram links open a focused canvas and return to the same explanation.
 

@@ -88,7 +88,8 @@ export function validate(doc) {
   array(doc.sections, '$.sections', true);
   doc.sections.forEach((section, i) => {
     const p = `$.sections[${i}]`;
-    object(section, p, ['id', 'title', 'blocks']);
+    object(section, p, ['id', 'title', 'group', 'blocks']);
+    if (section.group !== undefined) choice(section.group, `${p}.group`, ['overview', 'changes', 'design', 'review', 'details']);
     string(section.title, `${p}.title`);
     array(section.blocks, `${p}.blocks`, true);
     section.blocks.forEach((block, j) => {
@@ -168,6 +169,7 @@ export function validate(doc) {
     });
   });
   unique(doc.sections, '$.sections');
+  if (doc.sections.some(section => section.group) && doc.sections.some(section => !section.group)) fail('$.sections', 'set group on every section or leave all groups unset');
   const blocks = doc.sections.flatMap(section => section.blocks);
   const inventories = blocks.filter(block => block.type === 'inventory');
   if (inventories.length > 1) fail('$', 'use one inventory per review');

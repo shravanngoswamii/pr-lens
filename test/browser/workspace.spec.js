@@ -102,3 +102,34 @@ test('supports prose-only reviews and a readable fallback without JavaScript', a
   await expect(fallback.getByText('Calls itself.', { exact: true }).first()).toBeVisible();
   await context.close();
 });
+
+test('groups explanations without forcing supporting material into the reading path', async ({ page }) => {
+  const doc = document();
+  doc.sections[0].group = 'design';
+  doc.sections.unshift({ id: 'overview', title: 'Overview', group: 'overview', blocks: [{ type: 'text', text: 'The problem.', refs: ['src'] }] });
+  doc.sections.push({ id: 'impact', title: 'Caller impact', group: 'design', blocks: [{ type: 'text', text: 'The effect on callers.' }] });
+  doc.sections.push({ id: 'evidence', title: 'Evidence', group: 'details', blocks: [{ type: 'text', text: 'The full supporting material.' }] });
+  doc.sections[0].blocks[0].refs = [doc.sources[0].id];
+  const grouped = pathToFileURL(join(dir, 'grouped.html')).href;
+  await writeFile(join(dir, 'grouped.html'), await render(doc));
+  await page.context().setOffline(true);
+  await page.goto(grouped);
+  await page.getByRole('navigation', { name: 'Reading order' }).getByRole('link', { name: 'Next Design' }).click();
+  await expect(page.getByText('The effect on callers.', { exact: true })).toBeVisible();
+  await expect(page.getByText('The full supporting material.', { exact: true })).toBeHidden();
+  await expect(page.getByRole('navigation', { name: 'Reading order' }).getByRole('link', { name: /Next/ })).toHaveCount(0);
+  await page.goto(grouped + '#section-impact');
+  await expect(page.locator('#section-impact')).toBeVisible();
+  await page.goto(grouped + '#graph-calls');
+  await expect(page.locator('#graph-calls')).toHaveAttribute('data-ready', 'true');
+  await page.locator('.explanation-link').click();
+  await expect(page.locator('#section-impact')).toBeVisible();
+  await page.locator('.sidebar nav a[data-view="view-overview"]').click();
+  await page.getByRole('link', { name: /^Source 1:/ }).click();
+  await expect(page.locator('#sources')).toBeVisible();
+  await expect(page.locator(`#source-${doc.sources[0].id}`)).toBeFocused();
+  await page.goBack();
+  await expect(page.locator('#section-overview')).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});

@@ -55,6 +55,10 @@ Do not infer runtime coverage from inventory or diagram coverage.
 
 - Write a review a newcomer can read in order: problem, change, example, design, impact and conclusions.
   Scale the chapters to the PR.
+- Group sections under `overview`, `changes`, `design`, `review` and `details`.
+  Use only the groups the PR needs.
+  Put the full inventory, linked-work browser and wording edits in Details.
+  Keep the main path readable without opening them.
 - Start with **Overview**: what the project does, why this change matters and who it affects.
 - Use one running public example to compare the same inputs before and after.
 - Explain internal names before using them.
