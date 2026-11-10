@@ -30,7 +30,7 @@ export async function render(input, { feedback } = {}) {
       case 'code': return `<div class="example"><h3>${title}</h3><pre><code>${escape(block.code)}</code></pre>${citations}</div>`;
       case 'compare': return `<div class="comparison"><h3>${title}</h3><div class="columns"><div><h4>Before</h4>${paragraphs(block.before)}</div><div><h4>After</h4>${paragraphs(block.after)}</div></div>${citations}</div>`;
       case 'details': return `<details><summary>${title}</summary>${paragraphs(block.text)}${citations}</details>`;
-      case 'table': return `<div class="review-table"><h3>${title}</h3><div class="table-scroll" role="region" aria-label="${title}" tabindex="0"><table><thead><tr>${block.columns.map(column => `<th scope="col">${escape(column)}</th>`).join('')}</tr></thead><tbody>${block.rows.map(row => `<tr>${row.map((cell, i) => i ? `<td>${escape(cell)}</td>` : `<th scope="row">${escape(cell)}</th>`).join('')}</tr>`).join('')}</tbody></table></div>${citations}</div>`;
+      case 'table': return `<div class="review-table"><h3>${title}</h3><div class="table-scroll" role="region" aria-label="${title}" tabindex="0"><table role="table"><thead><tr>${block.columns.map(column => `<th scope="col">${escape(column)}</th>`).join('')}</tr></thead><tbody>${block.rows.map(row => `<tr>${row.map((cell, i) => i ? `<td data-label="${escape(block.columns[i])}">${escape(cell)}</td>` : `<th scope="row">${escape(cell)}</th>`).join('')}</tr>`).join('')}</tbody></table></div>${citations}</div>`;
       case 'finding': case 'check': return `<div class="note ${block.type}"><span class="status">${escape(block.status)}</span><h3>${title}</h3>${paragraphs(block.text)}${citations}</div>`;
       case 'diff': {
         const diff = suggestedDiff(block);

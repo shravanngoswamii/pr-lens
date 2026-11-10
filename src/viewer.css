@@ -252,6 +252,15 @@ code { font-family: ui-monospace, monospace; }
   .diff .line-code { white-space: pre-wrap; overflow-wrap: anywhere; }
   .feedback-panel { padding-inline: 20px; }
 }
+@media (max-width: 600px) {
+  .review-table table, .review-table tbody, .review-table tr, .review-table th, .review-table td { display: block; }
+  .review-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .review-table tbody tr { margin-bottom: 12px; }
+  .review-table th, .review-table td { min-width: 0; padding: 8px 16px; }
+  .review-table tbody th { padding-top: 16px; }
+  .review-table tbody tr > :last-child { padding-bottom: 16px; }
+  .review-table td::before { content: attr(data-label); display: block; color: var(--muted); font-size: 12px; margin-bottom: 4px; }
+}
 @media (prefers-reduced-motion: reduce) { button { transition: none; } }
 @media print {
   .workspace-mode body { display: block; height: auto; overflow: visible; background: white; }

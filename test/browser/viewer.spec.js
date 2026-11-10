@@ -17,6 +17,7 @@ test.beforeAll(async () => {
     { type: 'finding', status: 'suggestion', title: 'Explain this choice', text: 'Keep it small.' },
     { type: 'check', status: 'unverified', title: 'Other inputs', text: 'Only Int was inspected.' },
     { type: 'details', title: 'Supporting evidence', text: 'One selected signature.', refs: ['code'] },
+    { type: 'table', title: 'Design choices', columns: ['Choice', 'Benefit', 'Cost'], rows: [['Shared storage', 'One representation for values.', 'Callers must retain its shape.']] },
   );
   await writeFile(join(dir, 'review.html'), await render(doc));
   url = pathToFileURL(join(dir, 'review.html')).href;
@@ -73,6 +74,13 @@ test('keeps all content readable at a narrow width', async ({ page }) => {
   await expect(page.locator('figure')).toHaveAttribute('data-ready', 'true');
   await page.getByText('Supporting evidence', { exact: true }).click();
   await expect(page.getByText('One selected signature.', { exact: true })).toBeVisible();
+  const table = page.getByRole('table');
+  const header = await table.locator('tbody th').boundingBox();
+  const cell = await table.locator('td').first().boundingBox();
+  expect(cell.width).toBeGreaterThan(230);
+  expect(cell.x).toEqual(header.x);
+  expect(cell.y).toBeGreaterThan(header.y);
+  await expect(table.getByRole('columnheader')).toHaveCount(3);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
