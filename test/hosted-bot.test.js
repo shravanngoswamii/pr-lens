@@ -68,19 +68,22 @@ test('caches completed metadata while retaining failed review artifacts for retr
   const dir = await mkdtemp(join(tmpdir(), 'review-docs-hosted-state-'));
   const config = hostedConfig(input, dir);
   try {
-    for (const name of ['12', '34', 'lock']) await mkdir(join(config.stateDir, name), { recursive: true });
+    for (const name of ['12', '34', 'review-56', 'lock']) await mkdir(join(config.stateDir, name), { recursive: true });
     await writeFile(join(config.stateDir, '12', 'index.html'), 'Completed report');
     await writeFile(join(config.stateDir, '34', 'index.html'), 'Failed report');
     const file = join(config.stateDir, 'state.json');
     await writeFile(file, JSON.stringify({ version: 1, since: config.since, requests: {
       12: { status: 'posted', comment: 'https://github.com/owner/repo/pull/1#issuecomment-12', document: '/old/report.json', directory: '/old/dir' },
       34: { status: 'failed', document: 'Keep for retry' },
+      'review-56': { status: 'posted', comment: 'Review reply', directory: '/old/dir' },
     } }));
     await compactState(config);
     const state = JSON.parse(await readFile(file));
     assert.equal(state.requests[12].document, undefined);
     assert.equal(state.requests[34].document, 'Keep for retry');
+    assert.equal(state.requests['review-56'].directory, undefined);
     await assert.rejects(() => access(join(config.stateDir, '12')));
+    await assert.rejects(() => access(join(config.stateDir, 'review-56')));
     await assert.rejects(() => access(join(config.stateDir, 'lock')));
     await access(join(config.stateDir, '34', 'index.html'));
   } finally { await rm(dir, { recursive: true, force: true }); }
