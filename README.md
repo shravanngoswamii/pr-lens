@@ -1,4 +1,4 @@
-# Review docs
+# PR Lens
 
 Source-linked PR reviews with interactive diagrams, suggested edits and reviewer comments.
 An agent writes JSON.
@@ -10,6 +10,8 @@ Requires Node.js 22.12+ and npm.
 Julia 1.10+ is needed for reflection and tests.
 
 ```sh
+git clone https://github.com/shravanngoswamii/pr-lens.git
+cd pr-lens
 npm ci
 mkdir -p output
 node bin/review-docs.js render examples/dynamicppl-1529.json --out output/review.html
@@ -23,7 +25,7 @@ Use **Save > HTML with comments** to share it.
 Comments stay local until exported.
 Source links need internet access.
 For a full change inventory and a reusable base graph, see [Design changes](docs/design.md).
-Run `npm link` for the shorter `review-docs` command.
+Run `npm link` for `pr-lens` or the existing `review-docs` command.
 
 Ask an agent:
 
@@ -31,7 +33,13 @@ Ask an agent:
 
 Load [SKILL.md](SKILL.md) here, or copy this checkout into your agent's skill directory and run `npm ci`.
 
-For hosted or local reviews triggered by bot mentions, see [Review bot](docs/bot.md).
+Run your own [review bot](docs/bot.md) with a Claude subscription.
+Comment or request the bot as a reviewer.
+GitHub Actions runs the review and publishes the report to your bot's GitHub Pages site.
+The worker reads source and checks the report.
+It does not run the PR's package tests.
+Codex can use the skill interactively.
+Hosted Codex subscription reviews are not included.
 
 [Format](docs/format.md) · [Helpers](docs/helpers.md) · [Linked work](docs/linked-work.md) · [Feedback](docs/feedback.md) · [Sharing](docs/sharing.md) · [Examples](examples/README.md) · [DrawShare](docs/drawshare.md)
 

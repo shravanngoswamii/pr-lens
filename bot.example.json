@@ -1,18 +1,19 @@
 {
   "version": 1,
-  "sandbox": "shravangoswami-bot",
-  "login": "shravangoswami-bot",
+  "sandbox": "your-bot",
+  "login": "your-bot",
   "requesters": [
-    { "login": "shravanngoswamii", "id": 123811742 },
-    { "login": "yebai", "id": 3279477 },
-    { "login": "sunxd3", "id": 5433119 }
+    {
+      "login": "your-login",
+      "id": 0
+    }
   ],
   "stateDir": "/absolute/path/to/review-docs/output/bot-state",
   "publish": {
     "checkout": "/absolute/path/to/site-checkout",
-    "repo": "shravanngoswamii/experimental",
+    "repo": "your-bot/pr-lens-reports",
     "branch": "gh-pages",
     "prefix": "reviews",
-    "url": "https://shravangoswami.com/experimental"
+    "url": "https://your-bot.github.io/pr-lens-reports"
   }
 }

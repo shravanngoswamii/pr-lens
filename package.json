@@ -1,8 +1,9 @@
 {
-  "name": "review-docs",
+  "name": "pr-lens",
   "private": true,
   "type": "module",
   "bin": {
+    "pr-lens": "bin/review-docs.js",
     "review-docs": "bin/review-docs.js",
     "review-bot": "bin/review-bot.js"
   },
@@ -22,5 +23,6 @@
   },
   "devDependencies": {
     "@playwright/test": "1.65.0"
-  }
+  },
+  "license": "MIT"
 }
