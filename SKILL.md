@@ -37,8 +37,17 @@ A mention alone establishes no dependency.
 
 ## Write
 
-- Start with **In plain English**: the problem, change and user-visible effect.
-- Use short sentences and one running public example.
+- Write a review a newcomer can read in order: problem, change, example, design, impact and conclusions.
+  Scale the chapters to the PR.
+- Start with **In plain English**: what the project does, why this change matters and who it affects.
+- Use one running public example to compare the same inputs before and after.
+- Explain internal names before using them.
+  Introduce each diagram's question and reading order.
+  Follow it with the result or design implication.
+- Cover material API, compatibility and downstream changes in visible prose or tables.
+  Keep the main explanation out of `details` blocks.
+- Explain the design's benefits, costs and open decisions.
+  Label review judgments and distinguish findings from proposed edits.
 - Choose focused diagrams after reading the code.
 - Use stable IDs and structured nodes/edges as the graph's only source.
 - Distinguish types, methods and overloads.
@@ -61,6 +70,7 @@ Include only useful blocks:
 | Block | Use |
 | --- | --- |
 | `details` | Long signatures and supporting evidence |
+| `table` | Role rules, migration steps or design tradeoffs |
 | `diff` | A small proposed edit or PR change, with reason and verification scope |
 | `proposal` | A better PR title or description, preserving key changes and migration links |
 | `prompt` | A concrete next task with inputs, evidence and expected result |
@@ -78,6 +88,8 @@ node bin/review-docs.js render review.json --out review.html
 ```
 
 Open the HTML offline at desktop and phone widths.
+Read from the first chapter with Next before exploring diagrams.
+Check that a reader can explain the problem, changed behavior, design and review outcome without opening node details.
 Open every view and check its disclosures and source links.
 Try graph controls, node selection, copy actions and linked-work branches.
 Split diagrams whose labels become too small.

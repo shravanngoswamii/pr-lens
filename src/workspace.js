@@ -6,6 +6,11 @@ export function initWorkspace(doc, draw) {
   const routes = new Map();
   const sections = [...main.querySelectorAll(':scope > section')];
   const graphs = new Map(doc.sections.flatMap(section => section.blocks.filter(block => block.type === 'diagram')).map((graph, index) => [graph.id, { graph, index }]));
+  document.querySelector('.chapter-pager')?.remove();
+  const pager = document.createElement('nav');
+  pager.className = 'chapter-pager';
+  pager.setAttribute('aria-label', 'Reading order');
+  main.after(pager);
   let current;
 
   function menu(open) {
@@ -14,22 +19,20 @@ export function initWorkspace(doc, draw) {
     document.querySelector('.workspace').inert = open;
     if (open) sidebar.querySelector('[aria-current=page], a').focus();
   }
+  function restore(section) {
+    const body = section.querySelector('.chapter-body');
+    if (!body) return;
+    const blocks = [...section.querySelectorAll('.review-block[data-order]')];
+    blocks.sort((a, b) => Number(a.dataset.order) - Number(b.dataset.order));
+    blocks.forEach(block => { block.hidden = false; body.append(block); });
+    section.querySelector('.section-notes')?.remove();
+    section.classList.remove('diagram-view');
+  }
   for (const section of sections) {
     const figures = [...section.querySelectorAll('figure[data-graph]')];
-    routes.set(section.id, { section, figure: figures[0] });
+    routes.set(section.id, { section });
+    restore(section);
     for (const figure of figures) routes.set(figure.id, { section, figure });
-    if (!figures.length) continue;
-    section.classList.add('diagram-view');
-    let notes = section.querySelector('.section-notes');
-    if (!notes && section.querySelector(':scope > .review-block')) {
-      notes = document.createElement('details');
-      notes.className = 'section-notes';
-      const summary = document.createElement('summary');
-      summary.textContent = 'Section notes';
-      notes.append(summary);
-      section.querySelectorAll(':scope > .review-block').forEach(block => notes.append(block));
-    }
-    section.notes = notes;
     if (figures.length > 1 && !section.querySelector('.diagram-tabs')) {
       const tabs = document.createElement('nav');
       tabs.className = 'diagram-tabs';
@@ -58,16 +61,48 @@ export function initWorkspace(doc, draw) {
   }
   const meta = document.querySelector('.review-meta');
   if (meta) document.querySelector('.review-context').append(meta);
-  const firstGraph = main.querySelector('figure[data-graph]');
-  const fallback = firstGraph?.id ?? sections[0].id;
+  const fallback = sections[0].id;
 
+  function pageLink(section, label) {
+    const link = document.createElement('a');
+    link.href = `#${section.id}`;
+    link.dataset.view = section.id;
+    const direction = document.createElement('span');
+    direction.textContent = label;
+    const title = document.createElement('strong');
+    title.textContent = section.querySelector('h2').textContent;
+    link.append(direction, title);
+    return link;
+  }
   async function show(id, focus = false) {
     const route = routes.get(id) ?? routes.get(current) ?? routes.get(fallback);
     current = routes.has(id) ? id : current ?? fallback;
     root.dataset.view = current;
-    for (const section of sections) section.hidden = section !== route.section;
-    for (const figure of main.querySelectorAll('figure[data-graph]')) figure.hidden = figure !== route.figure;
-    if (route.section.notes && route.figure) route.figure.querySelector('.inspector').append(route.section.notes);
+    root.dataset.mode = route.figure ? 'diagram' : 'chapter';
+    for (const section of sections) {
+      restore(section);
+      section.hidden = section !== route.section;
+    }
+    main.querySelectorAll('figure[data-graph]').forEach(figure => { figure.hidden = false; });
+    if (route.figure) {
+      const section = route.section;
+      section.classList.add('diagram-view');
+      const notes = document.createElement('details');
+      notes.className = 'section-notes';
+      const summary = document.createElement('summary');
+      summary.textContent = 'Section notes';
+      notes.append(summary);
+      for (const block of section.querySelectorAll('.chapter-body > .review-block')) {
+        if (block.dataset.blockType === 'diagram') block.hidden = !block.contains(route.figure);
+        else notes.append(block);
+      }
+      if (notes.children.length > 1) route.figure.querySelector('.inspector').append(notes);
+      section.querySelectorAll('figure[data-graph]').forEach(figure => { figure.hidden = figure !== route.figure; });
+    }
+    const index = sections.indexOf(route.section);
+    pager.replaceChildren();
+    if (index > 0) pager.append(pageLink(sections[index - 1], 'Previous'));
+    if (index < sections.length - 1) pager.append(pageLink(sections[index + 1], 'Next'));
     for (const link of document.querySelectorAll('a[data-view]')) {
       const target = routes.get(link.dataset.view);
       const active = target?.section === route.section && (!link.closest('.diagram-tabs') || target.figure === route.figure);
@@ -76,9 +111,11 @@ export function initWorkspace(doc, draw) {
     menu(false);
     document.dispatchEvent(new CustomEvent('review:navigate'));
     if (focus) route.section.querySelector('h2')?.focus({ preventScroll: true });
-    if (route.figure && !route.figure.dataset.ready) {
-      const { graph, index } = graphs.get(route.figure.dataset.graph);
-      route.figure.dataset.ready = 'loading';
+    const visible = route.figure ? [route.figure] : [...route.section.querySelectorAll('figure[data-graph]')];
+    for (const figure of visible) {
+      if (figure.dataset.ready) continue;
+      const { graph, index } = graphs.get(figure.dataset.graph);
+      figure.dataset.ready = 'loading';
       await draw(graph, index);
     }
     return route;

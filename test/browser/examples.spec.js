@@ -27,7 +27,7 @@ test('renders both shipped reviews with offline node selection', async ({ page, 
         }
       }
       await page.setViewportSize({ width: 768, height: 1024 });
-      await page.goto(pathToFileURL(join(dir, `${name}.html`)).href);
+      await page.goto(pathToFileURL(join(dir, `${name}.html`)).href + '#graph-' + doc.sections.flatMap(section => section.blocks).find(block => block.type === 'diagram').id);
       await page.waitForFunction(() => document.documentElement.dataset.ready === 'true');
       const labelSize = await page.locator('figure:visible .viewport svg').evaluate(svg => {
         const label = svg.querySelector('.nodeLabel') ?? svg.querySelector('.node');

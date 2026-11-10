@@ -70,7 +70,7 @@ export function validate(doc) {
       const b = `${p}.blocks[${j}]`;
       const fields = {
         text: ['text'], code: ['title', 'code', 'language'], compare: ['title', 'before', 'after'],
-        details: ['title', 'text'], finding: ['title', 'text', 'status'], check: ['title', 'text', 'status'],
+        details: ['title', 'text'], table: ['title', 'columns', 'rows'], finding: ['title', 'text', 'status'], check: ['title', 'text', 'status'],
         diagram: ['id', 'title', 'text', 'direction', 'nodes', 'edges'],
         diff: ['title', 'text', 'path', 'before', 'after', 'scope', 'verification'],
         proposal: ['title', 'text', 'kind', 'current', 'suggested'],
@@ -80,6 +80,18 @@ export function validate(doc) {
       if (!block || !Object.hasOwn(fields, block.type)) fail(`${b}.type`, `expected one of ${Object.keys(fields).join(', ')}`);
       object(block, b, ['type', 'refs', ...fields[block.type]]);
       refs(block.refs, `${b}.refs`);
+      if (block.type === 'table') {
+        string(block.title, `${b}.title`);
+        array(block.columns, `${b}.columns`, true);
+        block.columns.forEach((column, k) => string(column, `${b}.columns[${k}]`));
+        array(block.rows, `${b}.rows`, true);
+        block.rows.forEach((row, k) => {
+          array(row, `${b}.rows[${k}]`);
+          if (row.length !== block.columns.length) fail(`${b}.rows[${k}]`, 'expected one cell per column');
+          row.forEach((cell, l) => string(cell, `${b}.rows[${k}][${l}]`));
+        });
+        return;
+      }
       if (block.type === 'linked-work') {
         validateLinkedWork(block, b);
         if (graphIds.has(block.id)) fail(`${b}.id`, `duplicate diagram id ${block.id}`);

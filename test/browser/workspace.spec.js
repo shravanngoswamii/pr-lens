@@ -13,7 +13,9 @@ test.beforeAll(async () => {
   const second = structuredClone(doc.sections[0].blocks[0]);
   second.id = 'second'; second.title = 'Another call path';
   doc.sections[0].blocks.push(second);
-  doc.sections.unshift({ id: 'overview', title: 'Overview', blocks: [{ type: 'text', text: 'Start with the diagram.' }] });
+  doc.sections[0].blocks.unshift({ type: 'text', text: 'Why this path matters.' });
+  doc.sections[0].blocks.push({ type: 'text', text: 'The result of this path.' });
+  doc.sections.unshift({ id: 'overview', title: 'Overview', blocks: [{ type: 'text', text: 'Start with the problem.' }] });
   await writeFile(join(dir, 'review.html'), await render(doc));
   url = pathToFileURL(join(dir, 'review.html')).href;
   doc.sections = [doc.sections[0]];
@@ -22,18 +24,29 @@ test.beforeAll(async () => {
 });
 test.afterAll(async () => rm(dir, { recursive: true, force: true }));
 
-test('opens on a diagram and preserves zoom and selection through views and browser history', async ({ page }) => {
+test('opens with the explanation and preserves exploration through views and browser history', async ({ page }) => {
   await page.context().setOffline(true);
   await page.goto(url);
+  await expect(page.locator('#section-overview')).toBeVisible();
+  await expect(page.locator('#graph-calls')).toBeHidden();
+  await page.getByRole('navigation', { name: 'Reading order' }).getByRole('link', { name: 'Next Design' }).click();
   await expect(page.locator('#graph-calls')).toHaveAttribute('data-ready', 'true');
-  await expect(page.locator('#section-overview')).toBeHidden();
+  await expect(page.locator('#graph-second')).toHaveAttribute('data-ready', 'true');
+  await expect(page.getByText('Why this path matters.', { exact: true })).toBeVisible();
+  await expect(page.getByText('The result of this path.', { exact: true })).toBeVisible();
+  const order = await page.locator('#section-design .chapter-body > .review-block').evaluateAll(blocks => blocks.map(block => block.dataset.order));
+  await page.locator('#graph-calls .explore-link').click();
+  await expect(page.locator('#graph-second')).toBeHidden();
+  await page.locator('#graph-calls .explanation-link').click();
+  expect(await page.locator('#section-design .chapter-body > .review-block').evaluateAll(blocks => blocks.map(block => block.dataset.order))).toEqual(order);
+  await page.locator('#graph-calls .explore-link').click();
   await page.getByRole('button', { name: 'Zoom in', exact: true }).first().click();
   await page.locator('#graph-calls select').selectOption('1');
   await page.locator('.diagram-tabs a[data-view="graph-second"]').click();
   await expect(page.locator('#graph-second')).toHaveAttribute('data-ready', 'true');
   await expect(page.locator('#graph-calls')).toBeHidden();
   await page.getByRole('navigation', { name: 'Views', exact: true }).getByRole('link', { name: 'Overview', exact: true }).click();
-  await expect(page.getByText('Start with the diagram.', { exact: true })).toBeVisible();
+  await expect(page.getByText('Start with the problem.', { exact: true })).toBeVisible();
   await page.goBack();
   await expect(page.locator('#graph-second')).toBeVisible();
   await page.locator('.diagram-tabs a[data-view="graph-calls"]').click();
@@ -53,13 +66,17 @@ test('opens on a diagram and preserves zoom and selection through views and brow
   await reader.goto(pathToFileURL(saved).href);
   await expect(reader.locator('#graph-second')).toHaveAttribute('data-ready', 'true');
   await expect(reader.locator('#graph-calls')).toBeHidden();
+  await reader.locator('#graph-second .explanation-link').click();
+  await expect(reader.getByText('Why this path matters.', { exact: true })).toBeVisible();
+  await expect(reader.getByText('The result of this path.', { exact: true })).toBeVisible();
+  expect(await reader.locator('.chapter-pager').count()).toBe(1);
   await reader.close();
 });
 
 test('phone navigation closes with escape and opens the selected view without page overflow', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(url);
-  await expect(page.locator('#graph-calls')).toHaveAttribute('data-ready', 'true');
+  await expect(page.locator('#section-overview')).toBeVisible();
   await expect(page.locator('.sidebar')).toBeHidden();
   await page.getByRole('button', { name: 'Views', exact: true }).click();
   await expect(page.locator('.sidebar')).toBeVisible();
@@ -69,18 +86,18 @@ test('phone navigation closes with escape and opens the selected view without pa
   await page.getByRole('button', { name: 'Views', exact: true }).click();
   await page.getByRole('navigation', { name: 'Views', exact: true }).getByRole('link', { name: 'Overview', exact: true }).click();
   await expect(page.locator('.sidebar')).toBeHidden();
-  await expect(page.getByText('Start with the diagram.', { exact: true })).toBeVisible();
+  await expect(page.getByText('Start with the problem.', { exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
 test('supports prose-only reviews and a readable fallback without JavaScript', async ({ page, browser }) => {
   await page.goto(plain);
   await page.waitForFunction(() => document.documentElement.dataset.ready === 'true');
-  await expect(page.getByText('Start with the diagram.', { exact: true })).toBeVisible();
+  await expect(page.getByText('Start with the problem.', { exact: true })).toBeVisible();
   const context = await browser.newContext({ javaScriptEnabled: false });
   const fallback = await context.newPage();
   await fallback.goto(url);
-  await expect(fallback.getByText('Start with the diagram.', { exact: true })).toBeVisible();
+  await expect(fallback.getByText('Start with the problem.', { exact: true })).toBeVisible();
   await fallback.getByText('Nodes and relationships', { exact: true }).first().click();
   await expect(fallback.getByText('Calls itself.', { exact: true }).first()).toBeVisible();
   await context.close();

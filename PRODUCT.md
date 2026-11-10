@@ -16,4 +16,4 @@ Agents prepare the editable review JSON.
 Standalone offline HTML, pinned source links and separate human feedback.
 Preserve graph IDs, exact revisions and evidence limits.
 The user prefers minimal, borderless, responsive UI and concise writing.
-The review opens as a diagram workspace with compact explanations.
+The review explains the PR before offering diagram exploration.

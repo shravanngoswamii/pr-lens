@@ -71,7 +71,6 @@ test('keeps all content readable at a narrow width', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 844 });
   await page.goto(url);
   await expect(page.locator('figure')).toHaveAttribute('data-ready', 'true');
-  await page.getByText('Section notes', { exact: true }).click();
   await page.getByText('Supporting evidence', { exact: true }).click();
   await expect(page.getByText('One selected signature.', { exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -85,11 +84,13 @@ test('treats hostile prose, code and graph labels as text', async ({ page }) => 
   doc.sections[0].blocks[0].nodes[1].label = 'Literal &#58; & [x]';
   doc.sections[0].blocks[0].edges[0].label = 'calls: f(x[1]) & &#58;';
   doc.sections[0].blocks.push({ type: 'code', title: 'Literal text', code: hostile });
+  doc.sections[0].blocks.push({ type: 'table', title: 'Literal cells', columns: ['Input', hostile], rows: [[hostile, 'Safe text']] });
   await writeFile(join(dir, 'hostile.html'), await render(doc));
   await page.goto(pathToFileURL(join(dir, 'hostile.html')).href);
   await expect(page.locator('figure')).toHaveAttribute('data-ready', 'true');
   await expect(page.locator('h1')).toHaveText(hostile);
   expect(await page.locator('img').count()).toBe(0);
+  await expect(page.locator('.review-table tbody th')).toHaveText(hostile);
   await expect(page.locator('.edgeLabel text')).toHaveText('calls: f(x[1]) & &#58;');
   await expect(page.getByRole('button', { name: 'type: Literal &#58; & [x]', exact: true })).toBeVisible();
   expect(await page.evaluate(() => window.pwned)).toBeUndefined();

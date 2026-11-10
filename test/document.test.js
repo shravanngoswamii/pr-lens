@@ -40,3 +40,20 @@ test('generates Mermaid from ids without accepting syntax in labels', () => {
   assert.ok(!text.includes('%%'));
   assert.ok(!text.includes('[x]'));
 });
+
+test('validates table headers and aligned text cells', () => {
+  const doc = document();
+  const block = { type: 'table', title: 'Roles', columns: ['Role', 'Effect'], rows: [['Fixed', 'No density']] };
+  doc.sections[0].blocks.push(block);
+  assert.equal(validate(doc), doc);
+  for (const [field, value, error] of [
+    ['columns', [], /nonempty array/],
+    ['rows', [], /nonempty array/],
+    ['rows', [['Fixed']], /one cell per column/],
+    ['rows', [['Fixed', null]], /nonempty string/],
+  ]) {
+    const invalid = structuredClone(doc);
+    invalid.sections[0].blocks.at(-1)[field] = value;
+    assert.throws(() => validate(invalid), error);
+  }
+});

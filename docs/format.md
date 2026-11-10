@@ -50,6 +50,9 @@ Sections have `{ id, title, blocks }`.
 `sections` and `blocks` must be nonempty.
 All blocks accept optional `refs`.
 `?` marks an optional field.
+Chapters open in source order, starting with the first section.
+Keep the main explanation visible in `text`, `compare` or `table` blocks.
+Diagram links open a focused canvas and return to the same explanation.
 
 | Type | Fields |
 | --- | --- |
@@ -57,6 +60,7 @@ All blocks accept optional `refs`.
 | `code` | `title`, `code`, `language?` |
 | `compare` | `title`, `before`, `after` |
 | `details` | `title`, `text` |
+| `table` | `title`, `columns`, `rows` |
 | `finding` | `title`, `text`, `status`: `verified`, `suggestion`, `question`, `unverified` |
 | `check` | `title`, `text`, `status`: `passed`, `failed`, `unverified` |
 | `diagram` | `id`, `title`, `text`, `nodes`, `edges`, `direction?`: `LR` (default), `TB` |
@@ -67,6 +71,7 @@ All blocks accept optional `refs`.
 
 Code is literal text.
 `language` is metadata.
+Tables use nonempty text headers and rows with one nonempty text cell per column.
 
 ### Diagrams
 

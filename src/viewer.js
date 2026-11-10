@@ -95,9 +95,9 @@ async function draw(graph, index) {
     const original = svg.viewBox.baseVal;
     const initial = { x: original.x, y: original.y, w: original.width, h: original.height };
     const size = () => figure.style.setProperty('--graph-height', `${Math.ceil(Math.min(680, Math.max(360, initial.h * Math.min(1, viewport.clientWidth / initial.w))))}px`);
-    new ResizeObserver(size).observe(viewport);
     size();
     let view = { ...initial };
+    let userView = false;
     const update = () => {
       svg.setAttribute('viewBox', `${view.x} ${view.y} ${view.w} ${view.h}`);
       figure.querySelector('output').textContent = `${Math.round(initial.w / view.w * 100)}%`;
@@ -123,8 +123,16 @@ async function draw(graph, index) {
       update();
     };
     const fit = () => { view = { ...initial }; update(); };
+    const readable = () => {
+      if (userView || !viewport.clientWidth || !matchMedia('(max-width: 1200px)').matches) return;
+      const scale = svg.getScreenCTM()?.a;
+      if (scale > 0 && scale < 1) zoom(Math.min(8 / (initial.w / view.w), 1 / scale));
+      focusNode(Number(select.value));
+    };
+    new ResizeObserver(() => { size(); readable(); }).observe(viewport);
     figure.querySelector('.graph-tools').hidden = false;
     figure.querySelectorAll('[data-action]').forEach(button => button.addEventListener('click', () => {
+      userView = true;
       if (button.dataset.action === 'fit') fit();
       else zoom(button.dataset.action === 'in' ? 1.25 : 0.8);
     }));
@@ -139,6 +147,7 @@ async function draw(graph, index) {
     svg.addEventListener('pointermove', event => {
       if (!drag) return;
       if (Math.hypot(event.clientX - drag.x, event.clientY - drag.y) < 5 && !moved) return;
+      userView = true;
       moved = true;
       const matrix = svg.getScreenCTM();
       view.x = drag.view.x - (event.clientX - drag.x) / matrix.a;
@@ -155,12 +164,13 @@ async function draw(graph, index) {
     svg.addEventListener('pointercancel', () => { drag = null; });
     viewport.addEventListener('wheel', event => {
       if (!event.ctrlKey) return;
+      userView = true;
       event.preventDefault();
       zoom(event.deltaY < 0 ? 1.1 : 1 / 1.1);
     }, { passive: false });
     viewport.addEventListener('keydown', event => {
       if (event.target !== viewport) return;
-      if (['+', '=', '-', '0', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) event.preventDefault();
+      if (['+', '=', '-', '0', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) { event.preventDefault(); userView = true; }
       if (['+', '='].includes(event.key)) zoom(1.25);
       if (event.key === '-') zoom(0.8);
       if (event.key === '0') fit();
@@ -183,10 +193,7 @@ async function draw(graph, index) {
       });
     });
     fit();
-    if (matchMedia('(max-width: 1200px)').matches) {
-      const scale = svg.getScreenCTM().a;
-      if (scale > 0 && scale < 1) zoom(Math.min(4, 1 / scale));
-    }
+    readable();
     showNode(0);
     figure.dataset.ready = 'true';
   } catch (error) {

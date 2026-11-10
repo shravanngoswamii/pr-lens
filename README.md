@@ -16,7 +16,8 @@ node bin/review-docs.js render examples/dynamicppl-1529.json --out output/review
 ```
 
 Open `output/review.html` in a browser.
-The first diagram opens in a workspace with view navigation and node details.
+Read the explanation in order, then explore diagrams for node details.
+Previous and Next follow the document's chapters.
 Use **Save > HTML with comments** to share it.
 Comments stay local until exported.
 Source links need internet access.
