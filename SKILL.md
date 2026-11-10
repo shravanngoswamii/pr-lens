@@ -55,6 +55,9 @@ Do not infer runtime coverage from inventory or diagram coverage.
 
 - Write a review a newcomer can read in order: problem, change, example, design, impact and conclusions.
   Scale the chapters to the PR.
+  A small change can use just Overview and Review.
+  Prose blocks are plain text.
+  Put code in code blocks.
 - Group sections under `overview`, `changes`, `design`, `review` and `details`.
   Use only the groups the PR needs.
   Put the full inventory, linked-work browser and wording edits in Details.
@@ -84,6 +87,7 @@ Do not infer runtime coverage from inventory or diagram coverage.
   Distinguish tested revisions from an author's local migration.
 - State checks and remaining limits.
   Match testing to the claims.
+  State each limit once.
 
 Include only useful blocks:
 
@@ -98,6 +102,7 @@ Include only useful blocks:
 | `linked-work` | Explained references with explicit unread items |
 
 Use simple headings such as Overview, Example, Design, Changes, Findings and Checks.
+Omit a linked-work tree that contains only the PR itself.
 Keep wording direct and factual.
 Avoid slogans, metaphors and dramatic phrasing.
 Keep the main explanation brief.

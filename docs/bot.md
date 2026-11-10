@@ -73,4 +73,6 @@ Reports and editable JSON get permanent paths under `reviews/OWNER/REPO/PR/HEAD/
 The worker checks deployment CI and the live revision before replying.
 HTML comments remain local until exported.
 
+Working example: [draft PR](https://github.com/mcmcjs/mcmcjs/pull/172) · [report](https://shravangoswami.com/experimental/reviews/mcmcjs/mcmcjs/172/8baf68352d0bad0985bb2b7381c7e683623eecf6/6777647256/).
+
 [Claude CLI](https://code.claude.com/docs/en/headless) · [Subscription authentication](https://code.claude.com/docs/en/github-actions#manual-setup) · [GitHub polling](https://docs.github.com/en/rest/activity/notifications)
