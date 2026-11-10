@@ -64,9 +64,73 @@ Every block also accepts optional `refs`.
 | `finding` | `title`, `text`, `status` | `verified`, `suggestion`, `question` or `unverified` |
 | `check` | `title`, `text`, `status` | `passed`, `failed` or `unverified` |
 | `diagram` | `id`, `title`, `text`, `nodes`, `edges`, optional `direction` | Focused graph, direction `LR` (default) or `TB` |
+| `diff` | `title`, `text`, `path`, `before`, `after`, `scope`, `verification` | Colored unified diff and copyable patch |
+| `proposal` | `title`, `text`, `kind`, `current`, `suggested` | Copyable PR title or description suggestion |
+| `prompt` | `title`, `text`, `instructions` | Copyable agent task with exact PR revisions and cited sources |
+| `linked-work` | See below | Expandable issue/PR hierarchy with search, explanations and coverage |
 
 `language` is metadata for future importers.
 The renderer shows code as literal text without syntax highlighting.
+Use a normal section titled "In plain English" for a short overview without internal names.
+
+## Suggestions and tasks
+
+A `diff` keeps only the `before` and `after` snippets as editable truth.
+The renderer generates the displayed rows and unified patch from them with jsdiff.
+Either snippet may be empty for an addition or deletion.
+`path` is a repository-relative file path.
+Line numbers are relative to the snippets, so check the patch context against the real file before applying it.
+`scope` is `pr` for a change already in the PR or `suggestion` for a proposed edit.
+`verification` is `source-checked`, `tested` or `unverified`.
+Use `text` to explain the reason and the precise verification scope.
+Neither rendering nor copying applies a patch.
+
+A `proposal` has `kind: "title"` or `"description"`.
+`current` is the exact original text and `suggested` is the proposed replacement.
+An empty current description is allowed.
+`text` explains why the replacement helps.
+Copy exports only the suggested text, including literal Markdown if present.
+The renderer does not edit the PR.
+
+A `prompt` describes one useful next task in `instructions`.
+Copy adds the PR URL, exact revisions, block source URLs and evidence checks.
+It does not send anything to an AI service.
+Reviewer-selected comments can also produce a prompt through the Comments panel.
+
+## Linked work
+
+A `linked-work` block is a graph displayed as a hierarchy of discovery paths.
+It supports shared references and cycles without treating them as a dependency order.
+Its fields are `id`, `title`, `text`, `root`, `checkedAt`, `scope`, `analysis`, `complete`, `limits`, `notes`, `nodes` and `edges`.
+The ID shares the document's diagram ID namespace so comments can target its nodes.
+
+| Field | Meaning |
+| --- | --- |
+| `root` | The starting node ID |
+| `checkedAt` | UTC collection timestamp |
+| `scope` | What sources and reference forms were searched |
+| `analysis` | `draft` for raw collected facts or `reviewed` after the agent writes and checks explanations |
+| `complete` | Whether collection reached every discoverable item within the stated scope at that check time |
+| `limits` | `{ "maxDepth": 3, "maxItems": 60 }`, with `null` meaning unlimited for either value |
+| `notes` | Array of coverage problems, empty when none were reported |
+
+Each node has `{ id, url, title, kind, state, summary, status }` and optional `detail`.
+`url` identifies a GitHub issue or PR.
+`kind` is `pr`, `issue` or `unknown`.
+`state` is `open`, `closed`, `merged` or `unknown`.
+`summary` explains the item's role, or says its role remains unchecked.
+`status` is `read`, `partial`, `unread` or `unreadable`.
+These statuses describe collection, not source-code verification.
+`detail` explains a limit or error.
+
+Each edge has `{ id, from, to, label, text, evidence }`.
+`evidence` is a nonempty array of `{ url, text }` for the reference's location.
+Collected labels such as `mentions` and `referenced by` record discovery only.
+After reading the items, the agent may explain a specific relation such as `replaces` or `built on` and cite the supporting body or comment.
+Keep the original evidence when refining the explanation.
+An unread item or coverage note prevents `complete: true`.
+Even complete collection is limited by API visibility, recognized reference forms and the snapshot time.
+Use [the collector](linked-work.md) to prepare this block, then write the analysis.
 
 ## Graphs
 

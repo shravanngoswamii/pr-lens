@@ -15,6 +15,12 @@ Inputs are a PR URL and access to its source revisions.
 Read applicable repository instructions.
 Read the current title, body, discussion, inline reviews and relevant linked issues before explaining the design or proposing alternatives.
 Use the project's own names and check whether its authors already have a migration or follow-up plan.
+Trace the linked issues and PRs recursively, including links in their discussion.
+Use [the linked-work helper](docs/linked-work.md) when `gh` is available, or collect the same evidence with another reader.
+Choose limits proportionate to the review and make the unread frontier explicit.
+Read linked items before explaining their role.
+Separate discovery links from confirmed relations such as `replaces` or `built on`.
+Shared references and cycles belong in the hierarchy, not in an invented dependency order.
 
 Any GitHub reader is suitable.
 With `gh`, useful read-only commands are:
@@ -44,6 +50,7 @@ The helper accepts Julia expressions and setup files as code.
 
 Choose a few questions a reviewer needs answered.
 Explain the problem, approach and internal names in plain English.
+Start with a separate "In plain English" section that explains the user-visible effect without internal type names.
 Use one running public API example when useful.
 Choose focused diagrams after reading the code.
 Small type relationships and selected call paths usually explain more than a whole-repository graph.
@@ -74,6 +81,17 @@ Include a small reproducible example or concise evidence record with the documen
 Keep tests of particular source revisions separate from an author's report of local changes.
 State what was checked and what remains unverified.
 
+When a concrete change would help, use a `diff` block with before/after snippets, a reason and its verification scope.
+Distinguish a reviewer suggestion from an existing PR change.
+Keep patches small and check their context against the reviewed file.
+Rendering or copying a patch does not apply it.
+Review the current title and description for useful context and repetition.
+When shortening helps, use `proposal` blocks with the exact originals, concise replacements and a reason.
+Preserve the project's terms, important breaking changes and links to the migration plan.
+Do not add wording proposals when the originals already work.
+Suggest one or two concrete next tasks with `prompt` blocks, including inputs, evidence needed and the expected result.
+Avoid generic requests for an exhaustive test campaign.
+
 ## Render and inspect
 
 From this checkout:
@@ -88,6 +106,9 @@ Open the generated HTML itself in a browser with network disabled.
 Check every section, graph and expandable area for readable text, clipping and useful explanations.
 If labels shrink too far at fit-to-view, simplify the diagram or split it around separate questions.
 Try zoom, pan, fit, keyboard node selection and source links.
+Try the suggestion copy buttons and their selectable-text fallback.
+Expand linked-work branches, check a cycle or shared item when present, and search for unread items.
+Check that the coverage and explanations match the collected records.
 Check that code links use the reviewed SHAs and correct lines.
 Open links online separately when necessary.
 The HTML must work without a server or CDN.

@@ -23,6 +23,11 @@ Focus the graph to pan with arrow keys, zoom with `+` and `-`, and fit with `0`.
 The node selector also works with a keyboard.
 “Save editable JSON” recovers the original document from the HTML.
 
+Reports can include a plain-English overview, proposed edits as readable diffs, shorter PR wording and specific next-step prompts.
+Each suggestion has a copy button with a selectable-text fallback.
+An expandable, searchable hierarchy explains linked issues and PRs, including cycles, shared links and unread items.
+Use [the read-only GitHub collector](docs/linked-work.md) to gather recursive context before writing those explanations.
+
 Use Comments to leave questions, suggestions or issues on the review, a section or a graph node.
 Select feedback and copy an agent prompt with its source context.
 Save > HTML with comments writes one file that another reviewer can open offline.
