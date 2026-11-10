@@ -132,4 +132,10 @@ test('groups explanations without forcing supporting material into the reading p
   await expect(page.locator('#section-overview')).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  const support = { ...doc, sections: [doc.sections.at(-1)] };
+  await writeFile(join(dir, 'support.html'), await render(support));
+  await page.goto(pathToFileURL(join(dir, 'support.html')).href);
+  await page.waitForFunction(() => document.documentElement.dataset.ready === 'true');
+  await expect(page.getByText('The full supporting material.', { exact: true })).toBeVisible();
+  await expect(page.locator('.chapter-pager a')).toHaveCount(0);
 });

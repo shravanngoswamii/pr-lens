@@ -127,7 +127,7 @@ export function initWorkspace(doc, draw) {
     pager.replaceChildren();
     if (index > 0) pager.append(pageLink(sequence[index - 1], 'Previous'));
     if (index >= 0 && index < sequence.length - 1) pager.append(pageLink(sequence[index + 1], 'Next'));
-    if (chapter?.supporting || !chapter) pager.append(pageLink(sequence.at(-1), 'Back to review'));
+    if (sequence.length && (chapter?.supporting || !chapter)) pager.append(pageLink(sequence.at(-1), 'Back to review'));
     for (const link of document.querySelectorAll('a[data-view]')) {
       const target = routes.get(link.dataset.view);
       const active = (target?.chapter ? target.chapter === chapter : target?.section === route.section) && (!link.closest('.diagram-tabs') || target.figure === route.figure);
