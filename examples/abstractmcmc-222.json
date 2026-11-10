@@ -8,7 +8,7 @@
     "title": "Fix `@nospecialize` usage",
     "base": "418afe0df723635aa6c228eb7b12c09a849c8380",
     "head": "3aac86be81ea389a3c03e15a3b601c4b67884bcf",
-    "checkedAt": "2026-11-09T22:04:29Z"
+    "checkedAt": "2026-11-10T04:34:34.713Z"
   },
   "sources": [
     {
@@ -68,6 +68,275 @@
     }
   ],
   "sections": [
+    {
+      "id": "overview",
+      "title": "In plain English",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "When someone starts several sampling chains with an unsupported initial value, the library should explain what input is required. Two error-handling methods were missing because of an annotation placed around their definitions. This PR puts the annotation inside each method. The same invalid call then gets the intended input error.",
+          "refs": [
+            "pr",
+            "base-fallbacks",
+            "head-fallbacks"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "linked-context",
+      "title": "Linked explanation",
+      "blocks": [
+        {
+          "type": "linked-work",
+          "id": "linked-work",
+          "title": "Linked issues and pull requests",
+          "text": "The PR links one Julia issue that explains the annotation problem. That issue links other examples and related lowering work. The first two items were read. The eight further references are shown as an unread frontier.",
+          "root": "gh-f7a68c530abb3c33e8d75d34286bfc0d964ab233eed7dc5250d21f1f42fc628c",
+          "checkedAt": "2026-11-10T04:34:34.713Z",
+          "scope": "GitHub issue/PR references in bodies, paginated comments, review submissions and inline comments, plus incoming cross-references exposed by issue timelines. Text references can include examples or quoted text and need interpretation.",
+          "analysis": "reviewed",
+          "complete": false,
+          "limits": {
+            "maxDepth": 1,
+            "maxItems": 10
+          },
+          "notes": [],
+          "nodes": [
+            {
+              "id": "gh-f7a68c530abb3c33e8d75d34286bfc0d964ab233eed7dc5250d21f1f42fc628c",
+              "url": "https://github.com/TuringLang/AbstractMCMC.jl/pull/222",
+              "title": "Fix `@nospecialize` usage",
+              "kind": "pr",
+              "state": "merged",
+              "summary": "Moves @nospecialize into two fallback method bodies so invalid multi-chain inputs reach the intended ArgumentError.",
+              "status": "read"
+            },
+            {
+              "id": "gh-747cd37d4b1e44e8bc1cf9d50d23240e4b29b7d7dbe682743da4371fe9b2d31c",
+              "url": "https://github.com/JuliaLang/julia/issues/49512",
+              "title": "`@nospecialize` could use argument validation",
+              "kind": "issue",
+              "state": "open",
+              "summary": "Reports that @nospecialize applied to a function definition can silently leave the function undefined. Comments give more annotation pitfalls and an AbstractMCMC occurrence.",
+              "status": "read"
+            },
+            {
+              "id": "gh-cccc03fb831ce023010bb55e4ed63a25c02c4b7a8f5803e9ba5fd340d4415e24",
+              "url": "https://github.com/JuliaLang/julia/issues/49619",
+              "title": "JuliaLang/julia#49619",
+              "kind": "issue",
+              "state": "unknown",
+              "summary": "Not read. Its role still needs review.",
+              "status": "unread",
+              "detail": "Depth limit. This item was discovered but not read."
+            },
+            {
+              "id": "gh-51c6438db6bc893d5f928936145ff50a274b77db18b2def17fa41223e1bddcc5",
+              "url": "https://github.com/JuliaLang/julia/issues/51423",
+              "title": "JuliaLang/julia#51423",
+              "kind": "issue",
+              "state": "unknown",
+              "summary": "Not read. Its role still needs review.",
+              "status": "unread",
+              "detail": "Depth limit. This item was discovered but not read."
+            },
+            {
+              "id": "gh-18674b1f901e288b8ab6e3f40e3279cc985d2e6d24b29d8a5b146bfc5c59fe24",
+              "url": "https://github.com/JuliaLang/julia/pull/61489",
+              "title": "JuliaLang/julia#61489",
+              "kind": "pr",
+              "state": "unknown",
+              "summary": "Not read. Its role still needs review.",
+              "status": "unread",
+              "detail": "Depth limit. This item was discovered but not read."
+            },
+            {
+              "id": "gh-fd4a3a44eba6294311a7c260ff56ec8d30e0dfdbe47600dda640f59bb0155919",
+              "url": "https://github.com/JuliaLang/julia/issues/61933",
+              "title": "JuliaLang/julia#61933",
+              "kind": "issue",
+              "state": "unknown",
+              "summary": "Not read. Its role still needs review.",
+              "status": "unread",
+              "detail": "Depth limit. This item was discovered but not read."
+            },
+            {
+              "id": "gh-70dcf95f42121e369c5adabf9a65fe29aedfc00b1c4a349308013ad90824e830",
+              "url": "https://github.com/JuliaLang/julia/pull/62293",
+              "title": "JuliaLang/julia#62293",
+              "kind": "pr",
+              "state": "unknown",
+              "summary": "Not read. Its role still needs review.",
+              "status": "unread",
+              "detail": "Depth limit. This item was discovered but not read."
+            },
+            {
+              "id": "gh-41348714c7ef120fa54c5bb78401accb3c955b73e39abe9424a59b830a00f7a1",
+              "url": "https://github.com/TuringLang/Turing.jl/pull/2903",
+              "title": "TuringLang/Turing.jl#2903",
+              "kind": "pr",
+              "state": "unknown",
+              "summary": "Not read. Its role still needs review.",
+              "status": "unread",
+              "detail": "Depth limit. This item was discovered but not read."
+            },
+            {
+              "id": "gh-91da3ce8a2c8628ce58954168f09f7c5660574e682642e944549cb451bb15980",
+              "url": "https://github.com/tpapp/TransformVariables.jl/pull/180",
+              "title": "tpapp/TransformVariables.jl#180",
+              "kind": "pr",
+              "state": "unknown",
+              "summary": "Not read. Its role still needs review.",
+              "status": "unread",
+              "detail": "Depth limit. This item was discovered but not read."
+            },
+            {
+              "id": "gh-d904589af1c1ae3c09cc91e03576b7ba79fc17b3cf69999df63905cb58901ee9",
+              "url": "https://github.com/chalk-lab/MCMCTempering.jl/pull/166",
+              "title": "chalk-lab/MCMCTempering.jl#166",
+              "kind": "pr",
+              "state": "unknown",
+              "summary": "Not read. Its role still needs review.",
+              "status": "unread",
+              "detail": "Depth limit. This item was discovered but not read."
+            }
+          ],
+          "edges": [
+            {
+              "id": "edge-2ce0a2e10764cbdba1c7dbe3333246ccfa166730c0071a1aad331b54ca246181",
+              "from": "gh-f7a68c530abb3c33e8d75d34286bfc0d964ab233eed7dc5250d21f1f42fc628c",
+              "to": "gh-747cd37d4b1e44e8bc1cf9d50d23240e4b29b7d7dbe682743da4371fe9b2d31c",
+              "label": "mentions",
+              "text": "The PR body cites this issue as the explanation for the incorrect annotation syntax.",
+              "evidence": [
+                {
+                  "url": "https://github.com/TuringLang/AbstractMCMC.jl/pull/222",
+                  "text": "Reference in body."
+                }
+              ]
+            },
+            {
+              "id": "edge-912c2b7922678ee3139d8f872960a0331b1d8675d0a2403c793a506f26e68cec",
+              "from": "gh-747cd37d4b1e44e8bc1cf9d50d23240e4b29b7d7dbe682743da4371fe9b2d31c",
+              "to": "gh-cccc03fb831ce023010bb55e4ed63a25c02c4b7a8f5803e9ba5fd340d4415e24",
+              "label": "referenced by",
+              "text": "A reference collected from the issue or its timeline. The linked item was not read in this exercise.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaLang/julia/issues/49512",
+                  "text": "Cross-reference listed in this item\u2019s GitHub timeline."
+                }
+              ]
+            },
+            {
+              "id": "edge-29c8d7723f55b3f941a38129c2f0b0565de5f880bbc1dca8a5af87088b145d8e",
+              "from": "gh-747cd37d4b1e44e8bc1cf9d50d23240e4b29b7d7dbe682743da4371fe9b2d31c",
+              "to": "gh-51c6438db6bc893d5f928936145ff50a274b77db18b2def17fa41223e1bddcc5",
+              "label": "referenced by",
+              "text": "A reference collected from the issue or its timeline. The linked item was not read in this exercise.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaLang/julia/issues/49512",
+                  "text": "Cross-reference listed in this item\u2019s GitHub timeline."
+                }
+              ]
+            },
+            {
+              "id": "edge-a1723d70349444d62306943252ea3d64bcc49e60e89e9419c8f2cc72ddfda138",
+              "from": "gh-747cd37d4b1e44e8bc1cf9d50d23240e4b29b7d7dbe682743da4371fe9b2d31c",
+              "to": "gh-18674b1f901e288b8ab6e3f40e3279cc985d2e6d24b29d8a5b146bfc5c59fe24",
+              "label": "referenced by",
+              "text": "A reference collected from the issue or its timeline. The linked item was not read in this exercise.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaLang/julia/issues/49512",
+                  "text": "Cross-reference listed in this item\u2019s GitHub timeline."
+                }
+              ]
+            },
+            {
+              "id": "edge-08b49a6a9154a7eb9b3bd5ca83e2b0f4749ef6b086ec30ab1a739f7950165d59",
+              "from": "gh-747cd37d4b1e44e8bc1cf9d50d23240e4b29b7d7dbe682743da4371fe9b2d31c",
+              "to": "gh-fd4a3a44eba6294311a7c260ff56ec8d30e0dfdbe47600dda640f59bb0155919",
+              "label": "referenced by",
+              "text": "A reference collected from the issue or its timeline. The linked item was not read in this exercise.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaLang/julia/issues/49512",
+                  "text": "Cross-reference listed in this item\u2019s GitHub timeline."
+                }
+              ]
+            },
+            {
+              "id": "edge-ef93a918ca8bf7615c8629d14e7d9cbb90690335e41d91a1796585e4a8bd11e5",
+              "from": "gh-747cd37d4b1e44e8bc1cf9d50d23240e4b29b7d7dbe682743da4371fe9b2d31c",
+              "to": "gh-70dcf95f42121e369c5adabf9a65fe29aedfc00b1c4a349308013ad90824e830",
+              "label": "referenced by",
+              "text": "A reference collected from the issue or its timeline. The linked item was not read in this exercise.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaLang/julia/issues/49512",
+                  "text": "Cross-reference listed in this item\u2019s GitHub timeline."
+                }
+              ]
+            },
+            {
+              "id": "edge-989b59562039080b33214b461d99228084d6d59f2cb7f469fb39b52da36aa6ee",
+              "from": "gh-747cd37d4b1e44e8bc1cf9d50d23240e4b29b7d7dbe682743da4371fe9b2d31c",
+              "to": "gh-41348714c7ef120fa54c5bb78401accb3c955b73e39abe9424a59b830a00f7a1",
+              "label": "referenced by",
+              "text": "A reference collected from the issue or its timeline. The linked item was not read in this exercise.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaLang/julia/issues/49512",
+                  "text": "Cross-reference listed in this item\u2019s GitHub timeline."
+                }
+              ]
+            },
+            {
+              "id": "edge-971a6e0d1d7b479ce42ff89a5b121ac5c8d4b96e966cbe0548af3b75ab9da215",
+              "from": "gh-747cd37d4b1e44e8bc1cf9d50d23240e4b29b7d7dbe682743da4371fe9b2d31c",
+              "to": "gh-91da3ce8a2c8628ce58954168f09f7c5660574e682642e944549cb451bb15980",
+              "label": "referenced by",
+              "text": "A reference collected from the issue or its timeline. The linked item was not read in this exercise.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaLang/julia/issues/49512",
+                  "text": "Cross-reference listed in this item\u2019s GitHub timeline."
+                }
+              ]
+            },
+            {
+              "id": "edge-5086df2ff398b677cab2c494f3126c61c28dddecd247123e12d7910e9f5511e1",
+              "from": "gh-747cd37d4b1e44e8bc1cf9d50d23240e4b29b7d7dbe682743da4371fe9b2d31c",
+              "to": "gh-d904589af1c1ae3c09cc91e03576b7ba79fc17b3cf69999df63905cb58901ee9",
+              "label": "referenced by",
+              "text": "A reference collected from the issue or its timeline. The linked item was not read in this exercise.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaLang/julia/issues/49512",
+                  "text": "Cross-reference listed in this item\u2019s GitHub timeline."
+                }
+              ]
+            },
+            {
+              "id": "edge-1b91bfa67ea15e82da9f90057140d7f4192635495a3e7b1c6f498dd15bb43385",
+              "from": "gh-747cd37d4b1e44e8bc1cf9d50d23240e4b29b7d7dbe682743da4371fe9b2d31c",
+              "to": "gh-f7a68c530abb3c33e8d75d34286bfc0d964ab233eed7dc5250d21f1f42fc628c",
+              "label": "referenced by",
+              "text": "A reference collected from the issue or its timeline. The linked item was not read in this exercise.",
+              "evidence": [
+                {
+                  "url": "https://github.com/JuliaLang/julia/issues/49512",
+                  "text": "Cross-reference listed in this item\u2019s GitHub timeline."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
     {
       "id": "purpose",
       "title": "Why the annotation moves",
@@ -214,6 +483,46 @@
                 "head-fallbacks"
               ]
             }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "review-actions",
+      "title": "The patch and a useful next check",
+      "blocks": [
+        {
+          "type": "diff",
+          "title": "Move the annotation inside the fallback",
+          "text": "This is the PR's change to the initial_params fallback. The initial_state fallback changes in the same way. The existing public-API probe covers both names.",
+          "path": "src/sample.jl",
+          "before": "@nospecialize check_initial_params(x, n) = throw(\n    ArgumentError(\n        \"initial_params must be specified as a vector of length equal to the number of chains or `nothing`\",\n    ),\n)\ncheck_initial_params(::Nothing, n) = nothing\n",
+          "after": "function check_initial_params(x, n)\n    @nospecialize\n    throw(\n        ArgumentError(\n            \"initial_params must be specified as a vector of length equal to the number of chains or `nothing`\",\n        ),\n    )\nend\ncheck_initial_params(::Nothing, n) = nothing\n",
+          "scope": "pr",
+          "verification": "tested",
+          "refs": [
+            "base-fallbacks",
+            "head-fallbacks"
+          ]
+        },
+        {
+          "type": "text",
+          "text": "The current title and short body explain the change and link its cause. A shorter replacement would add little here.",
+          "refs": [
+            "pr"
+          ]
+        },
+        {
+          "type": "prompt",
+          "title": "Check that the intended fallback still runs",
+          "text": "A small compatibility check tied to the public API.",
+          "instructions": "Run examples/abstractmcmc-222.jl in environments containing the exact base and head. Check unsupported initial_state and initial_params with the three default ensemble modes. Confirm that invalid inputs fail before a sampler step runs and that the serial controls still sample. Report Julia and package revisions. Do not infer performance changes from @nospecialize placement.",
+          "refs": [
+            "base-fallbacks",
+            "head-fallbacks",
+            "serial",
+            "threads",
+            "distributed"
           ]
         }
       ]

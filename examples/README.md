@@ -9,6 +9,15 @@ Render either JSON with `node bin/review-docs.js render examples/NAME.json --out
 Create `output/` first.
 Generated HTML is excluded from Git because the bundled viewer makes each file about 5 MB.
 Both reviews were inspected offline at desktop and narrow widths.
+Both include a plain-English overview, a diff, targeted prompts and linked-work explanations.
+The DynamicPPL example also shows optional title and description replacements.
+
+The linked-work snapshots were collected on November 10, 2026.
+The DynamicPPL exercise used depth 2 and a budget of 30 reads: 17 of 47 discovered items were read.
+The AbstractMCMC exercise used depth 1 and a budget of 10 reads: 2 of 10 discovered items were read.
+The remaining items are visible as an unread frontier, not presented as explained dependencies.
+These snapshots include incoming timeline references, which exposed the rebuilt DynamicPPL follow-up series.
+The raw collection records stay outside the repository.
 
 The AbstractMCMC example was produced by a fresh agent context using SKILL.md.
 That exercise led to clearer checkout guidance, acceptance of ordinary UTC timestamp forms and closer checks of diagram label size.
