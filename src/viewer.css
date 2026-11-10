@@ -73,6 +73,37 @@ code { font-family: ui-monospace, monospace; }
 .comparison, .example, .note { margin: 32px 0; }
 .status { text-transform: capitalize; font-size: .8125rem; color: var(--muted); }
 .note h3 { margin-top: 8px; }
+.suggested-change, .wording-proposal, .agent-task, .linked-work { margin: 40px 0; min-width: 0; }
+.block-meta { font-size: .8125rem; color: var(--muted); }
+.copy-control { margin: 12px 0; }
+.copy-control > button { background: #efefef; font-size: .875rem; }
+.copy-control > button:hover { background: #e3e3e3; }
+.copy-status { font-size: .8125rem; margin-left: 12px; }
+.copy-fallback { margin-top: 4px; }
+.copy-fallback textarea { font: .8125rem/1.7 ui-monospace, monospace; }
+.diff-scroll { max-width: 100%; overflow: auto; background: var(--soft); border-radius: 4px; }
+.diff { width: 100%; border-collapse: collapse; font: .8125rem/1.8 ui-monospace, monospace; }
+.diff td { padding: 0 8px; white-space: pre; }
+.diff .line-number { min-width: 3ch; width: 1%; text-align: right; color: #595959; user-select: none; font-variant-numeric: tabular-nums; }
+.diff .line-mark { width: 1%; user-select: none; }
+.diff .added { background: #e5f2e7; color: #174423; }
+.diff .removed { background: #f9e8e6; color: #6b2621; }
+.diff .hunk, .diff .note { color: #595959; background: #ededed; }
+.diff .hunk td, .diff .note td { padding-block: 6px; }
+.proposed-text { background: var(--soft); }
+.task-instructions { padding: 20px; background: var(--soft); border-radius: 4px; }
+.task-instructions p:last-child { margin-bottom: 0; }
+.linked-browser { margin-top: 24px; }
+.linked-browser input { max-width: 520px; }
+.linked-result-count { margin-top: 12px; }
+.linked-item { margin-top: 8px; }
+.linked-item > summary { font-size: .9375rem; padding: 12px 0; color: #171717; }
+.linked-item > summary .block-meta { display: block; margin: 6px 0 0 16px; overflow-wrap: anywhere; }
+.linked-body { padding: 8px 0 8px 16px; }
+.linked-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; font-size: .8125rem; margin-bottom: 16px; }
+.linked-actions button { font-size: inherit; color: var(--muted); }
+.linked-children { list-style: none; padding: 0 0 0 16px; margin: 0; }
+.linked-title { overflow-wrap: anywhere; }
 footer { margin-top: 64px; font-size: .8125rem; color: var(--muted); }
 .feedback-open .workspace { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 24px; max-width: 1664px; margin: auto; padding-right: 24px; align-items: start; }
 .feedback-open .graph-layout { grid-template-columns: 1fr; }

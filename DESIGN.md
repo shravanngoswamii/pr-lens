@@ -16,6 +16,10 @@ Comments open beside the document on wide screens and replace the reading view o
 Spacing and a small change in background separate the graph and feedback areas.
 Blue marks the selected graph node and keyboard focus.
 Controls show text labels, visible focus and a result after saving or copying.
+Suggested edits use a flat diff with line numbers and explicit addition/removal signs.
+Muted green and red distinguish changes without carrying the meaning alone.
+PR wording and next tasks keep their copy actions beside the relevant text.
+Linked work expands in place and shares the same reading surface.
 
 Feedback belongs to the reviewer and stays separate from generated prose and graphs.
 Save a review copy to carry comments between people.

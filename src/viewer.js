@@ -1,9 +1,11 @@
 import mermaid from 'mermaid';
 import { toMermaid } from './document.js';
 import { initFeedback } from './feedback-viewer.js';
+import { initReport } from './report-viewer.js';
 
 const doc = JSON.parse(document.querySelector('#review-data').textContent);
 initFeedback(doc);
+initReport(doc);
 const sources = new Map(doc.sources.map(source => [source.id, source]));
 const element = (tag, text, parent) => {
   const node = document.createElement(tag);

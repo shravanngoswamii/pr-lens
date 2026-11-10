@@ -108,9 +108,10 @@ export function buildPrompt(doc, feedback, { ids, purpose = 'review' } = {}) {
   return lines.join('\n') + '\n';
 }
 
-export function buildTaskPrompt(doc, instructions) {
+export function buildTaskPrompt(doc, instructions, refs = []) {
   return ['Use the review-docs skill for this PR.', '', `PR: ${doc.review.url}`, `Reviewed base: ${doc.review.base}`, `Reviewed head: ${doc.review.head}`,
     ...(doc.review.diffBase ? [`Diff base: ${doc.review.diffBase}`] : []), '', instructions, '',
+    ...refs.map(id => `Source: ${doc.sources.find(source => source.id === id).url}`), '',
     'Read the PR title, body, discussion and relevant linked work. Check whether the source has changed since this snapshot.',
     'Keep evidence for these revisions separate from newer code. Reproduce bug claims or mark them unverified. Preserve stable document IDs and human feedback.',
     'Return the requested explanation or editable review JSON and HTML. State what was checked. This prompt does not authorize posting, publishing or changing the PR.'].join('\n') + '\n';
