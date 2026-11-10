@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "login": "shravangoswami-bot",
+  "requesters": [
+    { "login": "shravanngoswamii", "id": 123811742 },
+    { "login": "yebai", "id": 3279477 },
+    { "login": "sunxd3", "id": 5433119 }
+  ],
+  "stateDir": "output/bot-state",
+  "publish": {
+    "checkout": "output/site",
+    "repo": "shravanngoswamii/experimental",
+    "branch": "gh-pages",
+    "prefix": "reviews",
+    "url": "https://shravangoswami.com/experimental"
+  }
+}

@@ -1,0 +1,102 @@
+name: Review PR mentions
+on:
+  workflow_dispatch:
+    inputs:
+      comment_url:
+        description: Optional PR conversation comment URL
+        type: string
+      retry:
+        description: Resume a failed request
+        type: boolean
+        default: false
+      check_subscription:
+        description: Check Claude subscription authentication
+        type: boolean
+        default: false
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: review-bot
+  cancel-in-progress: false
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      GH_TOKEN: ${{ secrets.REVIEW_BOT_TOKEN }}
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      DISABLE_AUTOUPDATER: '1'
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check credentials
+        run: |
+          test -n "$GH_TOKEN" || { echo 'Set REVIEW_BOT_TOKEN'; exit 1; }
+          test -n "$CLAUDE_CODE_OAUTH_TOKEN" || { echo 'Set CLAUDE_CODE_OAUTH_TOKEN'; exit 1; }
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: actions/cache/restore@v6.1.0
+        with:
+          path: output/bot-state
+          key: review-bot-state-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: review-bot-state-
+      - name: Find review requests
+        id: scan
+        env:
+          COMMENT_URL: ${{ inputs.comment_url }}
+        run: node bot/hosted.js scan
+      - uses: julia-actions/setup-julia@v3.0.3
+        if: steps.scan.outputs.pending == 'true'
+        with:
+          version: '1.10'
+      - run: npm ci
+        if: steps.scan.outputs.pending == 'true'
+      - name: Install Claude Code
+        if: steps.scan.outputs.pending == 'true'
+        run: |
+          curl -fsSL https://claude.ai/install.sh | bash -s -- 2.1.322
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - run: npx playwright install --with-deps chromium
+        if: steps.scan.outputs.pending == 'true'
+      - name: Prepare publishing checkout
+        if: steps.scan.outputs.pending == 'true'
+        env:
+          REPORTS_DEPLOY_KEY: ${{ secrets.REPORTS_DEPLOY_KEY }}
+        run: node bot/hosted.js setup
+      - name: Review requests
+        if: steps.scan.outputs.pending == 'true'
+        env:
+          COMMENT_URL: ${{ inputs.comment_url }}
+          RETRY: ${{ inputs.retry }}
+        run: |
+          if [ -n "$COMMENT_URL" ]; then
+            mode=run
+            if [ "$RETRY" = true ]; then mode=retry; fi
+            node bin/review-bot.js "$mode" output/bot-hosted.json --comment "$COMMENT_URL"
+          else
+            node bin/review-bot.js once output/bot-hosted.json
+          fi
+      - name: Check Claude subscription
+        if: steps.scan.outputs.pending == 'true' && inputs.check_subscription
+        run: |
+          node --input-type=module - <<'JS'
+          import { mkdtemp } from 'node:fs/promises';
+          import { tmpdir } from 'node:os';
+          import { join } from 'node:path';
+          import { askClaude } from './bot/claude.js';
+          const result = await askClaude('Return exactly {"files":[]}. This checks subscription authentication.', await mkdtemp(join(tmpdir(), 'review-docs-check-')));
+          if (!Array.isArray(result.files) || result.files.length) throw new Error('Subscription check did not complete');
+          console.log('Claude subscription request completed.');
+          JS
+      - name: Compact checkpoint
+        if: always()
+        run: node bot/hosted.js compact
+      - uses: actions/cache/save@v6.1.0
+        if: always() && hashFiles('output/bot-state/state.json') != ''
+        with:
+          path: output/bot-state
+          key: review-bot-state-${{ github.run_id }}-${{ github.run_attempt }}

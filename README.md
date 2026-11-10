@@ -31,7 +31,7 @@ Ask an agent:
 
 Load [SKILL.md](SKILL.md) here, or copy this checkout into your agent's skill directory and run `npm ci`.
 
-For mention-triggered reviews using Claude Code and a separate GitHub account, see [Review bot](docs/bot.md).
+For hosted or local reviews triggered by bot mentions, see [Review bot](docs/bot.md).
 
 [Format](docs/format.md) · [Helpers](docs/helpers.md) · [Linked work](docs/linked-work.md) · [Feedback](docs/feedback.md) · [Sharing](docs/sharing.md) · [Examples](examples/README.md) · [DrawShare](docs/drawshare.md)
 

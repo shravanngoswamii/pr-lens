@@ -1,16 +1,45 @@
 # Review bot
 
-Run on your PC with Claude Code and a separate GitHub account through [gh-sandbox](https://github.com/shravanngoswamii/gh-sandbox).
-No API key is used.
-Claude must be signed in with your subscription.
-Runs use its allowance.
+Comment `@shravangoswami-bot review` on a public PR.
+The whole comment must be that command.
+Only `shravanngoswamii`, `yebai` and `sunxd3` can request reviews.
+Their GitHub account IDs are pinned in [the hosted config](../bot.hosted.json).
+Inline review comments are not triggers.
 
-## Start
+## Hosted
 
-Copy [bot.example.json](../bot.example.json) to `output/bot.json` and set the absolute paths.
-Use a clean checkout of your Pages branch for publishing.
-Git pushes from that checkout use your regular account.
-Reactions and review comments use the configured bot account.
+[Review PR mentions](https://github.com/shravanngoswamii/review-docs/actions/workflows/review-bot.yml) runs on GitHub's servers.
+The laptop can be off.
+It polls notifications, reacts as the bot, reviews with Claude Code, checks the HTML offline, deploys it and replies.
+Idle checks skip Claude and browser setup.
+Claude uses the subscription allowance.
+Private-repository runner use counts against GitHub's separate Actions allowance.
+
+Use **Run workflow** for an immediate check or enter a conversation comment URL.
+Select **retry** only for a failed request.
+A changed base or head needs a new comment.
+Manual dispatches are restricted to the same three accounts.
+
+The workflow needs three private Actions secrets:
+
+| Secret | Use |
+| --- | --- |
+| `CLAUDE_CODE_OAUTH_TOKEN` | Subscription token from `claude setup-token` |
+| `REVIEW_BOT_TOKEN` | GitHub actions as the bot |
+| `REPORTS_DEPLOY_KEY` | Push reports to the existing site repository |
+
+Reports and editable JSON keep permanent paths under `reviews/OWNER/REPO/PR/HEAD/COMMENT/`.
+Deployment CI and the live revision are checked before replying.
+A private Actions cache retains the cursor and request results.
+Completed replies are detected before posting again.
+Failed artifacts stay available for an explicit retry.
+Credentials stay outside the cache.
+
+## Local
+
+Copy [bot.example.json](../bot.example.json) to `output/bot.json` and set absolute paths.
+The optional `sandbox` uses [gh-sandbox](https://github.com/shravanngoswamii/gh-sandbox) without changing your regular GitHub login.
+Sign in to Claude Code with your subscription.
 
 ```sh
 npm ci
@@ -19,60 +48,22 @@ node bin/review-bot.js doctor output/bot.json
 node bin/review-bot.js watch output/bot.json
 ```
 
-Comment on a public PR from the configured requester account:
-
-```text
-@shravangoswami-bot review
-```
-
-Keep the whole comment to that command.
-The worker polls the bot account's notifications at GitHub's allowed interval, at least 60 seconds.
-It reacts with eyes, collects the exact revisions and discussion, asks Claude for source context, writes the report, checks it offline, deploys it and posts a short reply.
-No installation in the target repository is needed for a public conversation the bot can access.
-Only PR conversation comments are supported.
-Inline review comments are not triggers.
-
-The PC must stay awake and the worker must remain running.
+Keep the PC awake and the worker running.
 Ctrl+C stops it.
-New requests are watched from the first start with a two-minute overlap.
-For an earlier request, use its comment URL:
-
-```sh
-node bin/review-bot.js run output/bot.json --comment COMMENT_URL
-node bin/review-bot.js retry output/bot.json --comment COMMENT_URL
-```
-
-`retry` resumes a failed request.
-Completed replies are detected before posting again.
-Failures stay in `stateDir/state.json` and the terminal log.
-They are not retried automatically.
-A changed base or head needs a new request.
+Use `once` for one polling pass, or `run` and `retry` with `--comment COMMENT_URL`.
+Failures appear in `stateDir/state.json` and the log.
+Keep state and logs out of Git.
 
 ## Scope
 
-The agent uses the generic [review skill](../SKILL.md).
-Julia PRs include a parsed declaration inventory when the helper succeeds.
-Other languages use the same document format.
-Small documentation PRs can omit graphs.
-
-This version reviews source.
-It reads Git blobs without checking out or executing PR code.
-Claude has no execution tools, hooks or MCP servers and receives no GitHub credentials.
-It can request more files from either reviewed revision.
-Runtime tests, reflection and bug reproductions remain unverified.
-The report states these limits.
-
-Private PRs and private linked repositories are excluded.
-Linked work has a depth limit of 2 and an item budget of 15.
-Large diffs or source contexts stop with a request for interactive review.
-The requester is allowlisted and jobs run one at a time.
-The GitHub token stays in `ghsb` and the Claude login stays in Claude Code.
-Keep state and logs out of Git.
-
-Reports and editable JSON get permanent paths under `reviews/OWNER/REPO/PR/HEAD/COMMENT/`.
-The worker checks deployment CI and the live revision before replying.
+The generic [review skill](../SKILL.md) applies across Julia packages and other languages.
+Julia changes include a parsed declaration inventory when available.
+Small reviews can omit graphs.
+This version reviews source without executing PR code.
+Runtime checks remain unverified.
+Private repositories are excluded.
+Linked work has depth 2 and an item budget of 15.
+Large diffs or contexts need interactive review.
 HTML comments remain local until exported.
 
-Working example: [draft PR](https://github.com/mcmcjs/mcmcjs/pull/172) · [report](https://shravangoswami.com/experimental/reviews/mcmcjs/mcmcjs/172/8baf68352d0bad0985bb2b7381c7e683623eecf6/6777647256/).
-
-[Claude CLI](https://code.claude.com/docs/en/headless) · [Subscription authentication](https://code.claude.com/docs/en/github-actions#manual-setup) · [GitHub polling](https://docs.github.com/en/rest/activity/notifications)
+[Working example](https://shravangoswami.com/experimental/reviews/mcmcjs/mcmcjs/172/8baf68352d0bad0985bb2b7381c7e683623eecf6/6777647256/) · [Claude subscription support](https://code.claude.com/docs/en/github-actions#manual-setup) · [GitHub polling](https://docs.github.com/en/rest/activity/notifications)
