@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "bin": {
-    "review-docs": "bin/review-docs.js"
+    "review-docs": "bin/review-docs.js",
+    "review-bot": "bin/review-bot.js"
   },
   "engines": {
     "node": ">=22.12"
