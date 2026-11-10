@@ -3,9 +3,13 @@ module ReviewDefinitions
 using SHA
 using TOML
 
-clean(x::Expr) = Expr(x.head, (clean(a) for a in x.args if !(a isa LineNumberNode))...)
+clean(x::Expr) = x.head == :macrocall ? Expr(:macrocall, clean(first(x.args)), LineNumberNode(0), clean.(x.args[3:end])...) : Expr(x.head, (clean(a) for a in x.args if !(a isa LineNumberNode))...)
 clean(x) = x
 printed(x) = string(clean(x))
+syntax(x::Expr) = Any["expr", string(x.head), Any[syntax(a) for a in x.args if !(a isa LineNumberNode)]]
+syntax(x::Symbol) = Any["symbol", string(x)]
+syntax(x::QuoteNode) = Any["quote", syntax(x.value)]
+syntax(x) = Any["literal", string(typeof(x)), repr(x)]
 macro_name(x::QuoteNode) = string(x.value)
 macro_name(x::GlobalRef) = string(x.mod, '.', x.name)
 macro_name(x::Expr) = x.head == :. ? join(macro_name.(x.args), ".") : string(x)
@@ -22,7 +26,7 @@ function declarations(source, path)
     records = Dict{String,Any}[]
     notes = Dict{String,Any}[]
     note(line, text) = push!(notes, Dict("path" => path, "line" => line, "text" => text))
-    function walk(x, scope, line, wrappers=String[])
+    function walk(x, scope, line, wrappers=Any[])
         x isa Expr || return
         if x.head in (:error, :incomplete)
             error("$path:$line: $(first(x.args))")
@@ -42,7 +46,7 @@ function declarations(source, path)
                 note(at, "Macro $name was not expanded. Only written declarations are listed.")
             end
             for a in x.args[3:end]
-                walk(a, scope, at, doc ? wrappers : [wrappers; printed(x)])
+                walk(a, scope, at, doc ? wrappers : [wrappers; [syntax(x)]])
             end
             return
         elseif x.head == :module
@@ -65,7 +69,7 @@ function declarations(source, path)
             if call isa Expr && call.head == :tuple
                 note(line, "Anonymous function is included in its enclosing definition.")
             else
-                kind = x.head == :macro ? "macro" : "method"
+                kind = x.head == :macro ? "macro" : call isa Expr && call.head == :call ? "method" : "function"
                 name = call isa Expr && call.head == :call ? first(call.args) : call
             end
         end
@@ -74,9 +78,11 @@ function declarations(source, path)
                 note(line, "Interpolated declaration needs manual inspection.")
                 return
             end
-            push!(records, Dict("kind" => kind, "name" => join([scope; printed(name)], "."),
+            rootname = name isa Expr && name.head == :curly ? first(name.args) : name
+            namescope = !isempty(scope) && printed(rootname) == last(scope) ? scope[1:end-1] : scope
+            push!(records, Dict("kind" => kind, "name" => join([namescope; printed(name)], "."),
                 "signature" => printed(signature), "scope" => join(scope, "."), "path" => path,
-                "line" => max(1, line), "fingerprint" => bytes2hex(sha256(join(wrappers, " ") * printed(x)))))
+                "line" => max(1, line), "fingerprint" => bytes2hex(sha256(sprint(io -> json(io, Any[wrappers, syntax(x)]))))))
             childscope = [scope; kind == "type" ? printed(name) : printed(signature)]
             for a in x.args[2:end]
                 walk(a, childscope, line)
@@ -135,7 +141,7 @@ function main(args)
     length(args) == 1 || error("Usage: definitions.jl manifest.toml")
     manifest = TOML.parsefile(only(args))
     output = [merge(Dict("key" => file["key"]), declarations(read(file["file"], String), file["path"])) for file in get(manifest, "files", [])]
-    json(stdout, output)
+    json(stdout, Dict("julia_version" => string(VERSION), "files" => output))
 end
 
 end

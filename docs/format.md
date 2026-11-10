@@ -63,11 +63,12 @@ Diagram links open a focused canvas and return to the same explanation.
 | `table` | `title`, `columns`, `rows` |
 | `finding` | `title`, `text`, `status`: `verified`, `suggestion`, `question`, `unverified` |
 | `check` | `title`, `text`, `status`: `passed`, `failed`, `unverified` |
-| `diagram` | `id`, `title`, `text`, `nodes`, `edges`, `direction?`: `LR` (default), `TB` |
+| `diagram` | `id`, `title`, `text`, `nodes`, `edges`, `direction?`: `LR` (default), `TB`, `baseline?` |
 | `diff` | `title`, `text`, `path`, `before`, `after`, `scope`, `verification` |
 | `proposal` | `title`, `text`, `kind`, `current`, `suggested` |
 | `prompt` | `title`, `text`, `instructions` |
 | `linked-work` | See below |
+| `inventory` | `title`, `text`, `data`, `links`, `omissions` |
 
 Code is literal text.
 `language` is metadata.
@@ -80,7 +81,8 @@ Tables use nonempty text headers and rows with one nonempty text cell per column
 | Node | `id`, `label`, `kind`, `text`, `signature?`, `refs?` |
 | Edge | `id`, `from`, `to`, `label`, `status`, `text`, `refs?` |
 
-Node `kind`: `type`, `method`, `value`.
+Node `kind`: `type`, `function`, `method`, `macro`, `value`, `group`.
+A group collects definitions and has no implicit call meaning.
 Use short labels and full signatures for significant overloads.
 Edges name existing nodes and label relationships such as `calls` or `stores`.
 Cycles, self calls and parallel edges are supported.
@@ -94,6 +96,8 @@ Cycles, self calls and parallel edges are supported.
 Compiler bodies are source evidence, not execution observations.
 Possible edges are dashed.
 Mermaid is generated from nodes and edges.
+
+See [design changes](design.md) for baseline snapshots and inventory fields.
 
 ### Suggestions
 

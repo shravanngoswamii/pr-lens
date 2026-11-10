@@ -1,3 +1,4 @@
+import { graphView, changeLabel } from './design.js';
 const ID = /^[a-zA-Z][a-zA-Z0-9_-]{0,159}$/;
 const SHA = /^[a-f0-9]{40}$/;
 const UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|\+00:00)$/;
@@ -43,10 +44,19 @@ export function targets(doc) {
     for (const graph of section.blocks.filter(block => ['diagram', 'linked-work'].includes(block.type))) {
       const target = { section: section.id, diagram: graph.id };
       result.push({ target, label: graph.title, text: graph.text, refs: graph.refs ?? [] });
-      for (const node of graph.nodes) result.push({ target: { ...target, node: node.id },
-        label: `${graph.title} / ${node.label ?? node.title}`, text: node.text ?? node.summary, signature: node.signature,
-        refs: [...new Set([...(node.refs ?? []), ...graph.edges.filter(edge => edge.from === node.id || edge.to === node.id).flatMap(edge => edge.refs ?? [])])],
-        links: node.url ? [node.url] : [] });
+      const view = graph.type === 'diagram' ? graphView(graph, doc) : graph;
+      for (const node of view.nodes) {
+        const before = graph.baseline?.nodes.find(item => item.id === node.id);
+        const after = graph.nodes.find(item => item.id === node.id);
+        const signatures = before && before.signature !== after?.signature
+          ? [before.signature && `Base: ${before.signature}`, after?.signature && `Head: ${after.signature}`].filter(Boolean).join('\n')
+          : node.signature;
+        result.push({ target: { ...target, node: node.id },
+          label: `${graph.title} / ${node.label ? changeLabel(node) : node.title}`,
+          text: before ? `Base: ${before.text}\nHead: ${after?.text ?? 'Removed from the graph.'}` : node.text ?? node.summary, signature: signatures,
+          refs: [...new Set([...(node.refs ?? []), ...(before?.refs ?? []), ...[...view.edges, ...(graph.baseline?.edges ?? [])].filter(edge => edge.from === node.id || edge.to === node.id).flatMap(edge => edge.refs ?? [])])],
+          links: node.url ? [node.url] : [] });
+      }
     }
   }
   return result;

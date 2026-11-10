@@ -21,7 +21,8 @@ export function inventory(repo, base, head, scope = ['src/', 'ext/']) {
     }
     const manifest = join(dir, 'files.toml');
     writeFileSync(manifest, entries.map(entry => `[[files]]\n${Object.entries(entry).map(([key, value]) => `${key} = ${JSON.stringify(value)}`).join('\n')}\n`).join('\n'));
-    const parsed = JSON.parse(execFileSync('julia', ['--startup-file=no', new URL('./definitions.jl', import.meta.url).pathname, manifest], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }));
+    const output = JSON.parse(execFileSync('julia', ['--startup-file=no', new URL('./definitions.jl', import.meta.url).pathname, manifest], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }));
+    const parsed = output.files;
     const maps = [base, head].map(sha => {
       const result = new Map();
       for (const file of parsed.filter(file => file.key.startsWith(sha + ':'))) for (const definition of file.definitions) {
@@ -40,6 +41,6 @@ export function inventory(repo, base, head, scope = ['src/', 'ext/']) {
         change: !before ? 'added' : !after ? 'removed' : 'changed', ...(before ? { before } : {}), ...(after ? { after } : {}) });
     }
     const notes = parsed.flatMap(file => file.notes.map(note => ({ ...note, revision: file.key.slice(0, 40) })));
-    return { version: 1, language: 'Julia', base, head, scope, files, items, notes };
+    return { version: 1, language: 'Julia', parser: `Julia ${output.julia_version} Meta.parseall`, base, head, scope, files, items, notes };
   } finally { rmSync(dir, { recursive: true, force: true }); }
 }

@@ -21,6 +21,7 @@ Previous and Next follow the document's chapters.
 Use **Save > HTML with comments** to share it.
 Comments stay local until exported.
 Source links need internet access.
+For a full change inventory and a reusable base graph, see [Design changes](docs/design.md).
 Run `npm link` for the shorter `review-docs` command.
 
 Ask an agent:

@@ -12,6 +12,7 @@ See [setup](README.md#use) and [format](docs/format.md).
 ## Inspect
 
 Read repository instructions and the current PR title, body, discussion, inline reviews and linked work.
+Treat the request as questions to investigate, not evidence about the code.
 Use the project's terms and check published migration plans.
 Record base, head and check time.
 Record `review.diffBase` if the merge base differs from the PR base.
@@ -29,11 +30,26 @@ If needed, fetch `refs/pull/NUMBER/head` without changing the working tree.
 Inspect changed definitions, relevant unchanged callers and downstream hooks.
 
 Use [Julia helpers](docs/helpers.md) for reflection and diff facts.
-They execute setup code in the target environment.
+Reflection executes setup code in the target environment.
+For Julia, collect the [definition inventory](docs/design.md#inventory) before selecting diagrams.
+Check every recorded addition, change and removal.
+Keep source scope and unresolved macro/generated code visible.
 Use [the collector](docs/linked-work.md) for recursive issue/PR context.
 Read items before explaining their relationships.
 Keep cycles, shared references and collection limits visible.
 A mention alone establishes no dependency.
+
+## Design context
+
+Read [design changes](docs/design.md) to reuse a commit-pinned baseline and show the PR's changes.
+Check that the baseline matches the diff base.
+If no graph exists, build a scoped baseline from that code and state its limits.
+Include unchanged context needed to explain the change.
+Place every inventoried declaration in a diagram or record an omission reason.
+Use named groups when individual overloads would make a diagram unreadable.
+Check important relationships in source or examples.
+Keep assumptions and inferences explicit.
+Do not infer runtime coverage from inventory or diagram coverage.
 
 ## Write
 
@@ -71,6 +87,7 @@ Include only useful blocks:
 | --- | --- |
 | `details` | Long signatures and supporting evidence |
 | `table` | Role rules, migration steps or design tradeoffs |
+| `inventory` | Declaration changes, diagram placements and coverage gaps |
 | `diff` | A small proposed edit or PR change, with reason and verification scope |
 | `proposal` | A better PR title or description, preserving key changes and migration links |
 | `prompt` | A concrete next task with inputs, evidence and expected result |

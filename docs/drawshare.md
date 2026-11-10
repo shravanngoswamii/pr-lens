@@ -30,3 +30,6 @@ Leave human strokes and text in their existing stores.
 Optional anchors name `{blockId, diagramId, nodeId}` with a coordinate fallback.
 Preserve unresolved annotations when nodes disappear.
 Extend backup import/export and verify a round trip before adding sync.
+
+Keep a diagram's base snapshot and declaration placements with its head graph.
+Preserve human annotations separately when regenerating the graph.

@@ -13,21 +13,22 @@ test('compares parsed declarations without evaluating code and keeps scope and u
   try {
     git(['init', '-q']); mkdirSync(join(dir, 'src')); mkdirSync(join(dir, 'test'));
     const file = join(dir, 'src', 'names "α".jl');
-    writeFileSync(file, 'error("Do not load this file")\nmodule M\n"old docs"\nf(x::Int) = x\nf(x::String) = x\nstruct Box{T}\n value::T\nend\nold(x) = x\nend\n');
+    writeFileSync(file, 'error("Do not load this file")\nmodule M\n"old docs"\nf(x::Int) = x\nf(x::String) = x\nstruct Box{T}\n value::T\nend\n@constprop :aggressive policy(x)=x\nold(x) = x\nend\n');
     writeFileSync(join(dir, 'test', 'outside.jl'), 'outside(x)=x\n');
     const base = commit();
-    writeFileSync(file, 'error("Do not load this file")\nmodule M\n\n"new docs"\nf(x::Int) = x\nf(x::String) = length(x)\nstruct Box{T,S}\n value::String\nend\n@inline added(x::T) where T = x\n@eval generated(x) = x\nquote\n quoted(x) = x\nend\nend\n');
+    writeFileSync(file, 'error("Do not load this file")\nmodule M\n\n"new docs"\nf(x::Int) = x\nf(x::String) = length(x)\nstruct Box{T,S}\n value::String\nend\nfunction empty end\n@inline added(x::T) where T = x\n@constprop :none policy(x)=x\n@eval generated(x) = x\nquote\n quoted(x) = x\nend\nend\n');
     writeFileSync(join(dir, 'test', 'outside.jl'), 'outside(x)=x+1\n');
     const head = commit();
     const result = inventory(dir, base, head);
     assert.equal(result.files.length, 1);
-    assert.deepEqual(result.items.map(item => [item.name, item.change]).sort(), [['M.Box', 'changed'], ['M.added', 'added'], ['M.f', 'changed'], ['M.old', 'removed']]);
+    assert.deepEqual(result.items.map(item => [item.name, item.change]).sort(), [['M.Box', 'changed'], ['M.added', 'added'], ['M.empty', 'added'], ['M.f', 'changed'], ['M.old', 'removed'], ['M.policy', 'changed']]);
     assert.ok(result.items.find(item => item.name === 'M.f').signature.includes('String'));
+    assert.equal(result.items.find(item => item.name === 'M.empty').kind, 'function');
     assert.ok(result.notes.some(note => note.text.includes('@eval')));
     assert.ok(result.notes.some(note => note.text.includes('Quoted code')));
     assert.equal(result.items.filter(item => item.name.includes('generated') || item.name.includes('quoted')).length, 0);
-    assert.equal(result.items.find(item => item.name === 'M.added').after.locations[0].line, 10);
-    assert.equal(inventory(dir, base, head, ['.']).items.length, 5);
+    assert.equal(result.items.find(item => item.name === 'M.added').after.locations[0].line, 11);
+    assert.equal(inventory(dir, base, head, ['.']).items.length, 7);
     assert.throws(() => inventory(dir, 'main', head), /full base/);
     assert.throws(() => inventory(dir, base, head, ['../']), /relative scope/);
     const output = join(dir, 'inventory.json');

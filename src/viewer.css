@@ -270,3 +270,22 @@ code { font-family: ui-monospace, monospace; }
   .workspace-mode .viewport { height: 480px; }
   .workspace-mode .inspector { height: auto; }
 }
+.design-views { display: flex; gap: 4px; margin: 8px 0; }
+.design-views button { font-size: 13px; }
+.design-views button[aria-pressed=true] { background: var(--active); }
+.design-key { margin: 0 0 12px; }
+.diagram-view .design-views, .diagram-view .design-key { padding-inline: 24px; flex: none; }
+.inventory-filters { display: grid; grid-template-columns: minmax(200px, 2fr) repeat(3, minmax(100px, 1fr)); gap: 12px; margin-top: 24px; }
+.inventory-items { margin-top: 24px; }
+.definition-item { padding-block: 8px; }
+.definition-item > summary { color: var(--ink); font-size: 15px; }
+.definition-item > summary .block-meta { display: block; margin-top: 4px; }
+.definition-list { margin-top: 20px; }
+@media (max-width: 800px) { .inventory-filters { grid-template-columns: 1fr 1fr; } .inventory-filters > div:first-child { grid-column: 1 / -1; } }
+
+.inventory-filters > div { min-width: 0; }
+.definition-item { overflow-wrap: anywhere; }
+
+.change-added { color: #286a3a; }
+.change-changed { color: #8c6200; }
+.change-removed { color: #9c3e35; }

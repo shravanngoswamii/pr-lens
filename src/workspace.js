@@ -121,12 +121,13 @@ export function initWorkspace(doc, draw) {
     return route;
   }
   root.classList.add('workspace-mode');
-  document.addEventListener('click', event => {
+  document.addEventListener('click', async event => {
     const link = event.target.closest('a[data-view]');
     if (!link) return;
     event.preventDefault();
     history.pushState(null, '', link.getAttribute('href'));
-    show(link.dataset.view, true);
+    const route = await show(link.dataset.view, true);
+    if (link.dataset.node && route.figure) document.dispatchEvent(new CustomEvent('review:select-node', { detail: { diagram: route.figure.dataset.graph, node: link.dataset.node } }));
   });
   window.addEventListener('hashchange', () => show(location.hash.slice(1)));
   window.addEventListener('popstate', () => show(location.hash.slice(1)));

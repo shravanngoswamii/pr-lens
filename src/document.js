@@ -1,4 +1,6 @@
 import { validateLinkedWork } from './linked-work.js';
+import { validateInventory } from './inventory.js';
+import { changeLabel, edgeChangeLabel } from './design.js';
 
 const ID = /^[a-zA-Z][a-zA-Z0-9_-]*$/;
 const SHA = /^[a-f0-9]{40}$/;
@@ -59,6 +61,29 @@ export function validate(doc) {
     array(value, path);
     value.forEach((id, i) => { if (!sources.has(id)) fail(`${path}[${i}]`, `unknown source ${id}`); });
   };
+  const checkGraph = (block, b) => {
+    if (block.direction !== undefined) choice(block.direction, `${b}.direction`, ['LR', 'TB']);
+    array(block.nodes, `${b}.nodes`, true);
+    array(block.edges, `${b}.edges`);
+    block.nodes.forEach((node, k) => {
+      const n = `${b}.nodes[${k}]`;
+      object(node, n, ['id', 'label', 'kind', 'text', 'signature', 'refs']);
+      for (const f of ['label', 'text']) string(node[f], `${n}.${f}`);
+      choice(node.kind, `${n}.kind`, ['type', 'function', 'method', 'macro', 'value', 'group']);
+      if (node.signature !== undefined) string(node.signature, `${n}.signature`);
+      refs(node.refs, `${n}.refs`);
+    });
+    const nodes = unique(block.nodes, `${b}.nodes`);
+    block.edges.forEach((edge, k) => {
+      const e = `${b}.edges[${k}]`;
+      object(edge, e, ['id', 'from', 'to', 'label', 'status', 'text', 'refs']);
+      for (const f of ['label', 'text']) string(edge[f], `${e}.${f}`);
+      for (const f of ['from', 'to']) if (!nodes.has(edge[f])) fail(`${e}.${f}`, `unknown node ${edge[f]}`);
+      choice(edge.status, `${e}.status`, ['source', 'observed', 'possible']);
+      refs(edge.refs, `${e}.refs`);
+    });
+    unique(block.edges, `${b}.edges`);
+  };
   const graphIds = new Set();
   array(doc.sections, '$.sections', true);
   doc.sections.forEach((section, i) => {
@@ -71,7 +96,8 @@ export function validate(doc) {
       const fields = {
         text: ['text'], code: ['title', 'code', 'language'], compare: ['title', 'before', 'after'],
         details: ['title', 'text'], table: ['title', 'columns', 'rows'], finding: ['title', 'text', 'status'], check: ['title', 'text', 'status'],
-        diagram: ['id', 'title', 'text', 'direction', 'nodes', 'edges'],
+        diagram: ['id', 'title', 'text', 'direction', 'nodes', 'edges', 'baseline'],
+        inventory: ['title', 'text', 'data', 'links', 'omissions'],
         diff: ['title', 'text', 'path', 'before', 'after', 'scope', 'verification'],
         proposal: ['title', 'text', 'kind', 'current', 'suggested'],
         prompt: ['title', 'text', 'instructions'],
@@ -80,6 +106,9 @@ export function validate(doc) {
       if (!block || !Object.hasOwn(fields, block.type)) fail(`${b}.type`, `expected one of ${Object.keys(fields).join(', ')}`);
       object(block, b, ['type', 'refs', ...fields[block.type]]);
       refs(block.refs, `${b}.refs`);
+      if (block.type === 'inventory') {
+        string(block.title, `${b}.title`); string(block.text, `${b}.text`); return;
+      }
       if (block.type === 'table') {
         string(block.title, `${b}.title`);
         array(block.columns, `${b}.columns`, true);
@@ -112,7 +141,7 @@ export function validate(doc) {
         if (typeof block.current !== 'string' || block.kind === 'title' && !block.current.trim()) fail(`${b}.current`, 'expected the original PR text');
         return;
       }
-      for (const field of fields[block.type].filter(f => !['language', 'direction', 'nodes', 'edges', 'id', 'status'].includes(f))) string(block[field], `${b}.${field}`);
+      for (const field of fields[block.type].filter(f => !['language', 'direction', 'nodes', 'edges', 'id', 'status', 'baseline'].includes(f))) string(block[field], `${b}.${field}`);
       if (block.language !== undefined) string(block.language, `${b}.language`);
       if (block.type === 'finding') choice(block.status, `${b}.status`, ['verified', 'suggestion', 'question', 'unverified']);
       if (block.type === 'check') choice(block.status, `${b}.status`, ['passed', 'failed', 'unverified']);
@@ -121,29 +150,29 @@ export function validate(doc) {
       if (graphIds.has(block.id)) fail(`${b}.id`, `duplicate diagram id ${block.id}`);
       graphIds.add(block.id);
       if (block.direction !== undefined) choice(block.direction, `${b}.direction`, ['LR', 'TB']);
-      array(block.nodes, `${b}.nodes`, true);
-      array(block.edges, `${b}.edges`);
-      block.nodes.forEach((node, k) => {
-        const n = `${b}.nodes[${k}]`;
-        object(node, n, ['id', 'label', 'kind', 'text', 'signature', 'refs']);
-        for (const f of ['label', 'text']) string(node[f], `${n}.${f}`);
-        choice(node.kind, `${n}.kind`, ['type', 'method', 'value']);
-        if (node.signature !== undefined) string(node.signature, `${n}.signature`);
-        refs(node.refs, `${n}.refs`);
-      });
-      const nodes = unique(block.nodes, `${b}.nodes`);
-      block.edges.forEach((edge, k) => {
-        const e = `${b}.edges[${k}]`;
-        object(edge, e, ['id', 'from', 'to', 'label', 'status', 'text', 'refs']);
-        for (const f of ['label', 'text']) string(edge[f], `${e}.${f}`);
-        for (const f of ['from', 'to']) if (!nodes.has(edge[f])) fail(`${e}.${f}`, `unknown node ${edge[f]}`);
-        choice(edge.status, `${e}.status`, ['source', 'observed', 'possible']);
-        refs(edge.refs, `${e}.refs`);
-      });
-      unique(block.edges, `${b}.edges`);
+      checkGraph(block, b);
+      if (block.baseline !== undefined) {
+        const p = `${b}.baseline`;
+        object(block.baseline, p, ['revision', 'scope', 'direction', 'nodes', 'edges', 'refs']);
+        if (block.baseline.revision !== (doc.review.diffBase ?? doc.review.base)) fail(`${p}.revision`, 'baseline must match the reviewed diff base');
+        string(block.baseline.scope, `${p}.scope`); refs(block.baseline.refs, `${p}.refs`);
+        checkGraph(block.baseline, p);
+        const baseRefs = [...(block.baseline.refs ?? []), ...block.baseline.nodes.flatMap(node => node.refs ?? []), ...block.baseline.edges.flatMap(edge => edge.refs ?? [])];
+        const repoPath = new URL(doc.review.url).pathname.split('/').slice(1, 3).join('/').toLowerCase();
+        for (const id of baseRefs) {
+          const source = new URL(doc.sources.find(source => source.id === id).url);
+          const parts = source.pathname.split('/');
+          if (source.hostname === 'github.com' && parts.slice(1, 3).join('/').toLowerCase() === repoPath && ['blob', 'raw'].includes(parts[3]) && parts[4] !== block.baseline.revision) fail(`${p}.refs`, 'baseline code links must use the baseline revision');
+        }
+      }
     });
   });
   unique(doc.sections, '$.sections');
+  const blocks = doc.sections.flatMap(section => section.blocks);
+  const inventories = blocks.filter(block => block.type === 'inventory');
+  if (inventories.length > 1) fail('$', 'use one inventory per review');
+  const graphs = new Map(blocks.filter(block => block.type === 'diagram').map(graph => [graph.id, graph]));
+  inventories.forEach(block => validateInventory(block, doc.review, graphs, 'inventory'));
   return doc;
 }
 
@@ -154,13 +183,15 @@ export function toMermaid(graph) {
   const ids = new Map(graph.nodes.map((node, i) => [node.id, `n${i}`]));
   const lines = [`flowchart ${graph.direction ?? 'LR'}`];
   graph.nodes.forEach(node => {
-    const text = `"${label(`${node.kind}: ${node.label}`)}"`;
-    const shape = node.kind === 'method' ? `(${text})` : node.kind === 'value' ? `{{${text}}}` : `[${text}]`;
-    lines.push(`  ${ids.get(node.id)}${shape}`);
+    const text = `"${label(`${node.kind}: ${changeLabel(node)}`)}"`;
+    const shape = ['function', 'method', 'macro'].includes(node.kind) ? `(${text})` : node.kind === 'value' ? `{{${text}}}` : `[${text}]`;
+    lines.push(`  ${ids.get(node.id)}${shape}${node.change && node.change !== 'unchanged' ? `:::${node.change}` : ''}`);
   });
   graph.edges.forEach(edge => {
     const arrow = edge.status === 'possible' ? '-.->' : '-->';
-    lines.push(`  ${ids.get(edge.from)} ${arrow}|"${label(edge.label)}"| ${ids.get(edge.to)}`);
+    lines.push(`  ${ids.get(edge.from)} ${arrow}|"${label(edgeChangeLabel(edge))}"| ${ids.get(edge.to)}`);
   });
+  if (graph.nodes.some(node => node.change)) lines.push('classDef added fill:#e5f2e7,stroke:#286a3a', 'classDef changed fill:#fff4d8,stroke:#8c6200', 'classDef removed fill:#f9e8e6,stroke:#9c3e35');
+  graph.edges.forEach((edge, i) => { if (edge.change && edge.change !== 'unchanged') lines.push(`linkStyle ${i} stroke:${({ added: '#286a3a', changed: '#8c6200', removed: '#9c3e35' })[edge.change]},stroke-width:2px`); });
   return lines.join('\n');
 }

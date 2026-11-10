@@ -52,8 +52,8 @@ Parses changed Julia files at both commits without loading the project.
 The default scope is `src/` and `ext/`.
 Use `--scope .` for all changed Julia files, or comma-separated paths for a smaller area.
 
-Lists added, changed and removed written type, method and macro declarations.
-Whitespace, line numbers and docstrings do not count as body changes.
+Lists added, changed and removed written type, generic-function, method and macro declarations.
+Whitespace, line numbers and leading docstrings outside a declaration do not count as body changes.
 Identity uses the file, lexical scope and source signature, or name for types.
 Moves and method signature edits can appear as removal and addition.
 Each record includes source locations and normalized syntax hashes.

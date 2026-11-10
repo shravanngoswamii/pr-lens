@@ -19,3 +19,7 @@ On smaller screens, navigation folds away and details follow the diagram.
 
 Use teal on selected nodes and focus, neutral chrome and explicit +/- diff marks.
 Feedback stays separate from generated review content.
+
+Design comparisons retain the same canvas and add Base, Changes and Head controls.
+Changes use both words and color.
+Definition inventories stay searchable and expose unassigned entries.
