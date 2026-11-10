@@ -1,37 +1,21 @@
-# Reviewer feedback
+# Feedback
 
-Open Comments, or use Comment beside a section or Comment on this node in a graph inspector.
-Choose Question, Suggestion or Issue and write a request.
-A name is optional and is a label supplied by the reviewer, not a verified identity.
-Comments can be edited, resolved, reopened or removed with an undo action.
+Add a question, suggestion or issue to the review, a section or a node.
+Names are optional, unverified labels.
+Select comments and copy a prompt to revise the document or investigate the code.
+The prompt includes revisions, targets and source links.
+If clipboard access fails, copy the selected text manually.
 
-Select the comments to send back to an agent.
-Choose whether to revise the document or investigate the PR code.
-Copy agent prompt includes the PR URL, exact revisions, comment locations, available signatures and pinned source links.
-Preview prompt shows the text before copying.
-If clipboard access is blocked, the prompt opens selected for manual copying.
-The tool does not send the prompt or run an agent.
-
-## Keep and share comments
-
-Browser storage keeps a local working copy where available.
-It does not synchronize reviewers.
-Storage for files opened directly in a browser varies between browsers, so use Save > HTML with comments or Export feedback to retain the feedback.
-The saved HTML includes the review, its editable JSON, the feedback, fonts and viewer scripts.
-Another person can download it and open it offline.
-Unsaved text in the comment form is excluded.
-
-Export feedback writes a small JSON file for an agent or another reviewer.
-Import feedback combines it with the current comments.
-New IDs are added and matching IDs use the newer updatedAt.
-Conflicting edits with the same timestamp are rejected without changing the current comments.
-This file merge is not a concurrent editing protocol.
-Keep separate reviewer files when people edit the same comment independently.
+Use **Save > HTML with comments** or **Export feedback** to keep comments.
+Browser storage is local and may be unavailable for files.
+Saved HTML excludes unsaved drafts.
+Import adds new IDs and keeps the newer `updatedAt` for matching IDs.
+Equal-timestamp conflicts are rejected.
+Keep separate files for independent edits to the same comment.
 
 ## Format
 
-Feedback is separate from the generated review JSON.
-It has its own version and names the review it belongs to.
+Feedback stays separate from generated review JSON.
 
 ```json
 {
@@ -39,10 +23,10 @@ It has its own version and names the review it belongs to.
   "documentId": "review-name",
   "reviewUrl": "https://github.com/owner/repo/pull/1",
   "comments": [{
-    "id": "comment-stable-id",
-    "target": {"section": "design", "diagram": "calls", "node": "method-id"},
+    "id": "note",
+    "target": {"section": "design", "diagram": "calls", "node": "method"},
     "kind": "question",
-    "text": "Explain which overload is called for this input.",
+    "text": "Which overload runs?",
     "author": "",
     "status": "open",
     "base": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -53,28 +37,25 @@ It has its own version and names the review it belongs to.
 }
 ```
 
-The SHAs above are format placeholders.
-Use the real revisions on which the comment was recorded.
-Target `{}` means the whole document.
-A section target needs `section`.
-A diagram target needs `section` and `diagram`.
-A node target also needs `node`.
-The kind is `question`, `suggestion` or `issue` and status is `open` or `resolved`.
-Text may contain up to 10000 characters and author up to 80.
-Timestamps use UTC ISO form with `Z` or `+00:00`.
+Replace placeholder SHAs with the comment's actual revisions.
 
-Rendering a newer document with old feedback keeps the old recorded SHAs.
-The viewer marks older revisions and missing targets instead of dropping comments or silently moving them.
-The prompt asks the agent to re-establish that context.
+| Field | Values |
+| --- | --- |
+| `target` | `{}` for review, `{section}`, `{section, diagram}`, or `{section, diagram, node}` |
+| `kind` | `question`, `suggestion`, `issue` |
+| `status` | `open`, `resolved` |
+| `text`, `author` | Up to 10000 and 80 characters |
+| Timestamps | UTC ISO, `Z` or `+00:00` |
+
+Old revisions and missing targets are flagged and retained.
+Comments are requests to check, not verified findings.
 
 ```sh
 node bin/review-docs.js render review.json --feedback feedback.json --out review.html
 node bin/review-docs.js prompt review.json --feedback feedback.json --out prompt.txt
-node bin/review-docs.js prompt review.json --feedback feedback.json --purpose code --out prompt.txt
-node bin/review-docs.js extract saved-review.html --out review.json --feedback-out feedback.json
+node bin/review-docs.js extract saved.html --out review.json --feedback-out feedback.json
 ```
 
-The CLI prompt includes open comments by default.
-Extract reads the embedded records without executing the HTML's scripts.
-The viewer lets a reviewer choose individual comments.
-An issue comment is a request to check a claim, not proof of a defect.
+CLI prompts include open comments by default.
+Add `--purpose code` for code investigation.
+Extraction reads embedded JSON without executing scripts.

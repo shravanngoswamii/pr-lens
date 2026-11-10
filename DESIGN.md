@@ -1,30 +1,17 @@
-# Review viewer
+# Viewer
 
-The viewer answers what a PR changes and lets a reviewer turn specific feedback into an agent request.
-Use a quiet reading surface with open space, aligned text and no container borders.
-Graph node outlines and edges carry meaning and remain visible.
+A borderless reader with Geist type, neutral controls and generous space.
+Taste direction: Achromatic ledger, seed 1743316639.
+Code uses system monospace.
+Geist is bundled under OFL.
 
-The taste skill dealt Achromatic ledger, seed 1743316639.
-Use its open layout, neutral controls and Geist type.
-The user's borderless preference takes precedence over the sheet's panel borders.
-Geist is bundled as a Latin variable font under its OFL license.
-Code and commit IDs use the system monospace.
+Keep Contents, Comments and Save in the toolbar.
+Comments sit beside the review on desktop and replace it on phones.
+Use blue for focus and selection.
+Use subtle red/green diff rows with explicit +/- marks.
+Keep copy actions beside their text.
+Graph outlines carry meaning.
 
-The document is the main surface.
-A compact toolbar holds contents, comments and file actions.
-Comments open beside the document on wide screens and replace the reading view on small screens.
-Spacing and a small change in background separate the graph and feedback areas.
-Blue marks the selected graph node and keyboard focus.
-Controls show text labels, visible focus and a result after saving or copying.
-Suggested edits use a flat diff with line numbers and explicit addition/removal signs.
-Muted green and red distinguish changes without carrying the meaning alone.
-PR wording and next tasks keep their copy actions beside the relevant text.
-Linked work expands in place and shares the same reading surface.
-
-Feedback belongs to the reviewer and stays separate from generated prose and graphs.
-Save a review copy to carry comments between people.
-Browser storage is a convenience, not the shared source of truth.
-
-The taste inspector reports no failures at 1440, 768 and 390 pixels.
-Its below-fold warning is expected for a long review document whose sections are reached through Contents.
-The only surface shadow is on the floating file menu.
+Generated content and human feedback stay separate.
+Browser storage is a convenience.
+Saved files carry the shared snapshot.

@@ -1,13 +1,10 @@
 # DrawShare integration
 
-The first version stays independent of DrawShare.
-Its file boundary is the versioned review JSON, also embedded in exported HTML.
+Proposed file boundary: review JSON, also embedded in HTML.
 
 ## Source study
 
-Checked upstream on 2026-11-10 before relying on local code.
-The existing DrawShare clone matched upstream.
-JuliaBUGS and mcmcjs were inspected in separate temporary clones because their local copies were older.
+Upstream revisions checked on 2026-11-10:
 
 | Project | Reviewed upstream commit | Relevant source |
 | --- | --- | --- |
@@ -15,30 +12,21 @@ JuliaBUGS and mcmcjs were inspected in separate temporary clones because their l
 | JuliaBUGS | `5fd788c2777dc57e0f39ae2b10eabfa902bb6f25` | [DoodlePPL hosting](https://github.com/TuringLang/JuliaBUGS.jl/blob/5fd788c2777dc57e0f39ae2b10eabfa902bb6f25/DoodlePPL/README.md) |
 | mcmcjs | `46b149329b3c4013e7a673f1525617fe11f3a357` | [Graph types](https://github.com/mcmcjs/mcmcjs/blob/46b149329b3c4013e7a673f1525617fe11f3a357/packages/doodleppl/src/core/types.ts), [Cytoscape editor](https://github.com/mcmcjs/mcmcjs/blob/46b149329b3c4013e7a673f1525617fe11f3a357/packages/doodleppl-ui/src/widget/composables/useGraphInstance.ts), [file import](https://github.com/mcmcjs/mcmcjs/blob/46b149329b3c4013e7a673f1525617fe11f3a357/packages/doodleppl-ui/src/widget/composables/useImportExport.ts), [viewport controls](https://github.com/mcmcjs/mcmcjs/blob/46b149329b3c4013e7a673f1525617fe11f3a357/packages/doodleppl-ui/src/widget/composables/useViewportActions.ts) |
 
-DrawShare stores strokes, text, images and coordinate-based shapes on pages.
-Its renderer consumes those object types, and its backup format version 2 stores projects and per-page content arrays.
-A code graph needs named relationships and evidence beyond those coordinates.
 
-DoodlePPL separates explicit graph elements from its viewport and uses file import/export.
-Those are useful patterns for this tool.
-Its stochastic nodes, distributions and plates describe Bayesian models.
-Review docs uses code types, methods and values directly.
-No DoodlePPL source was copied.
-JuliaBUGS's DoodlePPL directory hosts pages that load the editor package from mcmcjs.
+DrawShare stores page objects and exports them in version-2 backups.
+Code graphs also need named relationships and evidence.
+DoodlePPL's explicit nodes, edges and file exchange are useful patterns.
+Its Bayesian concepts stay separate from code types and methods.
+No source was copied.
+JuliaBUGS hosts the editor built in mcmcjs.
 
-## Smallest useful next step
+## Proposal
 
-Add a `ReviewBlock` to DrawShare with an ID, page ID, placement rectangle and the complete review JSON.
-Use the existing review validator at the import boundary.
-Render a selected diagram as an SVG/DOM overlay with its node inspector.
-Keep the JSON editable and preserve stable document, diagram and node IDs when replacing generated content.
+Import a `ReviewBlock` with ID, page ID, placement and validated review JSON.
+Render its diagrams as SVG/DOM overlays with node details.
+Keep stable document, diagram and node IDs when regenerating.
 
-Keep handwritten strokes and text in their existing stores.
-An optional annotation anchor can name `{ blockId, diagramId, nodeId }` with a page-coordinate fallback.
-Regeneration replaces the block's generated document, not those human objects.
-When a node disappears, keep its annotation and mark the anchor unresolved.
-
-Extend the backup/export format to retain review blocks and anchors and test a round trip before adding live sync or replay support.
-Import/export is enough for agents that can write files.
-There is no need for another agent API in this first integration.
-This is a proposal based on the source study, not an implemented DrawShare feature.
+Leave human strokes and text in their existing stores.
+Optional anchors name `{blockId, diagramId, nodeId}` with a coordinate fallback.
+Preserve unresolved annotations when nodes disappear.
+Extend backup import/export and verify a round trip before adding sync.
