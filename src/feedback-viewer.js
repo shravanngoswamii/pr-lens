@@ -64,10 +64,7 @@ export function initFeedback(doc) {
   }
   toggle.addEventListener('click', () => panel.hidden ? openPanel() : closePanel());
   get('close-comments').addEventListener('click', closePanel);
-  document.querySelectorAll('.contents a, .viewer-bar .home').forEach(link => link.addEventListener('click', () => {
-    if (!panel.hidden) closePanel();
-    document.querySelector('.contents').open = false;
-  }));
+  document.addEventListener('review:navigate', () => { if (!panel.hidden) closePanel(); });
   panel.addEventListener('keydown', event => { if (event.key === 'Escape') closePanel(); });
   document.addEventListener('click', event => {
     const button = event.target.closest('[data-comment-target]');
@@ -98,7 +95,10 @@ export function initFeedback(doc) {
   function renderComments() {
     const list = get('comment-list');
     list.replaceChildren();
-    toggle.textContent = `Comments (${feedback.comments.length})`;
+    toggle.setAttribute('aria-label', `Comments (${feedback.comments.length})`);
+    toggle.innerHTML = '<svg width=18 height=18 viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v12H9l-4 4z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg><span class="action-label">Comments</span>';
+    const count = make('span', String(feedback.comments.length), toggle, 'comment-count');
+    count.hidden = !feedback.comments.length;
     if (!feedback.comments.length) make('p', 'No comments yet.', list, 'feedback-help');
     for (const comment of feedback.comments) {
       const row = make('article', '', list, 'comment');

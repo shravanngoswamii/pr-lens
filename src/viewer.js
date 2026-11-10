@@ -1,6 +1,7 @@
 import mermaid from 'mermaid';
 import { toMermaid } from './document.js';
 import { initFeedback } from './feedback-viewer.js';
+import { initWorkspace } from './workspace.js';
 import { initReport } from './report-viewer.js';
 
 const doc = JSON.parse(document.querySelector('#review-data').textContent);
@@ -28,7 +29,7 @@ const addRefs = (ids, parent) => {
 
 mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: 'base', look: 'classic',
   flowchart: { htmlLabels: false, useMaxWidth: false, curve: 'basis', wrappingWidth: 320 },
-  themeVariables: { fontFamily: 'Geist, system-ui, sans-serif', fontSize: '16px', primaryColor: '#ffffff', primaryTextColor: '#171717', primaryBorderColor: '#a3a3a3', lineColor: '#737373', edgeLabelBackground: '#f7f7f7' },
+  themeVariables: { fontFamily: 'IBM Plex Sans, system-ui, sans-serif', fontSize: '16px', primaryColor: '#ffffff', primaryTextColor: '#171717', primaryBorderColor: '#acb9bf', lineColor: '#7d919b', edgeLabelBackground: '#f5f8f9' },
 });
 
 async function draw(graph, index) {
@@ -39,28 +40,35 @@ async function draw(graph, index) {
   const syntax = toMermaid(graph);
   figure.querySelector('.mermaid-source').textContent = syntax;
   let svg;
+  let focusNode = () => {};
   function showNode(i) {
     const node = graph.nodes[i];
     select.value = String(i);
     selection.replaceChildren();
     element('h4', node.label, selection);
     element('p', node.text, selection);
-    if (node.signature) element('code', node.signature, element('pre', '', selection));
+    if (node.signature) {
+      const signature = element('details', '', selection);
+      element('summary', 'Signature', signature);
+      element('code', node.signature, element('pre', '', signature));
+    }
     addRefs(node.refs, selection);
     const comment = element('button', 'Comment', selection);
     comment.type = 'button';
     comment.setAttribute('aria-label', 'Comment on this node');
     comment.dataset.commentTarget = JSON.stringify({ section: figure.closest('section').dataset.section, diagram: graph.id, node: node.id });
     const related = graph.edges.filter(edge => edge.from === node.id || edge.to === node.id);
-    if (related.length) element('h4', 'Relationships', selection);
+    const relationships = element('details', '', selection);
+    element('summary', `Relationships (${related.length})`, relationships);
     for (const edge of related) {
       const from = graph.nodes.find(n => n.id === edge.from).label;
       const to = graph.nodes.find(n => n.id === edge.to).label;
-      element('strong', `${from} ${edge.label} ${to}`, element('p', '', selection));
-      element('p', `${edge.status}: ${edge.text}`, selection);
-      addRefs(edge.refs, selection);
+      element('strong', `${from} ${edge.label} ${to}`, element('p', '', relationships));
+      element('p', `${edge.status}: ${edge.text}`, relationships);
+      addRefs(edge.refs, relationships);
     }
     svg?.querySelectorAll('.node').forEach(n => n.setAttribute('aria-pressed', String(n.dataset.nodeIndex === String(i))));
+    focusNode(i);
   }
   select.addEventListener('change', () => showNode(Number(select.value)));
   showNode(0);
@@ -93,6 +101,17 @@ async function draw(graph, index) {
     const update = () => {
       svg.setAttribute('viewBox', `${view.x} ${view.y} ${view.w} ${view.h}`);
       figure.querySelector('output').textContent = `${Math.round(initial.w / view.w * 100)}%`;
+    };
+    focusNode = i => {
+      if (!matchMedia('(max-width: 700px)').matches || view.w >= initial.w) return;
+      const node = svg.querySelector(`[data-node-index="${i}"]`);
+      if (!node?.getCTM() || !svg.getCTM()) return;
+      const box = node.getBBox();
+      const point = new DOMPoint(box.x + box.width / 2, box.y + box.height / 2)
+        .matrixTransform(node.getCTM()).matrixTransform(svg.getCTM().inverse());
+      view.x = point.x - view.w / 2;
+      view.y = point.y - view.h / 4;
+      update();
     };
     const zoom = factor => {
       const scale = initial.w / view.w * factor;
@@ -163,6 +182,11 @@ async function draw(graph, index) {
         if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); showNode(i); }
       });
     });
+    fit();
+    if (matchMedia('(max-width: 700px)').matches) {
+      const scale = svg.getScreenCTM().a;
+      if (scale > 0 && scale < 1) zoom(Math.min(4, 1 / scale));
+    }
     showNode(0);
     figure.dataset.ready = 'true';
   } catch (error) {
@@ -186,7 +210,7 @@ download.addEventListener('click', () => {
 
 async function start() {
   await document.fonts.ready;
-  for (const [index, graph] of doc.sections.flatMap(section => section.blocks.filter(block => block.type === 'diagram')).entries()) await draw(graph, index);
+  await initWorkspace(doc, draw);
   document.documentElement.dataset.ready = 'true';
 }
 start();

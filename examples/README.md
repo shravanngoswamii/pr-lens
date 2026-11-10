@@ -14,7 +14,7 @@ mkdir -p output
 node bin/review-docs.js render examples/dynamicppl-1529.json --out output/review.html
 ```
 
-HTML is inspected offline and excluded from Git because each file bundles about 5 MB of assets.
+HTML is inspected offline and excluded from Git because each file bundles about 6 MB of assets.
 
 ## Reproduce
 

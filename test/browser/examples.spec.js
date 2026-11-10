@@ -15,6 +15,10 @@ test('renders both shipped reviews with offline node selection', async ({ page, 
       await page.goto(pathToFileURL(join(dir, `${name}.html`)).href);
       await page.waitForFunction(() => document.documentElement.dataset.ready === 'true');
       for (const figure of await page.locator('figure').all()) {
+        const section = await figure.evaluate(node => node.closest('section').id);
+        await page.locator(`.sidebar a[data-view="${section}"]`).click();
+        const tab = page.locator(`.diagram-tabs a[data-view="${await figure.getAttribute('id')}"]`);
+        if (await tab.count()) await tab.click();
         await expect(figure).toHaveAttribute('data-ready', 'true');
         const select = figure.locator('select');
         for (let i = 0; i < await select.locator('option').count(); i++) {

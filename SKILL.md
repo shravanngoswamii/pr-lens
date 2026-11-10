@@ -78,7 +78,7 @@ node bin/review-docs.js render review.json --out review.html
 ```
 
 Open the HTML offline at desktop and phone widths.
-Check every section, disclosure and source link.
+Open every view and check its disclosures and source links.
 Try graph controls, node selection, copy actions and linked-work branches.
 Split diagrams whose labels become too small.
 Validation proves structure only.

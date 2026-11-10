@@ -71,6 +71,7 @@ test('keeps all content readable at a narrow width', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 844 });
   await page.goto(url);
   await expect(page.locator('figure')).toHaveAttribute('data-ready', 'true');
+  await page.getByText('Section notes', { exact: true }).click();
   await page.getByText('Supporting evidence', { exact: true }).click();
   await expect(page.getByText('One selected signature.', { exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);

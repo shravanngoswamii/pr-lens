@@ -28,6 +28,7 @@ test('copies literal suggestions, an applicable patch and a task with source con
   await context.setOffline(true);
   await page.addInitScript(() => Object.defineProperty(navigator, 'clipboard', { value: { writeText: async text => { window.copied = text; } } }));
   await page.goto(url);
+  await page.locator('.sidebar a[data-view="section-suggestions"]').click();
   await page.getByRole('button', { name: 'Copy title', exact: true }).click();
   expect(await page.evaluate(() => window.copied)).toBe(title);
   await page.getByRole('button', { name: 'Copy description', exact: true }).click();
@@ -47,6 +48,7 @@ test('copies literal suggestions, an applicable patch and a task with source con
 test('provides selectable copy text when clipboard access fails', async ({ page }) => {
   await page.addInitScript(() => Object.defineProperty(navigator, 'clipboard', { value: { writeText: async () => { throw new Error('Unavailable'); } } }));
   await page.goto(url);
+  await page.locator('.sidebar a[data-view="section-suggestions"]').click();
   await page.getByRole('button', { name: 'Copy description', exact: true }).click();
   await expect(page.getByLabel('Copy description text')).toBeFocused();
   expect(await page.evaluate(() => document.activeElement.value.slice(document.activeElement.selectionStart, document.activeElement.selectionEnd))).toBe(description.replace(/\r\n/g, '\n'));
@@ -54,6 +56,7 @@ test('provides selectable copy text when clipboard access fails', async ({ page 
 
 test('follows hierarchy branches, stops cycles and anchors comments to shared items', async ({ page }) => {
   await page.goto(url);
+  await page.locator('.sidebar a[data-view="section-suggestions"]').click();
   const tree = page.locator('.linked-tree');
   await expect(tree.locator('.linked-item')).toHaveCount(3);
   await tree.getByText('replaces: Earlier approach', { exact: true }).click();
