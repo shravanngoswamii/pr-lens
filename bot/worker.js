@@ -1,6 +1,7 @@
-import { mkdir, readFile, writeFile, rename, rm } from 'node:fs/promises';
+import { mkdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { github, parseComment, isRequest } from './github.js';
+export { withState } from './state.js';
+import { github, parseComment, isRequest, scanRequests } from './github.js';
 import { run } from './process.js';
 import { claudeEnvironment } from './claude.js';
 import { collectContext } from './context.js';
@@ -27,38 +28,13 @@ export function reviewComment(doc, url, request) {
 }
 
 export async function doctor(config, gh = github(config)) {
-  if ((await gh.api('user')).login.toLowerCase() !== config.login.toLowerCase()) throw new Error('ghsb is using a different GitHub account');
+  if ((await gh.api('user')).login.toLowerCase() !== config.login.toLowerCase()) throw new Error('GitHub CLI is using a different account');
   await gh.api('notifications?all=true&per_page=1');
   let auth;
   try { auth = JSON.parse((await run('claude', ['auth', 'status', '--json'], { env: claudeEnvironment() })).stdout); }
   catch { throw new Error('Sign in to Claude Code with your Claude subscription'); }
   if (!auth.loggedIn || !['claude.ai', 'oauth_token'].includes(auth.authMethod)) throw new Error('Sign in to Claude Code with your Claude subscription');
-  return { github: config.login, requester: config.requester, claude: auth.subscriptionType ?? auth.authMethod };
-}
-
-export async function withState(config, action) {
-  await mkdir(config.stateDir, { recursive: true, mode: 0o700 });
-  const lock = join(config.stateDir, 'lock');
-  try { await mkdir(lock); }
-  catch (error) {
-    if (error.code !== 'EEXIST') throw error;
-    const pid = Number(await readFile(join(lock, 'pid'), 'utf8').catch(() => '0'));
-    if (!Number.isSafeInteger(pid) || pid < 1) throw new Error('Bot lock is incomplete. Check for a running worker before removing it');
-    try { process.kill(pid, 0); throw new Error('Another bot command is running'); }
-    catch (cause) { if (cause.code !== 'ESRCH') throw cause; }
-    await rm(lock, { recursive: true }); await mkdir(lock);
-  }
-  await writeFile(join(lock, 'pid'), String(process.pid));
-  try {
-    const file = join(config.stateDir, 'state.json');
-    let state;
-    try { state = JSON.parse(await readFile(file, 'utf8')); }
-    catch (error) { if (error.code !== 'ENOENT') throw error; state = { version: 1, since: new Date().toISOString(), requests: {} }; }
-    if (state.version !== 1 || !state.requests || typeof state.requests !== 'object' || Array.isArray(state.requests) || !Number.isFinite(Date.parse(state.since))) throw new Error('Invalid bot state');
-    const save = async () => { await writeFile(file + '.tmp', JSON.stringify(state, null, 2) + '\n', { mode: 0o600 }); await rename(file + '.tmp', file); };
-    await save();
-    return await action(state, save);
-  } finally { await rm(lock, { recursive: true }); }
+  return { github: config.login, requester: (config.requesters?.map(user => user.login) ?? [config.requester]).join(', '), claude: auth.subscriptionType ?? auth.authMethod };
 }
 
 export async function runRequest(config, gh, url, state, save, { retry = false, collect = collectContext, review = reviewContext, inspect = inspectHTML, deploy = publish, wait = waitForPublication, log = console.log } = {}) {
@@ -114,20 +90,13 @@ export async function runRequest(config, gh, url, state, save, { retry = false, 
 }
 
 export async function poll(config, gh, state, save, options = {}) {
+  let failed = 0;
   const started = new Date().toISOString();
-  const since = new Date(Date.parse(state.since) - 120000).toISOString();
-  const notifications = await gh.pages(`notifications?all=true&since=${encodeURIComponent(since)}`);
-  const seen = new Set();
-  for (const thread of notifications) {
-    const match = /^https:\/\/api\.github\.com\/repos\/([A-Za-z0-9-]+\/[A-Za-z0-9_.-]+)\/pulls\/([1-9]\d*)$/.exec(thread.subject?.url ?? '');
-    if (thread.subject?.type !== 'PullRequest' || !match || seen.has(thread.subject.url)) continue;
-    seen.add(thread.subject.url);
-    for (const comment of await gh.pages(`repos/${match[1]}/issues/${match[2]}/comments?since=${encodeURIComponent(since)}`)) {
-      if (!isRequest(comment, config) || state.requests[comment.id] || Date.parse(comment.created_at) < Date.parse(state.since) - 120000) continue;
-      try { await runRequest(config, gh, comment.html_url, state, save, options); }
-      catch (error) { (options.log ?? console.error)(`Request ${comment.id}: ${error.message}`); }
-    }
+  for (const url of await scanRequests(config, gh, state)) {
+    try { await runRequest(config, gh, url, state, save, options); }
+    catch (error) { failed++; (options.log ?? console.error)(`Request ${parseComment(url).id}: ${error.message}`); }
   }
   state.since = started;
   await save();
+  return { failed };
 }

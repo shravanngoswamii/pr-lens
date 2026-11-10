@@ -4,10 +4,10 @@ export function github(config, execute = run) {
   let pollSeconds = 60;
   async function api(path, { method = 'GET', body } = {}) {
     if (!/^(repos\/|notifications\?|user$)/.test(path) || /[\r\n]/.test(path)) throw new Error('Invalid GitHub API path');
-    const args = ['gh', config.sandbox, 'api', '--include', '--method', method, '-H', 'Accept: application/vnd.github+json', path];
+    const args = [...(config.sandbox ? ['gh', config.sandbox] : []), 'api', '--include', '--method', method, '-H', 'Accept: application/vnd.github+json', path];
     if (body !== undefined) args.push('--input', '-');
     let stdout;
-    try { ({ stdout } = await execute('ghsb', args, { input: body === undefined ? '' : JSON.stringify(body) })); }
+    try { ({ stdout } = await execute(config.sandbox ? 'ghsb' : 'gh', args, { input: body === undefined ? '' : JSON.stringify(body) })); }
     catch (cause) {
       const status = cause.stderr?.match(/HTTP (\d+)/)?.[1];
       throw Object.assign(new Error(`GitHub ${method} ${path} failed${status ? ` (HTTP ${status})` : ''}`), { rateLimited: /rate limit/i.test(cause.stderr ?? '') });
@@ -37,5 +37,21 @@ export function parseComment(url) {
 }
 
 export function isRequest(comment, config) {
-  return comment.user?.login?.toLowerCase() === config.requester.toLowerCase() && comment.body?.trim().toLowerCase() === `@${config.login.toLowerCase()} review`;
+  const allowed = config.requesters ? config.requesters.some(user => user.id === comment.user?.id) : comment.user?.login?.toLowerCase() === config.requester.toLowerCase();
+  return allowed && comment.body?.trim().toLowerCase() === `@${config.login.toLowerCase()} review`;
+}
+
+export async function scanRequests(config, gh, state) {
+  const since = new Date(Date.parse(state.since) - 120000).toISOString();
+  const notifications = await gh.pages(`notifications?all=true&since=${encodeURIComponent(since)}`);
+  const seen = new Set(), requests = new Map();
+  for (const thread of notifications) {
+    const match = /^https:\/\/api\.github\.com\/repos\/([A-Za-z0-9-]+\/[A-Za-z0-9_.-]+)\/pulls\/([1-9]\d*)$/.exec(thread.subject?.url ?? '');
+    if (thread.subject?.type !== 'PullRequest' || !match || seen.has(thread.subject.url)) continue;
+    seen.add(thread.subject.url);
+    for (const comment of await gh.pages(`repos/${match[1]}/issues/${match[2]}/comments?since=${encodeURIComponent(since)}`)) {
+      if (isRequest(comment, config) && !state.requests[comment.id] && Date.parse(comment.created_at) >= Date.parse(state.since) - 120000) requests.set(comment.id, comment.html_url);
+    }
+  }
+  return [...requests.values()];
 }

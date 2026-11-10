@@ -2,7 +2,11 @@
   "version": 1,
   "sandbox": "shravangoswami-bot",
   "login": "shravangoswami-bot",
-  "requester": "shravanngoswamii",
+  "requesters": [
+    { "login": "shravanngoswamii", "id": 123811742 },
+    { "login": "yebai", "id": 3279477 },
+    { "login": "sunxd3", "id": 5433119 }
+  ],
   "stateDir": "/absolute/path/to/review-docs/output/bot-state",
   "publish": {
     "checkout": "/absolute/path/to/site-checkout",
