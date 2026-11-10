@@ -1,7 +1,7 @@
 import { mkdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 export { withState } from './state.js';
-import { github, parseComment, isRequest, scanRequests } from './github.js';
+import { github, parseRequest, checkRequest, scanRequests } from './github.js';
 import { run } from './process.js';
 import { claudeEnvironment } from './claude.js';
 import { collectContext } from './context.js';
@@ -38,20 +38,20 @@ export async function doctor(config, gh = github(config)) {
 }
 
 export async function runRequest(config, gh, url, state, save, { retry = false, collect = collectContext, review = reviewContext, inspect = inspectHTML, deploy = publish, wait = waitForPublication, log = console.log } = {}) {
-  const request = parseComment(url);
-  const comment = await gh.api(`repos/${request.repo}/issues/comments/${request.id}`);
-  if (comment.issue_url?.toLowerCase() !== `https://api.github.com/repos/${request.repo}/issues/${request.number}`.toLowerCase() || !isRequest(comment, config)) throw new Error('Comment is not an authorized review request');
+  const request = parseRequest(url);
   const previous = state.requests[request.id];
   if (previous?.status === 'posted') return previous;
   if (previous && !retry) throw new Error('Request already started. Use retry to resume it');
   if ((await gh.api(`repos/${request.repo}`)).private) throw new Error('Public PRs only. No private content will be published');
-  const comments = await gh.pages(`repos/${request.repo}/issues/${request.number}/comments`);
-  const posted = comments.find(item => item.user?.login?.toLowerCase() === config.login.toLowerCase() && item.body?.includes(`<!-- review-docs:${request.id}:`));
+  const responsePath = request.eventId ? `repos/${request.repo}/pulls/${request.number}/reviews` : `repos/${request.repo}/issues/${request.number}/comments`;
+  const findReply = async () => (await gh.pages(responsePath)).find(item => item.user?.login?.toLowerCase() === config.login.toLowerCase() && item.body?.includes(`<!-- review-docs:${request.id}:`));
+  const posted = await findReply();
   if (posted) { state.requests[request.id] = { status: 'posted', comment: posted.html_url }; await save(); return state.requests[request.id]; }
+  await checkRequest(request, config, gh);
   const job = state.requests[request.id] = { ...previous, status: 'running', request: url, updatedAt: new Date().toISOString() };
   await save();
   try {
-    await gh.api(`repos/${request.repo}/issues/comments/${request.id}/reactions`, { method: 'POST', body: { content: 'eyes' } });
+    if (!request.eventId) await gh.api(`repos/${request.repo}/issues/comments/${request.id}/reactions`, { method: 'POST', body: { content: 'eyes' } });
     const dir = join(config.stateDir, String(request.id));
     await mkdir(dir, { recursive: true });
     let doc;
@@ -71,13 +71,15 @@ export async function runRequest(config, gh, url, state, save, { retry = false, 
     }
     const current = await gh.api(`repos/${request.repo}/pulls/${request.number}`);
     if (current.head.sha !== doc.review.head || current.base.sha !== doc.review.base) throw new Error('PR revisions changed. Post a new review request');
+    await checkRequest(request, config, gh);
     if (!job.publication) { job.publication = await deploy(config.publish, request, doc.review.head, job.directory); await save(); }
     log('Waiting for report deployment');
     await wait(config.publish, job.publication, doc.review.head);
     const latest = await gh.api(`repos/${request.repo}/pulls/${request.number}`);
     if (latest.head.sha !== doc.review.head || latest.base.sha !== doc.review.base) throw new Error('PR revisions changed during deployment. Post a new review request');
-    const duplicate = (await gh.pages(`repos/${request.repo}/issues/${request.number}/comments`)).find(item => item.user?.login?.toLowerCase() === config.login.toLowerCase() && item.body?.includes(`<!-- review-docs:${request.id}:`));
-    const response = duplicate ?? await gh.api(`repos/${request.repo}/issues/${request.number}/comments`, { method: 'POST', body: { body: reviewComment(doc, job.publication.url, request) } });
+    const duplicate = await findReply();
+    if (!duplicate) await checkRequest(request, config, gh);
+    const response = duplicate ?? await gh.api(responsePath, { method: 'POST', body: { body: reviewComment(doc, job.publication.url, request), ...(request.eventId ? { event: 'COMMENT', commit_id: doc.review.head } : {}) } });
     Object.assign(job, { status: 'posted', comment: response.html_url, updatedAt: new Date().toISOString() });
     await save();
     log(job.comment);
@@ -94,7 +96,7 @@ export async function poll(config, gh, state, save, options = {}) {
   const started = new Date().toISOString();
   for (const url of await scanRequests(config, gh, state)) {
     try { await runRequest(config, gh, url, state, save, options); }
-    catch (error) { failed++; (options.log ?? console.error)(`Request ${parseComment(url).id}: ${error.message}`); }
+    catch (error) { failed++; (options.log ?? console.error)(`Request ${parseRequest(url).id}: ${error.message}`); }
   }
   state.since = started;
   await save();

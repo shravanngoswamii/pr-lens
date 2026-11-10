@@ -37,8 +37,34 @@ export function parseComment(url) {
 }
 
 export function isRequest(comment, config) {
-  const allowed = config.requesters ? config.requesters.some(user => user.id === comment.user?.id) : comment.user?.login?.toLowerCase() === config.requester.toLowerCase();
-  return allowed && comment.body?.trim().toLowerCase() === `@${config.login.toLowerCase()} review`;
+  return isRequester(comment.user, config) && comment.body?.trim().toLowerCase() === `@${config.login.toLowerCase()} review`;
+}
+
+function isRequester(actor, config) {
+  return config.requesters ? config.requesters.some(user => user.id === actor?.id) : actor?.login?.toLowerCase() === config.requester.toLowerCase();
+}
+
+export function parseRequest(url) {
+  const match = /^https:\/\/github\.com\/([A-Za-z0-9-]+\/[A-Za-z0-9_.-]+)\/pull\/([1-9]\d*)#event-([1-9]\d*)$/.exec(url);
+  if (!match) return parseComment(url);
+  if (![match[2], match[3]].every(value => Number.isSafeInteger(Number(value)))) throw new Error('Invalid review request id');
+  return { repo: match[1], number: Number(match[2]), id: `review-${match[3]}`, eventId: Number(match[3]) };
+}
+
+function reviewerEvents(events, config) {
+  return events.filter(event => ['review_requested', 'review_request_removed'].includes(event.event) && event.requested_reviewer?.login?.toLowerCase() === config.login.toLowerCase());
+}
+
+export async function checkRequest(request, config, gh) {
+  if (!request.eventId) {
+    const comment = await gh.api(`repos/${request.repo}/issues/comments/${request.id}`);
+    if (comment.issue_url?.toLowerCase() !== `https://api.github.com/repos/${request.repo}/issues/${request.number}`.toLowerCase() || !isRequest(comment, config)) throw new Error('Comment is not an authorized review request');
+    return;
+  }
+  const events = reviewerEvents(await gh.pages(`repos/${request.repo}/issues/${request.number}/timeline`), config);
+  const latest = events.at(-1);
+  const pr = await gh.api(`repos/${request.repo}/pulls/${request.number}`);
+  if (latest?.id !== request.eventId || latest.event !== 'review_requested' || !isRequester(latest.actor, config) || !pr.requested_reviewers?.some(user => user.login.toLowerCase() === config.login.toLowerCase())) throw new Error('Review request is no longer active or authorized');
 }
 
 export async function scanRequests(config, gh, state) {
@@ -51,6 +77,10 @@ export async function scanRequests(config, gh, state) {
     seen.add(thread.subject.url);
     for (const comment of await gh.pages(`repos/${match[1]}/issues/${match[2]}/comments?since=${encodeURIComponent(since)}`)) {
       if (isRequest(comment, config) && !state.requests[comment.id] && Date.parse(comment.created_at) >= Date.parse(state.since) - 120000) requests.set(comment.id, comment.html_url);
+    }
+    const latest = reviewerEvents(await gh.pages(`repos/${match[1]}/issues/${match[2]}/timeline`), config).at(-1);
+    if (latest?.event === 'review_requested' && isRequester(latest.actor, config) && !state.requests[`review-${latest.id}`] && Date.parse(latest.created_at) >= Date.parse(state.since) - 120000) {
+      requests.set(`review-${latest.id}`, `https://github.com/${match[1]}/pull/${match[2]}#event-${latest.id}`);
     }
   }
   return [...requests.values()];

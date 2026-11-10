@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { validateConfig } from './config.js';
 import { run } from './process.js';
-import { github, parseComment, isRequest, scanRequests } from './github.js';
+import { github, parseRequest, checkRequest, scanRequests } from './github.js';
 import { withState } from './state.js';
 
 export function hostedConfig(input, root) {
@@ -19,9 +19,7 @@ export function checkHostedActor(config, env = process.env) {
 export async function scanHosted(config, gh, commentURL) {
   if ((await gh.api('user')).login.toLowerCase() !== config.login.toLowerCase()) throw new Error('REVIEW_BOT_TOKEN belongs to a different account');
   if (commentURL) {
-    const request = parseComment(commentURL);
-    const comment = await gh.api(`repos/${request.repo}/issues/comments/${request.id}`);
-    if (!isRequest(comment, config) || comment.issue_url !== `https://api.github.com/repos/${request.repo}/issues/${request.number}`) throw new Error('Comment is not an authorized review request');
+    await checkRequest(parseRequest(commentURL), config, gh);
     return true;
   }
   return withState(config, async (state, save) => {
@@ -59,7 +57,7 @@ export async function compactState(config) {
   try { state = JSON.parse(await readFile(file, 'utf8')); }
   catch (error) { if (error.code === 'ENOENT') return; throw error; }
   for (const [id, job] of Object.entries(state.requests)) if (job.status === 'posted') {
-    if (!/^\d+$/.test(id)) throw new Error('Invalid request id in hosted state');
+    if (!/^(review-)?\d+$/.test(id)) throw new Error('Invalid request id in hosted state');
     await rm(join(config.stateDir, id), { recursive: true, force: true });
     delete job.document; delete job.directory;
   }

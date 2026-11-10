@@ -18,7 +18,7 @@ try {
       if (result.failed) throw new Error(`${result.failed} review request(s) failed. Check the job log and retry explicitly`);
       return;
     }
-    console.log('Watching new PR conversation mentions. Ctrl+C stops the worker.');
+    console.log('Watching PR mentions and reviewer requests. Ctrl+C stops the worker.');
     while (true) {
       try { await poll(config, gh, state, save); }
       catch (error) { console.error(error.message); }
