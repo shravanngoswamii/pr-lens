@@ -18,11 +18,13 @@ export function initReport(doc) {
     const control = button.closest('.copy-control');
     const field = document.getElementById(button.dataset.copyTarget);
     const status = control.querySelector('[role=status]');
+    const text = JSON.parse(control.querySelector('.copy-data').textContent);
     try {
-      await navigator.clipboard.writeText(field.value);
+      await navigator.clipboard.writeText(text);
       status.textContent = 'Copied.';
     } catch {
       control.querySelector('details').open = true;
+      field.value = text;
       field.focus();
       field.select();
       status.textContent = 'Text selected. Copy it with your keyboard or context menu.';

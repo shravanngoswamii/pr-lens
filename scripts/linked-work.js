@@ -30,7 +30,7 @@ export function references(text, repo) {
     return ' ';
   }).replace(/(?:([a-zA-Z0-9-]+\/[a-zA-Z0-9_.-]+))?#([1-9]\d*)\s*(?:-|–|—|\.\.)\s*#([1-9]\d*)\b/g, (raw, otherRepo, start, end) => {
     start = Number(start); end = Number(end);
-    if (end < start || end - start > 1000) notes.push(`Reference range ${raw} was not expanded. Inspect it manually.`);
+    if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || end < start || end - start > 1000) notes.push(`Reference range ${raw} was not expanded. Inspect it manually.`);
     else for (let number = start; number <= end; number++) add({ repo: otherRepo ?? repo, number, kind: 'unknown' });
     return ' ';
   });

@@ -83,7 +83,7 @@ code { font-family: ui-monospace, monospace; }
 .copy-fallback textarea { font: .8125rem/1.7 ui-monospace, monospace; }
 .diff-scroll { max-width: 100%; overflow: auto; background: var(--soft); border-radius: 4px; }
 .diff { width: 100%; border-collapse: collapse; font: .8125rem/1.8 ui-monospace, monospace; }
-.diff td { padding: 0 8px; white-space: pre; }
+.diff td { padding: 0 8px; white-space: pre; vertical-align: top; }
 .diff .line-number { min-width: 3ch; width: 1%; text-align: right; color: #595959; user-select: none; font-variant-numeric: tabular-nums; }
 .diff .line-mark { width: 1%; user-select: none; }
 .diff .added { background: #e5f2e7; color: #174423; }
@@ -148,6 +148,10 @@ footer { margin-top: 64px; font-size: .8125rem; color: var(--muted); }
   header { margin-bottom: 48px; }
   .document section { margin-top: 48px; }
   .columns { grid-template-columns: 1fr; gap: 0; }
+  .diff { table-layout: fixed; }
+  .diff .line-number { width: 3ch; padding-inline: 4px; }
+  .diff .line-mark { width: 2ch; padding-inline: 4px; }
+  .diff .line-code { white-space: pre-wrap; overflow-wrap: anywhere; }
   .viewport { height: min(480px, var(--graph-height, 340px)); }
   .section-heading { gap: 8px; }
   .section-heading button { padding-inline: 4px; }

@@ -11,7 +11,7 @@ let dir;
 let url;
 const change = { type: 'diff', title: 'Explain the extension hook', text: 'A proposed documentation edit.', path: 'docs/guide.md', before: 'Old sentence.\n', after: 'Clear sentence.\n', scope: 'suggestion', verification: 'source-checked' };
 const title = 'Store values on Model';
-const description = 'A shorter description.\n\nKeep the migration link.\nLiteral </script><img src=x onerror="window.pwned=1">';
+const description = '\nA shorter description.\r\n\r\nKeep the migration link.\nLiteral </script><img src=x onerror="window.pwned=1">';
 test.beforeAll(async () => {
   dir = await mkdtemp(join(tmpdir(), 'review-docs-report-'));
   const doc = document();
@@ -49,7 +49,7 @@ test('provides selectable copy text when clipboard access fails', async ({ page 
   await page.goto(url);
   await page.getByRole('button', { name: 'Copy description', exact: true }).click();
   await expect(page.getByLabel('Copy description text')).toBeFocused();
-  expect(await page.evaluate(() => document.activeElement.value.slice(document.activeElement.selectionStart, document.activeElement.selectionEnd))).toBe(description);
+  expect(await page.evaluate(() => document.activeElement.value.slice(document.activeElement.selectionStart, document.activeElement.selectionEnd))).toBe(description.replace(/\r\n/g, '\n'));
 });
 
 test('follows hierarchy branches, stops cycles and anchors comments to shared items', async ({ page }) => {
@@ -67,8 +67,12 @@ test('follows hierarchy branches, stops cycles and anchors comments to shared it
   await tree.getByText('Follow-up', { exact: true }).click();
   await tree.getByRole('button', { name: 'Comment on this item' }).click();
   await expect(page.locator('#comment-target')).toHaveValue(JSON.stringify(['suggestions', 'links', 'unknown']));
+  await page.getByLabel('Comment', { exact: true }).fill('Explain this issue before acting on it.');
+  await page.getByRole('button', { name: 'Add comment', exact: true }).click();
+  await expect(page.getByLabel('Agent prompt', { exact: true })).toHaveValue(/https:\/\/github.com\/owner\/repo\/issues\/3/);
   await page.getByRole('button', { name: 'Back to review' }).click();
   await page.setViewportSize({ width: 320, height: 844 });
   await page.getByLabel('Search linked work').fill('');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  expect((await page.locator('.diff .line-code').first().boundingBox()).width).toBeGreaterThan(180);
 });

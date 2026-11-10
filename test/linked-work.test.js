@@ -8,6 +8,7 @@ test('finds shorthand, ranges, cross-repo links and anchored URLs without treati
   const result = references('#2–#4 x/y#9 #2 https://github.com/x/y/pull/10/files#issuecomment-123 https://other.test/#999 word#30', 'a/b');
   assert.deepEqual(new Set(result.items.map(item => `${item.repo}#${item.number}`)), new Set(['a/b#2', 'a/b#3', 'a/b#4', 'x/y#9', 'x/y#10']));
   assert.equal(references('#4–#2', 'a/b').notes.length, 1);
+  assert.equal(references('#9007199254740992–#9007199254740993', 'a/b').notes.length, 1);
   assert.throws(() => parseItem('https://github.com/a/b/blob/main/file#1'), /issue or PR/);
 });
 
