@@ -62,6 +62,7 @@ export async function collectContext(gh, request, dir, { execute = run } = {}) {
       if (lines.at(-1) === '') lines.pop();
       context.source.push({ ...item, sha, lines: lines.length, text: lines.map((line, i) => `${i + 1}: ${line}`).join('\n') });
     }
+    await writeFile(join(dir, 'context.json'), JSON.stringify(context));
   }
   const instructions = [...tree.head.keys()].filter(path => /(^|\/)(AGENTS|CLAUDE)\.md$/.test(path) && (!path.includes('/') || files.some(file => file.startsWith(path.slice(0, path.lastIndexOf('/') + 1)))));
   await readFiles([...new Set(['README.md', 'Project.toml', 'package.json', ...instructions, ...files.slice(0, 25)])].filter(path => tree.head.has(path)).map(path => ({ path, revision: 'head' })).slice(0, 40));

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, symlink, rm, access } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readFile, symlink, rm, access } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { run } from '../bot/process.js';
@@ -40,6 +40,7 @@ test('collects exact source snapshots without executing repository hooks or foll
     assert.equal(collected.context.source.find(file => file.path === 'README.md').lines, 1);
     await collected.readFiles([{ path: 'caller.js', revision: 'base' }, { path: 'link', revision: 'head' }]);
     assert.ok(collected.context.source.some(file => file.path === 'caller.js' && file.sha === base));
+    assert.ok(JSON.parse(await readFile(join(job, 'context.json'))).source.some(file => file.path === 'caller.js' && file.sha === base));
     assert.ok(collected.context.limits.some(text => text.includes('not a regular file')));
     await assert.rejects(() => collected.readFiles([{ path: '../outside', revision: 'head' }]), /Invalid source/);
     await assert.rejects(() => access(marker));
