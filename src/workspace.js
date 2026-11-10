@@ -98,6 +98,6 @@ export function initWorkspace(doc, draw) {
   document.addEventListener('keydown', event => {
     if (event.key === 'Escape' && root.classList.contains('nav-open')) { menu(false); toggle.focus(); }
   });
-  matchMedia('(min-width: 1001px)').addEventListener('change', () => menu(false));
+  matchMedia('(min-width: 1201px)').addEventListener('change', () => menu(false));
   return show(location.hash.slice(1) || root.dataset.view || fallback);
 }

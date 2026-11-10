@@ -12,7 +12,7 @@ Left: review views. Center: one large diagram. Right: selected node and evidence
 Open the first diagram by default. Hash links select views and diagrams.
 Keep signatures, relationships and section notes expandable.
 Comments replace node details, keeping the canvas visible on desktop.
-On phones, navigation folds away and details follow the diagram.
+On smaller screens, navigation folds away and details follow the diagram.
 
 Use teal on selected nodes and focus, neutral chrome and explicit +/- diff marks.
 Feedback stays separate from generated review content.

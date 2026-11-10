@@ -103,7 +103,7 @@ async function draw(graph, index) {
       figure.querySelector('output').textContent = `${Math.round(initial.w / view.w * 100)}%`;
     };
     focusNode = i => {
-      if (!matchMedia('(max-width: 700px)').matches || view.w >= initial.w) return;
+      if (!matchMedia('(max-width: 1200px)').matches || view.w >= initial.w) return;
       const node = svg.querySelector(`[data-node-index="${i}"]`);
       if (!node?.getCTM() || !svg.getCTM()) return;
       const box = node.getBBox();
@@ -183,7 +183,7 @@ async function draw(graph, index) {
       });
     });
     fit();
-    if (matchMedia('(max-width: 700px)').matches) {
+    if (matchMedia('(max-width: 1200px)').matches) {
       const scale = svg.getScreenCTM().a;
       if (scale > 0 && scale < 1) zoom(Math.min(4, 1 / scale));
     }

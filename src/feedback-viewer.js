@@ -41,7 +41,7 @@ export function initFeedback(doc) {
   get('storage-notice').textContent = storageNotice;
   for (const choice of choices) get('comment-target').add(new Option(choice.label, targetKey(choice.target)));
   const say = text => { get('feedback-status').textContent = text; };
-  const narrow = () => matchMedia('(max-width: 1100px)').matches;
+  const narrow = () => matchMedia('(max-width: 1200px)').matches;
   function openPanel() {
     if (!panel.hidden) return;
     returnFocus = document.activeElement;

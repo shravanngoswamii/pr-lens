@@ -26,6 +26,15 @@ test('renders both shipped reviews with offline node selection', async ({ page, 
           expect((await figure.locator('.selection').innerText()).trim()).not.toBe('');
         }
       }
+      await page.setViewportSize({ width: 768, height: 1024 });
+      await page.goto(pathToFileURL(join(dir, `${name}.html`)).href);
+      await page.waitForFunction(() => document.documentElement.dataset.ready === 'true');
+      const labelSize = await page.locator('figure:visible .viewport svg').evaluate(svg => {
+        const label = svg.querySelector('.nodeLabel') ?? svg.querySelector('.node');
+        return parseFloat(getComputedStyle(label).fontSize) * svg.getScreenCTM().a;
+      });
+      expect(labelSize).toBeGreaterThanOrEqual(12);
+      await page.setViewportSize({ width: 1440, height: 1000 });
     }
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
