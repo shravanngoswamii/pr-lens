@@ -67,4 +67,4 @@ Linked work has depth 2 and an item budget of 15.
 Large diffs or contexts need interactive review.
 HTML comments remain local until exported.
 
-[Working example](https://shravangoswami.com/experimental/reviews/mcmcjs/mcmcjs/172/8baf68352d0bad0985bb2b7381c7e683623eecf6/6777647256/) · [Claude subscription support](https://code.claude.com/docs/en/github-actions#manual-setup) · [GitHub polling](https://docs.github.com/en/rest/activity/notifications)
+[Working example](https://shravangoswami.com/experimental/reviews/mcmcjs/mcmcjs/172/8baf68352d0bad0985bb2b7381c7e683623eecf6/6778746405/) · [Claude subscription support](https://code.claude.com/docs/en/github-actions#manual-setup) · [GitHub polling](https://docs.github.com/en/rest/activity/notifications)

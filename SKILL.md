@@ -28,6 +28,7 @@ Any equivalent reader is suitable.
 Check `git status` and use separate checkouts for different revisions or existing work.
 If needed, fetch `refs/pull/NUMBER/head` without changing the working tree.
 Inspect changed definitions, relevant unchanged callers and downstream hooks.
+For changed documentation claims, read the code or data they describe.
 
 Use [Julia helpers](docs/helpers.md) for reflection and diff facts.
 Reflection executes setup code in the target environment.
