@@ -2,13 +2,13 @@
   "version": 1,
   "id": "dynamicppl-1529",
   "title": "Model-owned bindings in DynamicPPL",
-  "summary": "Model-owned bindings unify supplied values. This review follows their storage, evaluation and Turing migration.",
+  "summary": "Bindings move onto Model. Follow the user-visible behavior, storage design, evaluation rules and migration work.",
   "review": {
     "url": "https://github.com/TuringLang/DynamicPPL.jl/pull/1529",
     "title": "bindings: model-owned bindings in a smaller implementation",
     "base": "8580f5b9b278ad38a02c147456a5518fd050c7a8",
     "head": "2585c3bbf6667df8d2fa088fcbd270727889c469",
-    "checkedAt": "2026-11-10T04:31:29.971Z"
+    "checkedAt": "2026-11-10T05:56:17Z"
   },
   "sources": [
     {
@@ -99,15 +99,50 @@
       "blocks": [
         {
           "type": "text",
-          "text": "A model uses observed data, fixed values and values it generates. This PR stores those choices on the model. Observed data contributes a likelihood score. Fixed values add no score.",
+          "text": "DynamicPPL runs the probabilistic models used by Turing. A model combines observations with unknown values it generates. Observations contribute a likelihood score. A fixed value is supplied without adding a score.",
           "refs": [
             "pr",
+            "migration"
+          ]
+        },
+        {
+          "type": "text",
+          "text": "The problem is how these choices interact with model arguments. Previously, conditioning or removing an observation could leave an argument in control. This PR gives the model one binding table for supplied values and their roles.",
+          "refs": [
+            "pr",
+            "old-observe",
             "roles"
           ]
         },
         {
           "type": "text",
-          "text": "For readings [1.0, 2.0], condition replaces data and decondition lets a selected reading be generated. Both can now override model arguments without changing the caller's readings.",
+          "text": "For readings [1.0, 2.0], condition can replace the second reading with 3.0. decondition can instead make that reading unknown. Both changes leave the original input intact. The next page shows the same calls on both revisions.",
+          "refs": [
+            "pr",
+            "compile"
+          ]
+        },
+        {
+          "type": "table",
+          "title": "What to take away",
+          "columns": [
+            "Area",
+            "Change"
+          ],
+          "rows": [
+            [
+              "Users",
+              "Arguments and explicit bindings follow the same role rules. Some existing binding and submodel calls need migration."
+            ],
+            [
+              "Design",
+              "Model owns the bindings. Generated code chooses observed, fixed or latent behavior at each probability statement."
+            ],
+            [
+              "Review focus",
+              "Check migration rules and downstream observation hooks. The tested older Turing revision needs changes."
+            ]
+          ],
           "refs": [
             "pr",
             "compile",
@@ -118,21 +153,12 @@
     },
     {
       "id": "approach",
-      "title": "Design",
+      "title": "Running example",
       "blocks": [
         {
           "type": "text",
-          "text": "Bindings move from CondFixContext to Model.values. Equality and hashing include them.",
+          "text": "Here y holds two readings and mu is their unknown mean. A statement such as y[i] ~ Normal(mu, 1) gives one reading a probability distribution. Calling the model draws unknown values from their priors. It does not fit a posterior.",
           "refs": [
-            "pr",
-            "model"
-          ]
-        },
-        {
-          "type": "text",
-          "text": "Arguments used on the left of ~ are observed. Whole missing/nothing arguments and missing elements of top-level Arrays remain latent. Supported latent storage is copied.",
-          "refs": [
-            "pr",
             "migration"
           ]
         },
@@ -141,18 +167,52 @@
           "title": "Two readings",
           "language": "julia",
           "code": "using DynamicPPL, Distributions, Random\n\n@model function readings(y)\n    mu ~ Normal()\n    for i in eachindex(y)\n        y[i] ~ Normal(mu, 1)\n    end\n    return y\nend\nm = readings([1.0, 2.0])\nchanged = condition(m; y=[1.0, 3.0])\npartial = decondition(m, @varname(y[2]))\nchanged(Xoshiro(1))\npartial(Xoshiro(1))"
+        },
+        {
+          "type": "compare",
+          "title": "Same input, different binding behavior",
+          "before": "condition(m; y=[1.0, 3.0]) returns [1.0, 2.0]. At mu=0.0 its log likelihood is -4.337877066409345. The supplied argument still wins.",
+          "after": "The same call returns [1.0, 3.0]. Its log likelihood is -6.837877066409346. The model-owned binding overrides the argument.",
+          "refs": [
+            "old-observe",
+            "roles"
+          ]
+        },
+        {
+          "type": "compare",
+          "title": "Removing one observation",
+          "before": "decondition(m, @varname(y[2])) returns [1.0, 2.0] with Xoshiro(1). The argument element stays observed.",
+          "after": "The same call returns [1.0, 0.46089361482929836] with Xoshiro(1). The second element is latent. Calling the original m still returns [1.0, 2.0]."
+        },
+        {
+          "type": "text",
+          "text": "A third operation, fix, supplies a value without scoring its distribution. Fixing both readings gives log likelihood 0.0 on both revisions. These comparisons use the recorded base/head and Julia 1.13.3."
+        },
+        {
+          "type": "details",
+          "title": "Reproduce the comparison",
+          "text": "Run examples/dynamicppl-1529.jl in each reviewed environment. examples/evidence.json records the outputs and environment fingerprints. The random second reading depends on that Julia/RNG version."
         }
       ]
     },
     {
       "id": "ownership",
-      "title": "Types",
+      "title": "Where values live",
       "blocks": [
+        {
+          "type": "text",
+          "text": "A binding connects a variable name to a supplied value and a role. For the running example, y is the root name and y[2] is an indexed address inside it. Conditioning now changes Model.values instead of adding a CondFixContext wrapper.",
+          "refs": [
+            "pr",
+            "model",
+            "binding"
+          ]
+        },
         {
           "type": "diagram",
           "id": "binding-ownership",
-          "title": "Bindings belong to the model",
-          "text": "Each binding records a value, storage and role.",
+          "title": "One model owns the binding state",
+          "text": "Read from Model to BindingTable to BindingRoot. The lower branches show the roles a supplied value can carry.",
           "direction": "TB",
           "nodes": [
             {
@@ -316,6 +376,20 @@
           ]
         },
         {
+          "type": "text",
+          "text": "BindingTable maps names such as y to BindingRoot entries. A root retains the value, its storage and conversion constraints. BoundValue wraps a supplied value. Its role distinguishes an explicit observation, an argument observation and a fixed value. VarNamedTuple is the name-addressed value collection used here. It can retain storage for partial edits.",
+          "refs": [
+            "binding"
+          ]
+        },
+        {
+          "type": "text",
+          "text": "This lets a later edit address y[2] without losing y[1] or the array shape. Removing one observation retains storage for the remaining edits. Equality and hashing also account for binding state, including retained constraints and removal instructions.",
+          "refs": [
+            "migration"
+          ]
+        },
+        {
           "type": "details",
           "title": "Partial storage",
           "text": "A partial binding such as y[2] => value needs storage at binding time. BindingRoot records storage and role constraints. Supported containers are listed in the PR body.",
@@ -328,13 +402,51 @@
     },
     {
       "id": "evaluation",
-      "title": "Evaluation",
+      "title": "How execution chooses",
       "blocks": [
+        {
+          "type": "text",
+          "text": "Before the body runs, generated code prepares bound arguments. At each ~ statement it looks up the role for that address. In the running example, changing y changes the supplied observation. Removing y[2] selects the latent branch for that index.",
+          "refs": [
+            "compile",
+            "migration"
+          ]
+        },
+        {
+          "type": "table",
+          "title": "What each role does",
+          "columns": [
+            "Role",
+            "Value",
+            "Score"
+          ],
+          "rows": [
+            [
+              "Observed",
+              "Use the supplied reading. Both argument observations and condition select this behavior.",
+              "Add its likelihood."
+            ],
+            [
+              "Fixed",
+              "Read the fixed binding and assign it to the left-hand side.",
+              "Add no density."
+            ],
+            [
+              "Latent",
+              "Use the latent-value handler for an unknown reading. The example draws it from the prior.",
+              "Use the latent path and its prior accounting."
+            ]
+          ],
+          "refs": [
+            "compile",
+            "handlers"
+          ]
+        },
         {
           "type": "diagram",
           "id": "tilde-paths",
-          "title": "One tilde statement, three paths",
-          "text": "Selected control flow emitted by generate_tilde for an argument tilde.",
+          "title": "One probability statement, three roles",
+          "text": "Follow the branch matching y[i]. “nothing” means that no observed or fixed binding was found.",
           "direction": "TB",
           "nodes": [
             {
@@ -437,31 +549,126 @@
           ]
         },
         {
-          "type": "compare",
-          "title": "Same input, different binding behavior",
-          "before": "condition(m; y=[1.0, 3.0]) returns [1.0, 2.0]. At mu=0.0 its log likelihood is -4.337877066409345. The supplied argument still wins.",
-          "after": "The same call returns [1.0, 3.0]. Its log likelihood is -6.837877066409346. The model-owned binding overrides the argument.",
+          "type": "text",
+          "text": "The diagram shows selected generated control flow for an argument, not a runtime trace. Local variables use a related lookup. Submodels have a separate path. The latent handler still delegates through contexts.",
           "refs": [
-            "old-observe",
-            "roles"
+            "compile",
+            "handlers"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "compatibility",
+      "title": "Migration rules",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "This changes public behavior as well as storage. The guide supplies replacements for older calls. These rules are checked in source. Only the running example and the downstream checks listed later were executed for this review.",
+          "refs": [
+            "migration"
+          ]
+        },
+        {
+          "type": "table",
+          "title": "Binding and removal rules",
+          "columns": [
+            "Existing use",
+            "Required change"
+          ],
+          "rows": [
+            [
+              "A partial binding such as y[2] => 3.0",
+              "Supply storage at binding time: a concrete argument, whole binding, storage-carrying VarNamedTuple or final @of template. A later allocation in the body is too late."
+            ],
+            [
+              "A missing or nothing argument",
+              "Bind it completely or pass concrete array storage. Templates alone cannot leave part of that argument unbound."
+            ],
+            [
+              "Missing data",
+              "Whole missing/nothing arguments and missing elements of a top-level Array can be latent. Nested missing values and placeholders in explicit bindings throw. One multivariate tilde cannot mix roles."
+            ],
+            [
+              "Overlapping observed and fixed values",
+              "Remove the old role before assigning the new one. A later binding in the same role replaces selected values."
+            ],
+            [
+              "Dict binding inputs or implicit @vnt import",
+              "Use supported named inputs or pairs. InitFromParams still accepts dictionaries. Import @vnt explicitly."
+            ],
+            [
+              "decondition or unfix",
+              "Removal reaches submodels too. Removing a whole name covers descendants. Removing an index preserves siblings and does not restore overwritten data."
+            ]
+          ],
+          "refs": [
+            "migration"
+          ]
+        },
+        {
+          "type": "table",
+          "title": "Submodels and storage",
+          "columns": [
+            "Area",
+            "Rule"
+          ],
+          "rows": [
+            [
+              "Submodels",
+              "Give each child a name. Observe it through condition rather than its arguments. Update addresses to include the child name. Unprefixed submodels are removed."
+            ],
+            [
+              "Partial edits",
+              "Supported: Array, array-backed ComponentArray, same-type tuples, SVector, bits MVector, NamedTuple fields and opted-in structs. Unsupported wrappers such as OffsetArray and DimArray require whole-value binding."
+            ],
+            [
+              "Typed storage",
+              "Values must fit the declared type exactly. Use runtime-compatible storage for AD values. Remove both roles before changing a root shape."
+            ],
+            [
+              "Prefixes and fields",
+              "Use absolute names on prefixed models. Address NamedTuple fields with properties such as y.a."
+            ]
+          ],
+          "refs": [
+            "pr",
+            "migration"
           ]
         },
         {
           "type": "compare",
-          "title": "Removing one observation",
-          "before": "decondition(m, @varname(y[2])) returns [1.0, 2.0] with Xoshiro(1). The argument element stays observed.",
-          "after": "The same call returns [1.0, 0.46089361482929836] with Xoshiro(1). The second element is latent. Calling the original m still returns [1.0, 2.0]."
+          "title": "Two changes can be silent",
+          "before": "The body could still see an original missing argument after fix. Passing old.context through contextualize could transfer conditioning/fixing state.",
+          "after": "Bindings apply before the body. ismissing(x) in fix(f(missing); x=0.0) returns false. Context transfer no longer carries bindings. Replay model listings when their addresses and storage fit, then reapply removal instructions separately.",
+          "refs": [
+            "pr",
+            "migration"
+          ]
         },
         {
-          "type": "text",
-          "text": "Fixing both readings gives log likelihood 0.0 on both revisions. Comparisons use the recorded base/head, examples/dynamicppl-1529.jl and Julia 1.13.3."
+          "type": "details",
+          "title": "Lower-level migration",
+          "text": "Use model queries instead of conditioned(context), fixed(context) and removed role helpers. Direct Model construction needs args_on_lhs metadata and an evaluator with argument preparation and binding lookup. Prefer @model.\n\nVarInfo collection queries now need a value-recording accumulator. Keyword splats are nested under their generated default name. A closure tilde variable cannot shadow a model argument. The guide also covers submodel address restrictions, storage snapshots and field removal.",
+          "refs": [
+            "migration"
+          ]
         }
       ]
     },
     {
       "id": "downstream",
-      "title": "Turing migration",
+      "title": "Downstream impact",
       "blocks": [
+        {
+          "type": "text",
+          "text": "Turing’s particle samplers retain scores and derived values while a model runs. SMC is sequential Monte Carlo. PG is particle Gibbs. Their integration depends on which handler receives each generated event. A := statement records a derived value rather than sampling it.",
+          "refs": [
+            "smc",
+            "produce",
+            "tracked"
+          ]
+        },
         {
           "type": "compare",
           "title": "Observation and := entry points",
@@ -479,8 +686,8 @@
         {
           "type": "diagram",
           "id": "downstream-paths",
-          "title": "Observation and tracked-value hooks at the head",
-          "text": "Head dispatch uses prefix metadata or Model. The tested Turing hooks use SMCContext, its particle context.",
+          "title": "Changed hooks and nearby callers",
+          "text": "Start at the generated evaluator. Observations go to likelihood accumulators. Derived values go to the raw-value accumulator. Select a method for its exact signature.",
           "direction": "TB",
           "nodes": [
             {
@@ -616,16 +823,6 @@
           ]
         },
         {
-          "type": "finding",
-          "status": "suggestion",
-          "title": "Link the tested migration",
-          "text": "Follow-up #1532 describes the Turing migration and identifies changes inherited from #1529. Linking the author's tested Turing commit would let reviewers compare it with these results.",
-          "refs": [
-            "pr",
-            "followup"
-          ]
-        },
-        {
           "type": "details",
           "title": "Reused evidence",
           "text": "The worklog checkpoint and particle-metadata probe record this DynamicPPL base/head with Turing 67a9f80. Hooks were reinspected. The 60-check run was reused, not rerun. It does not test the author's local migration."
@@ -633,8 +830,71 @@
       ]
     },
     {
+      "id": "tradeoffs",
+      "title": "Design assessment",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "The main benefit is a single place to ask which values are supplied. The cost is explicit storage and migration rules. These are review judgments based on the design above.",
+          "refs": [
+            "pr",
+            "migration"
+          ]
+        },
+        {
+          "type": "table",
+          "title": "Choices to assess",
+          "columns": [
+            "Choice",
+            "Benefit",
+            "Cost or question"
+          ],
+          "rows": [
+            [
+              "Model-owned bindings",
+              "Argument overrides and binding queries share one representation.",
+              "Callers that copied context state must now copy binding state deliberately."
+            ],
+            [
+              "Storage known at binding time",
+              "Partial edits can check shape and conversion before execution.",
+              "Users must supply a shape before binding a local array element."
+            ],
+            [
+              "One role per executed tilde",
+              "Observed, fixed and latent accounting is explicit.",
+              "Mixed-role multivariate statements need a different model structure."
+            ],
+            [
+              "Direct accumulator paths",
+              "Observation and derived-value events have explicit destinations.",
+              "Existing context-only extensions need a migration plan."
+            ]
+          ],
+          "refs": [
+            "pr",
+            "compile",
+            "migration",
+            "tracked"
+          ]
+        },
+        {
+          "type": "finding",
+          "status": "suggestion",
+          "title": "Make the downstream migration reviewable",
+          "text": "The tested older Turing revision loses particle metadata on head. The author reports a local migration. Link its exact commit and carry the focused score/derived-value check into that migration. No further defect is established here.",
+          "refs": [
+            "pr",
+            "followup",
+            "smc",
+            "saved"
+          ]
+        }
+      ]
+    },
+    {
       "id": "review-actions",
-      "title": "Suggestions",
+      "title": "Suggested edits",
       "blocks": [
         {
           "type": "diff",
@@ -669,7 +929,7 @@
           "kind": "description",
           "title": "PR description",
           "text": "Keep the core rules and link the full migration. Retain the author's local Turing result.",
-          "current": "Replaces #1523 and #1521. #1502\u2013#1504 will follow as a new series on this PR.\n\nConditioning and fixing move out of `CondFixContext` into a binding table that each `Model` owns. `conditioned` and `fixed` read it, and `==` and `hash` include it. An argument on a tilde's left-hand side is observed, except where it is wholly `missing` or `nothing`, or at `missing` elements of a top-level `Array`; those are latent and drawn into a copy, so `args` is never mutated. Nested `missing` throws; `main` treated it as latent.\n\nA partial binding such as `x[1] => v` needs storage for `x` at binding time: an argument, a whole binding, a `VarNamedTuple` or an `@of` template. Partial bindings and latent copies support `Array`, array-backed `ComponentArray`, same-type tuples, `SVector`, bits `MVector`, `NamedTuple`, and structs that opt in through `DynamicPPL._binding_optic`. Partial edits of other containers, such as `OffsetArray` and `DimArray`, throw; whole values still bind. Submodels must be named and are observed through `condition`, not their arguments.\n\nDictionaries are rejected, except by `InitFromParams`. Two changes are silent: argument bindings apply before the body runs, so `ismissing(x)` in `fix(f(missing); x=0.0)` now returns `false`; and `contextualize(new, old.context)` no longer carries bindings. `HISTORY.md` and `docs/src/conditionfix.md` give the migration. Locally, Turing needed small changes; its tests then pass, apart from failures also seen against `main`.\n\n#1523 implements the same design in +4,511 net source lines and +14,799 test lines; this PR needs +1,441 and +2,260. It also fixes three defects in #1523: a binding silently dropped under a prefixed submodel, typed-template constraints never released, and a `MethodError` for a wholly missing slice.\n",
+          "current": "Replaces #1523 and #1521. #1502–#1504 will follow as a new series on this PR.\n\nConditioning and fixing move out of `CondFixContext` into a binding table that each `Model` owns. `conditioned` and `fixed` read it, and `==` and `hash` include it. An argument on a tilde's left-hand side is observed, except where it is wholly `missing` or `nothing`, or at `missing` elements of a top-level `Array`; those are latent and drawn into a copy, so `args` is never mutated. Nested `missing` throws; `main` treated it as latent.\n\nA partial binding such as `x[1] => v` needs storage for `x` at binding time: an argument, a whole binding, a `VarNamedTuple` or an `@of` template. Partial bindings and latent copies support `Array`, array-backed `ComponentArray`, same-type tuples, `SVector`, bits `MVector`, `NamedTuple`, and structs that opt in through `DynamicPPL._binding_optic`. Partial edits of other containers, such as `OffsetArray` and `DimArray`, throw; whole values still bind. Submodels must be named and are observed through `condition`, not their arguments.\n\nDictionaries are rejected, except by `InitFromParams`. Two changes are silent: argument bindings apply before the body runs, so `ismissing(x)` in `fix(f(missing); x=0.0)` now returns `false`; and `contextualize(new, old.context)` no longer carries bindings. `HISTORY.md` and `docs/src/conditionfix.md` give the migration. Locally, Turing needed small changes; its tests then pass, apart from failures also seen against `main`.\n\n#1523 implements the same design in +4,511 net source lines and +14,799 test lines; this PR needs +1,441 and +2,260. It also fixes three defects in #1523: a binding silently dropped under a prefixed submodel, typed-template constraints never released, and a `MethodError` for a wholly missing slice.\n",
           "suggested": "Conditioning and fixing move from CondFixContext to a binding table on Model. Argument observations use the same table, so bindings can override them without mutating arguments. Equality and hashing include bindings.\n\nPartial bindings need storage. Named submodels receive observations through condition. Dictionaries are rejected except by InitFromParams.\n\nBindings apply before the body runs. contextualize no longer transfers them. See HISTORY.md and the [migration guide](https://github.com/TuringLang/DynamicPPL.jl/blob/2585c3bbf6667df8d2fa088fcbd270727889c469/docs/src/conditionfix.md) for breaking changes and supported containers.\n\nReplaces #1523 and #1521. Prefix, context and RNG changes follow separately.\n\nMy local Turing migration passes its tests apart from failures also seen on main.",
           "refs": [
             "pr",
@@ -704,13 +964,21 @@
     },
     {
       "id": "linked-context",
-      "title": "Linked work",
+      "title": "Related work",
       "blocks": [
+        {
+          "type": "text",
+          "text": "This PR replaces the earlier binding designs in #1521 and #1523. The author split the larger series into model bindings here, then prefix handling (#1531), explicit evaluation inputs (#1532) and RNG state (#1533). Treat them as related design work when planning the migration.",
+          "refs": [
+            "pr",
+            "followup"
+          ]
+        },
         {
           "type": "linked-work",
           "id": "linked-work",
           "title": "Issues and PRs",
-          "text": "Rebuilt follow-ups: #1531 moves prefixes onto Model, #1532 makes evaluation inputs explicit, and #1533 handles RNG state.",
+          "text": "Browse the predecessors and follow-ups below. Unread references mark the collection boundary.",
           "root": "gh-136afa320295a51cc6936e21a5662542bcc0b3504064f0173a31a5848e9d66af",
           "checkedAt": "2026-11-10T04:31:29.971Z",
           "scope": "Bodies, paginated comments, submitted/inline reviews and incoming timeline references. Text mentions may be quoted or incidental.",
@@ -2804,7 +3072,7 @@
     },
     {
       "id": "checks",
-      "title": "Checks",
+      "title": "Evidence and limits",
       "blocks": [
         {
           "type": "check",

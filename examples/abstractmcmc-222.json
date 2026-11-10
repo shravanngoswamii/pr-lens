@@ -8,7 +8,7 @@
     "title": "Fix `@nospecialize` usage",
     "base": "418afe0df723635aa6c228eb7b12c09a849c8380",
     "head": "3aac86be81ea389a3c03e15a3b601c4b67884bcf",
-    "checkedAt": "2026-11-10T04:34:34.713Z"
+    "checkedAt": "2026-11-10T05:56:17Z"
   },
   "sources": [
     {
@@ -80,13 +80,30 @@
             "base-fallbacks",
             "head-fallbacks"
           ]
+        },
+        {
+          "type": "text",
+          "text": "The change affects validation when starting several chains with initial_params or initial_state. A valid sampler setup should behave as before. This review follows one invalid state through the public sample call, then checks the intended error.",
+          "refs": [
+            "pr",
+            "head-fallbacks"
+          ]
         }
       ]
     },
     {
       "id": "purpose",
-      "title": "Design",
+      "title": "Why the fallback was missing",
       "blocks": [
+        {
+          "type": "text",
+          "text": "A fallback is the method used when no more specific input type matches. Here it should reject an unsupported initial value with ArgumentError. @nospecialize tells Julia not to specialize on input types. It must be inside these method bodies.",
+          "refs": [
+            "pr",
+            "julia-issue",
+            "head-fallbacks"
+          ]
+        },
         {
           "type": "text",
           "text": "Julia issue 49512 explains why @nospecialize around a function definition can consume it. This PR places the annotation inside each fallback.",
@@ -111,8 +128,16 @@
     },
     {
       "id": "behavior",
-      "title": "Behavior",
+      "title": "Before and after",
       "blocks": [
+        {
+          "type": "text",
+          "text": "This example asks for four serial chains and passes an integer as their initial state. That integer is invalid. The call should explain the required input before the sampler starts.",
+          "refs": [
+            "serial",
+            "head-fallbacks"
+          ]
+        },
         {
           "type": "code",
           "title": "Public call used for the state case",
@@ -137,8 +162,16 @@
     },
     {
       "id": "design",
-      "title": "Call path",
+      "title": "How the error is reached",
       "blocks": [
+        {
+          "type": "text",
+          "text": "Read the path from sample to the serial ensemble. It first validates initial_params, then initial_state. With the default parameters and integer state used above, the state fallback throws before any sampler step runs.",
+          "refs": [
+            "serial",
+            "head-fallbacks"
+          ]
+        },
         {
           "type": "diagram",
           "id": "serial-validation",
@@ -230,12 +263,21 @@
               ]
             }
           ]
+        },
+        {
+          "type": "text",
+          "text": "Nothing keeps the default. An AbstractArray uses the length-checking method. Other types need the generic fallback restored by this PR. Threads and distributed ensembles call the same validators.",
+          "refs": [
+            "head-fallbacks",
+            "threads",
+            "distributed"
+          ]
         }
       ]
     },
     {
       "id": "review-actions",
-      "title": "Patch and next check",
+      "title": "Change and review result",
       "blocks": [
         {
           "type": "diff",
@@ -249,6 +291,17 @@
           "refs": [
             "base-fallbacks",
             "head-fallbacks"
+          ]
+        },
+        {
+          "type": "finding",
+          "status": "verified",
+          "title": "The intended validation is restored",
+          "text": "Both missing fallbacks now exist. Invalid public calls produce ArgumentError instead of MethodError. The serial controls still accept nothing and matching arrays. No further bug is established within the checked scope.",
+          "refs": [
+            "base-fallbacks",
+            "head-fallbacks",
+            "new-tests"
           ]
         },
         {
@@ -275,7 +328,7 @@
     },
     {
       "id": "linked-context",
-      "title": "Linked work",
+      "title": "Related work",
       "blocks": [
         {
           "type": "linked-work",
@@ -529,19 +582,8 @@
     },
     {
       "id": "checks",
-      "title": "Checks",
+      "title": "Evidence and limits",
       "blocks": [
-        {
-          "type": "finding",
-          "status": "verified",
-          "title": "Intended error restored",
-          "text": "Public calls on Julia 1.10.12 changed from MethodError to ArgumentError. hasmethod confirmed the missing base fallbacks exist on head.",
-          "refs": [
-            "base-fallbacks",
-            "head-fallbacks",
-            "new-tests"
-          ]
-        },
         {
           "type": "check",
           "status": "passed",
