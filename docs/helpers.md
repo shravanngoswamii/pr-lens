@@ -41,3 +41,25 @@ Inference may run generated functions.
 Compiler bodies show selected representations, not runtime traces or complete call graphs.
 Inlining can remove calls and dispatch may remain unresolved.
 See [Julia reflection](https://docs.julialang.org/en/v1/base/reflection/).
+
+## Definition inventory
+
+```sh
+node bin/review-docs.js inventory /path/to/repo --base BASE_SHA --head HEAD_SHA --out inventory.json
+```
+
+Parses changed Julia files at both commits without loading the project.
+The default scope is `src/` and `ext/`.
+Use `--scope .` for all changed Julia files, or comma-separated paths for a smaller area.
+
+Lists added, changed and removed written type, method and macro declarations.
+Whitespace, line numbers and docstrings do not count as body changes.
+Identity uses the file, lexical scope and source signature, or name for types.
+Moves and method signature edits can appear as removal and addition.
+Each record includes source locations and normalized syntax hashes.
+Lines start the enclosing parsed statement, including annotations or documentation wrappers.
+
+Macros and quoted code remain unexpanded.
+The output records places that need manual inspection.
+Anonymous functions remain part of their enclosing body and type aliases have no separate entry.
+This is a source inventory, not proof of loaded methods, runtime behavior or call relationships.
