@@ -4,7 +4,8 @@ Comment `@YOUR-BOT review` on a public PR, or request the bot as a reviewer.
 Only accounts listed in `bot.hosted.json` can trigger it.
 The whole comment must be the command.
 Inline comments are not triggers.
-GitHub controls who can request a reviewer and which accounts are eligible.
+Reviewer requests require the bot to be a repository collaborator.
+The requester also needs GitHub's permission to assign reviewers.
 
 ## Where it runs
 
@@ -19,6 +20,8 @@ GitHub controls who can request a reviewer and which accounts are eligible.
 
 The laptop can be off.
 The worker checks every 30 minutes, subject to GitHub delays.
+GitHub disables public schedules after 60 days without repository activity.
+Re-enable them with `gh workflow enable review-bot.yml --repo OWNER/TOOL`.
 Idle checks do not call Claude.
 Use **Run workflow** for an immediate check.
 An optional comment or `#event-ID` request URL selects one request.

@@ -45,12 +45,14 @@ Enable Actions in your fork, then enable the worker:
 
 ```sh
 gh variable set PR_LENS_ENABLED --body true --repo OWNER/TOOL
+gh workflow enable review-bot.yml --repo OWNER/TOOL
 gh workflow run review-bot.yml --repo OWNER/TOOL
 ```
 
 Check the run in Actions.
 Then mention the bot on a public PR from an allowed account.
-For reviewer requests, the bot must be an eligible reviewer in that repository.
+For reviewer requests, add the bot as a read-only collaborator in the target repository and accept its invitation as the bot.
+Comment triggers do not need collaborator access.
 Keep its review-request and mention email notifications enabled.
 The polling cursor starts one day before the first run.
 Keep the fork's default branch and workflow changes under your control.
