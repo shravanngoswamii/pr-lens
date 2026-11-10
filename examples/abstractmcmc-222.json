@@ -70,7 +70,7 @@
   "sections": [
     {
       "id": "overview",
-      "title": "In plain English",
+      "title": "Overview",
       "blocks": [
         {
           "type": "text",
@@ -93,7 +93,7 @@
     },
     {
       "id": "purpose",
-      "title": "Why the fallback was missing",
+      "title": "Missing validation methods",
       "blocks": [
         {
           "type": "text",
@@ -140,7 +140,7 @@
         },
         {
           "type": "code",
-          "title": "Public call used for the state case",
+          "title": "Invalid initial state",
           "language": "julia",
           "code": "using AbstractMCMC, Random\nstruct ProbeModel <: AbstractMCMC.AbstractModel end\nstruct ProbeSampler <: AbstractMCMC.AbstractSampler end\nsample(MersenneTwister(42), ProbeModel(), ProbeSampler(),\n       MCMCSerial(), 3, 4; progress=false, initial_state=10)"
         },
@@ -162,7 +162,7 @@
     },
     {
       "id": "design",
-      "title": "How the error is reached",
+      "title": "Validation calls",
       "blocks": [
         {
           "type": "text",
@@ -277,7 +277,7 @@
     },
     {
       "id": "review-actions",
-      "title": "Change and review result",
+      "title": "Review",
       "blocks": [
         {
           "type": "diff",
@@ -296,8 +296,8 @@
         {
           "type": "finding",
           "status": "verified",
-          "title": "The intended validation is restored",
-          "text": "Both missing fallbacks now exist. Invalid public calls produce ArgumentError instead of MethodError. The serial controls still accept nothing and matching arrays. No further bug is established within the checked scope.",
+          "title": "Validation result",
+          "text": "Both fallback methods exist on head. Invalid public calls produce ArgumentError instead of MethodError. The serial controls accept nothing and matching arrays.",
           "refs": [
             "base-fallbacks",
             "head-fallbacks",
@@ -582,7 +582,7 @@
     },
     {
       "id": "checks",
-      "title": "Evidence and limits",
+      "title": "Checks",
       "blocks": [
         {
           "type": "check",

@@ -20,7 +20,7 @@ Prose is plain text with blank lines between paragraphs.
   "sources": [],
   "sections": [{
     "id": "overview",
-    "title": "In plain English",
+    "title": "Overview",
     "blocks": [{"type": "text", "text": "What changes for users."}]
   }]
 }

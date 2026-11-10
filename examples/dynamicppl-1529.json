@@ -95,7 +95,7 @@
   "sections": [
     {
       "id": "overview",
-      "title": "In plain English",
+      "title": "Overview",
       "blocks": [
         {
           "type": "text",
@@ -107,7 +107,7 @@
         },
         {
           "type": "text",
-          "text": "The problem is how these choices interact with model arguments. Previously, conditioning or removing an observation could leave an argument in control. This PR gives the model one binding table for supplied values and their roles.",
+          "text": "Previously, conditioning or removing an observation could leave the original model argument in use. This PR stores supplied values and their roles in a binding table on the model.",
           "refs": [
             "pr",
             "old-observe",
@@ -124,7 +124,7 @@
         },
         {
           "type": "table",
-          "title": "What to take away",
+          "title": "Summary",
           "columns": [
             "Area",
             "Change"
@@ -139,7 +139,7 @@
               "Model owns the bindings. Generated code chooses observed, fixed or latent behavior at each probability statement."
             ],
             [
-              "Review focus",
+              "Review",
               "Check migration rules and downstream observation hooks. The tested older Turing revision needs changes."
             ]
           ],
@@ -153,7 +153,7 @@
     },
     {
       "id": "approach",
-      "title": "Running example",
+      "title": "Example",
       "blocks": [
         {
           "type": "text",
@@ -170,8 +170,8 @@
         },
         {
           "type": "compare",
-          "title": "Same input, different binding behavior",
-          "before": "condition(m; y=[1.0, 3.0]) returns [1.0, 2.0]. At mu=0.0 its log likelihood is -4.337877066409345. The supplied argument still wins.",
+          "title": "Argument override",
+          "before": "condition(m; y=[1.0, 3.0]) returns [1.0, 2.0]. At mu=0.0 its log likelihood is -4.337877066409345. The model uses the original argument.",
           "after": "The same call returns [1.0, 3.0]. Its log likelihood is -6.837877066409346. The model-owned binding overrides the argument.",
           "refs": [
             "old-observe",
@@ -180,13 +180,13 @@
         },
         {
           "type": "compare",
-          "title": "Removing one observation",
+          "title": "Partial deconditioning",
           "before": "decondition(m, @varname(y[2])) returns [1.0, 2.0] with Xoshiro(1). The argument element stays observed.",
           "after": "The same call returns [1.0, 0.46089361482929836] with Xoshiro(1). The second element is latent. Calling the original m still returns [1.0, 2.0]."
         },
         {
           "type": "text",
-          "text": "A third operation, fix, supplies a value without scoring its distribution. Fixing both readings gives log likelihood 0.0 on both revisions. These comparisons use the recorded base/head and Julia 1.13.3."
+          "text": "fix supplies a value without scoring its distribution. Fixing both readings gives log likelihood 0.0 on both revisions. These comparisons use the recorded base/head and Julia 1.13.3."
         },
         {
           "type": "details",
@@ -197,7 +197,7 @@
     },
     {
       "id": "ownership",
-      "title": "Where values live",
+      "title": "Binding storage",
       "blocks": [
         {
           "type": "text",
@@ -211,7 +211,7 @@
         {
           "type": "diagram",
           "id": "binding-ownership",
-          "title": "One model owns the binding state",
+          "title": "Model bindings",
           "text": "Read from Model to BindingTable to BindingRoot. The lower branches show the roles a supplied value can carry.",
           "direction": "TB",
           "nodes": [
@@ -384,7 +384,7 @@
         },
         {
           "type": "text",
-          "text": "This lets a later edit address y[2] without losing y[1] or the array shape. Removing one observation retains storage for the remaining edits. Equality and hashing also account for binding state, including retained constraints and removal instructions.",
+          "text": "This lets a later edit address y[2] without losing y[1] or the array shape. Partial deconditioning retains storage for the remaining edits. Equality and hashing also account for binding state, including retained constraints and removal instructions.",
           "refs": [
             "migration"
           ]
@@ -402,7 +402,7 @@
     },
     {
       "id": "evaluation",
-      "title": "How execution chooses",
+      "title": "Evaluation",
       "blocks": [
         {
           "type": "text",
@@ -414,7 +414,7 @@
         },
         {
           "type": "table",
-          "title": "What each role does",
+          "title": "Role behavior",
           "columns": [
             "Role",
             "Value",
@@ -445,7 +445,7 @@
         {
           "type": "diagram",
           "id": "tilde-paths",
-          "title": "One probability statement, three roles",
+          "title": "Variable roles",
           "text": "Follow the branch matching y[i]. “nothing” means that no observed or fixed binding was found.",
           "direction": "TB",
           "nodes": [
@@ -550,7 +550,7 @@
         },
         {
           "type": "text",
-          "text": "The diagram shows selected generated control flow for an argument, not a runtime trace. Local variables use a related lookup. Submodels have a separate path. The latent handler still delegates through contexts.",
+          "text": "This source-based diagram shows generated code for an argument. Local variables use a related lookup. Submodels use a separate path. The latent handler delegates through contexts.",
           "refs": [
             "compile",
             "handlers"
@@ -560,7 +560,7 @@
     },
     {
       "id": "compatibility",
-      "title": "Migration rules",
+      "title": "Migration",
       "blocks": [
         {
           "type": "text",
@@ -638,7 +638,7 @@
         },
         {
           "type": "compare",
-          "title": "Two changes can be silent",
+          "title": "Behavior changes",
           "before": "The body could still see an original missing argument after fix. Passing old.context through contextualize could transfer conditioning/fixing state.",
           "after": "Bindings apply before the body. ismissing(x) in fix(f(missing); x=0.0) returns false. Context transfer no longer carries bindings. Replay model listings when their addresses and storage fit, then reapply removal instructions separately.",
           "refs": [
@@ -658,7 +658,7 @@
     },
     {
       "id": "downstream",
-      "title": "Downstream impact",
+      "title": "Turing changes",
       "blocks": [
         {
           "type": "text",
@@ -687,7 +687,7 @@
           "type": "diagram",
           "id": "downstream-paths",
           "title": "Changed hooks and nearby callers",
-          "text": "Start at the generated evaluator. Observations go to likelihood accumulators. Derived values go to the raw-value accumulator. Select a method for its exact signature.",
+          "text": "The generated evaluator sends observations to likelihood accumulators and derived values to the raw-value accumulator. Select a method for its signature.",
           "direction": "TB",
           "nodes": [
             {
@@ -831,7 +831,7 @@
     },
     {
       "id": "tradeoffs",
-      "title": "Design assessment",
+      "title": "Design review",
       "blocks": [
         {
           "type": "text",
@@ -843,7 +843,7 @@
         },
         {
           "type": "table",
-          "title": "Choices to assess",
+          "title": "Design choices",
           "columns": [
             "Choice",
             "Benefit",
@@ -881,8 +881,8 @@
         {
           "type": "finding",
           "status": "suggestion",
-          "title": "Make the downstream migration reviewable",
-          "text": "The tested older Turing revision loses particle metadata on head. The author reports a local migration. Link its exact commit and carry the focused score/derived-value check into that migration. No further defect is established here.",
+          "title": "Turing migration reference",
+          "text": "The tested Turing revision loses particle metadata on head. The author reports a local migration. Link that commit and include the score and derived-value check.",
           "refs": [
             "pr",
             "followup",
@@ -968,7 +968,7 @@
       "blocks": [
         {
           "type": "text",
-          "text": "This PR replaces the earlier binding designs in #1521 and #1523. The author split the larger series into model bindings here, then prefix handling (#1531), explicit evaluation inputs (#1532) and RNG state (#1533). Treat them as related design work when planning the migration.",
+          "text": "This PR replaces #1521 and #1523. The related follow-ups cover prefix handling (#1531), explicit evaluation inputs (#1532) and RNG state (#1533).",
           "refs": [
             "pr",
             "followup"
@@ -978,7 +978,7 @@
           "type": "linked-work",
           "id": "linked-work",
           "title": "Issues and PRs",
-          "text": "Browse the predecessors and follow-ups below. Unread references mark the collection boundary.",
+          "text": "Earlier designs and follow-ups are listed below. Unread items are marked.",
           "root": "gh-136afa320295a51cc6936e21a5662542bcc0b3504064f0173a31a5848e9d66af",
           "checkedAt": "2026-11-10T04:31:29.971Z",
           "scope": "Bodies, paginated comments, submitted/inline reviews and incoming timeline references. Text mentions may be quoted or incidental.",
@@ -3072,7 +3072,7 @@
     },
     {
       "id": "checks",
-      "title": "Evidence and limits",
+      "title": "Checks",
       "blocks": [
         {
           "type": "check",

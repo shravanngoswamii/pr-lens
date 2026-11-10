@@ -39,7 +39,7 @@ A mention alone establishes no dependency.
 
 - Write a review a newcomer can read in order: problem, change, example, design, impact and conclusions.
   Scale the chapters to the PR.
-- Start with **In plain English**: what the project does, why this change matters and who it affects.
+- Start with **Overview**: what the project does, why this change matters and who it affects.
 - Use one running public example to compare the same inputs before and after.
 - Explain internal names before using them.
   Introduce each diagram's question and reading order.
@@ -76,6 +76,9 @@ Include only useful blocks:
 | `prompt` | A concrete next task with inputs, evidence and expected result |
 | `linked-work` | Explained references with explicit unread items |
 
+Use simple headings such as Overview, Example, Design, Changes, Findings and Checks.
+Keep wording direct and factual.
+Avoid slogans, metaphors and dramatic phrasing.
 Keep the main explanation brief.
 Avoid repeated caveats and generic test requests.
 Review wording only when a replacement helps.
