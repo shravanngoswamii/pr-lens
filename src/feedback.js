@@ -40,12 +40,13 @@ export function targets(doc) {
     result.push({ target: { section: section.id }, label: section.title,
       text: section.blocks.find(block => block.type === 'text')?.text ?? '',
       refs: [...new Set(section.blocks.flatMap(block => block.refs ?? []))] });
-    for (const graph of section.blocks.filter(block => block.type === 'diagram')) {
+    for (const graph of section.blocks.filter(block => ['diagram', 'linked-work'].includes(block.type))) {
       const target = { section: section.id, diagram: graph.id };
       result.push({ target, label: graph.title, text: graph.text, refs: graph.refs ?? [] });
       for (const node of graph.nodes) result.push({ target: { ...target, node: node.id },
-        label: `${graph.title} / ${node.label}`, text: node.text, signature: node.signature,
-        refs: [...new Set([...(node.refs ?? []), ...graph.edges.filter(edge => edge.from === node.id || edge.to === node.id).flatMap(edge => edge.refs ?? [])])] });
+        label: `${graph.title} / ${node.label ?? node.title}`, text: node.text ?? node.summary, signature: node.signature,
+        refs: [...new Set([...(node.refs ?? []), ...graph.edges.filter(edge => edge.from === node.id || edge.to === node.id).flatMap(edge => edge.refs ?? [])])],
+        links: node.url ? [node.url] : [] });
     }
   }
   return result;
@@ -102,6 +103,15 @@ export function buildPrompt(doc, feedback, { ids, purpose = 'review' } = {}) {
     if (target.text) lines.push(`Document context: ${target.text}`);
     lines.push('Reviewer request:', ...comment.text.split('\n').map(line => `    ${line}`));
     for (const id of target.refs) if (sources.has(id)) lines.push(`Source: ${sources.get(id).url}`);
+    for (const url of target.links ?? []) lines.push(`Linked item: ${url}`);
   });
   return lines.join('\n') + '\n';
+}
+
+export function buildTaskPrompt(doc, instructions) {
+  return ['Use the review-docs skill for this PR.', '', `PR: ${doc.review.url}`, `Reviewed base: ${doc.review.base}`, `Reviewed head: ${doc.review.head}`,
+    ...(doc.review.diffBase ? [`Diff base: ${doc.review.diffBase}`] : []), '', instructions, '',
+    'Read the PR title, body, discussion and relevant linked work. Check whether the source has changed since this snapshot.',
+    'Keep evidence for these revisions separate from newer code. Reproduce bug claims or mark them unverified. Preserve stable document IDs and human feedback.',
+    'Return the requested explanation or editable review JSON and HTML. State what was checked. This prompt does not authorize posting, publishing or changing the PR.'].join('\n') + '\n';
 }

@@ -1,3 +1,5 @@
+import { validateLinkedWork } from './linked-work.js';
+
 const ID = /^[a-zA-Z][a-zA-Z0-9_-]*$/;
 const SHA = /^[a-f0-9]{40}$/;
 
@@ -70,10 +72,34 @@ export function validate(doc) {
         text: ['text'], code: ['title', 'code', 'language'], compare: ['title', 'before', 'after'],
         details: ['title', 'text'], finding: ['title', 'text', 'status'], check: ['title', 'text', 'status'],
         diagram: ['id', 'title', 'text', 'direction', 'nodes', 'edges'],
+        diff: ['title', 'text', 'path', 'before', 'after', 'scope', 'verification'],
+        proposal: ['title', 'text', 'kind', 'current', 'suggested'],
+        prompt: ['title', 'text', 'instructions'],
+        'linked-work': ['id', 'title', 'text', 'root', 'checkedAt', 'scope', 'analysis', 'complete', 'limits', 'notes', 'nodes', 'edges'],
       };
       if (!block || !Object.hasOwn(fields, block.type)) fail(`${b}.type`, `expected one of ${Object.keys(fields).join(', ')}`);
       object(block, b, ['type', 'refs', ...fields[block.type]]);
       refs(block.refs, `${b}.refs`);
+      if (block.type === 'linked-work') {
+        validateLinkedWork(block, b);
+        if (graphIds.has(block.id)) fail(`${b}.id`, `duplicate diagram id ${block.id}`);
+        graphIds.add(block.id);
+        return;
+      }
+      if (block.type === 'diff') {
+        for (const field of ['title', 'text', 'path']) string(block[field], `${b}.${field}`);
+        for (const field of ['before', 'after']) if (typeof block[field] !== 'string') fail(`${b}.${field}`, 'expected a string');
+        if (/^[\\/]|[\r\n\0]/.test(block.path) || block.path.split(/[\\/]/).includes('..')) fail(`${b}.path`, 'use a relative path without parent traversal or newlines');
+        choice(block.scope, `${b}.scope`, ['pr', 'suggestion']);
+        choice(block.verification, `${b}.verification`, ['source-checked', 'tested', 'unverified']);
+        return;
+      }
+      if (block.type === 'proposal') {
+        for (const field of ['title', 'text', 'suggested']) string(block[field], `${b}.${field}`);
+        choice(block.kind, `${b}.kind`, ['title', 'description']);
+        if (typeof block.current !== 'string' || block.kind === 'title' && !block.current.trim()) fail(`${b}.current`, 'expected the original PR text');
+        return;
+      }
       for (const field of fields[block.type].filter(f => !['language', 'direction', 'nodes', 'edges', 'id', 'status'].includes(f))) string(block[field], `${b}.${field}`);
       if (block.language !== undefined) string(block.language, `${b}.language`);
       if (block.type === 'finding') choice(block.status, `${b}.status`, ['verified', 'suggestion', 'question', 'unverified']);

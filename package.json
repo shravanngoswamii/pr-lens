@@ -2,8 +2,12 @@
   "name": "review-docs",
   "private": true,
   "type": "module",
-  "bin": { "review-docs": "bin/review-docs.js" },
-  "engines": { "node": ">=22.12" },
+  "bin": {
+    "review-docs": "bin/review-docs.js"
+  },
+  "engines": {
+    "node": ">=22.12"
+  },
   "scripts": {
     "test:unit": "node --test test/*.test.js",
     "test:julia": "julia --startup-file=no test/helpers.jl",
@@ -11,8 +15,11 @@
     "test": "npm run test:unit && npm run test:julia && npm run test:browser"
   },
   "dependencies": {
+    "diff": "9.0.0",
     "esbuild": "0.28.2",
     "mermaid": "12.3.0"
   },
-  "devDependencies": { "@playwright/test": "1.65.0" }
+  "devDependencies": {
+    "@playwright/test": "1.65.0"
+  }
 }
