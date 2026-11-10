@@ -6,7 +6,12 @@ export function github(config, execute = run) {
     if (!/^(repos\/|notifications\?|user$)/.test(path) || /[\r\n]/.test(path)) throw new Error('Invalid GitHub API path');
     const args = ['gh', config.sandbox, 'api', '--include', '--method', method, '-H', 'Accept: application/vnd.github+json', path];
     if (body !== undefined) args.push('--input', '-');
-    const { stdout } = await execute('ghsb', args, { input: body === undefined ? '' : JSON.stringify(body) });
+    let stdout;
+    try { ({ stdout } = await execute('ghsb', args, { input: body === undefined ? '' : JSON.stringify(body) })); }
+    catch (cause) {
+      const status = cause.stderr?.match(/HTTP (\d+)/)?.[1];
+      throw Object.assign(new Error(`GitHub ${method} ${path} failed${status ? ` (HTTP ${status})` : ''}`), { rateLimited: /rate limit/i.test(cause.stderr ?? '') });
+    }
     const parts = stdout.split(/\r?\n\r?\n/);
     const headers = parts.shift();
     pollSeconds = Math.max(pollSeconds, Number(headers.match(/^x-poll-interval:\s*(\d+)/im)?.[1] ?? 60));

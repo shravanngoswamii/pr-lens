@@ -9,13 +9,17 @@ import { inspectHTML } from './inspect.js';
 import { publish, waitForPublication } from './publish.js';
 
 const markdown = text => text.replace(/[\\`*_{}\[\]<>#]/g, '\\$&').replace(/@/g, '&#64;');
+const excerpt = (text, limit) => {
+  const sentence = text.match(/^.*?[.!?](?:\s|$)/s)?.[0].trim() ?? text.trim();
+  return sentence.length <= limit ? sentence : sentence.slice(0, limit - 3).replace(/\s+\S*$/, '') + '...';
+};
 
 export function reviewComment(doc, url, request) {
   const findings = doc.sections.flatMap(section => section.blocks).filter(block => block.type === 'finding');
-  const lines = [`Reviewed [${doc.review.head.slice(0, 7)}](https://github.com/${request.repo}/commit/${doc.review.head}).`, '', markdown(doc.summary).slice(0, 500)];
+  const lines = [`Reviewed [${doc.review.head.slice(0, 7)}](https://github.com/${request.repo}/commit/${doc.review.head}).`, '', markdown(excerpt(doc.summary, 320))];
   for (const finding of findings.slice(0, 3)) {
     const source = doc.sources.find(source => source.id === finding.refs?.[0]);
-    lines.push('', `- ${finding.status}: ${source ? `[${markdown(finding.title)}](${source.url})` : markdown(finding.title)}. ${markdown(finding.text.split('\n')[0]).slice(0, 250)}`);
+    lines.push('', `- ${finding.status}: ${source ? `[${markdown(finding.title)}](${source.url})` : markdown(finding.title)}. ${markdown(excerpt(finding.text, 200))}`);
   }
   if (!findings.length) lines.push('', 'No findings reported in this source review.');
   lines.push('', `[Review report](${url}) · [Editable source](${url}review.json)`, '', 'PR code and runtime tests were not run.', '', `<!-- review-docs:${request.id}:${doc.review.head} -->`);
@@ -25,7 +29,9 @@ export function reviewComment(doc, url, request) {
 export async function doctor(config, gh = github(config)) {
   if ((await gh.api('user')).login.toLowerCase() !== config.login.toLowerCase()) throw new Error('ghsb is using a different GitHub account');
   await gh.api('notifications?all=true&per_page=1');
-  const auth = JSON.parse((await run('claude', ['auth', 'status', '--json'], { env: claudeEnvironment() })).stdout);
+  let auth;
+  try { auth = JSON.parse((await run('claude', ['auth', 'status', '--json'], { env: claudeEnvironment() })).stdout); }
+  catch { throw new Error('Sign in to Claude Code with your Claude subscription'); }
   if (!auth.loggedIn || !['claude.ai', 'oauth_token'].includes(auth.authMethod)) throw new Error('Sign in to Claude Code with your Claude subscription');
   return { github: config.login, requester: config.requester, claude: auth.subscriptionType ?? auth.authMethod };
 }

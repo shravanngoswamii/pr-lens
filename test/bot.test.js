@@ -7,7 +7,7 @@ import { github, parseComment, isRequest } from '../bot/github.js';
 import { validateConfig } from '../bot/config.js';
 import { claudeEnvironment, askClaude } from '../bot/claude.js';
 import { checkReview, reviewContext } from '../bot/review.js';
-import { withState, runRequest, poll } from '../bot/worker.js';
+import { withState, runRequest, poll, reviewComment } from '../bot/worker.js';
 import { document } from './fixture.js';
 
 const config = { version: 1, sandbox: 'bot', login: 'review-bot', requester: 'reviewer', stateDir: '/tmp/bot-state', publish: { checkout: '/tmp/site', repo: 'owner/site', branch: 'gh-pages', prefix: 'reviews', url: 'https://example.com/site' } };
@@ -44,6 +44,8 @@ test('isolates GitHub accounts, paginates notifications and obeys the server pol
   assert.deepEqual(calls[0].args.slice(0, 3), ['gh', 'bot', 'api']);
   assert.ok(calls[1].args.some(arg => arg.includes('page=2')));
   await assert.rejects(() => gh.api('https://other.com/'), /Invalid/);
+  const limited = github(config, async () => { throw Object.assign(new Error('Failed'), { stderr: 'API rate limit exceeded (HTTP 403)' }); });
+  await assert.rejects(() => limited.api('user'), error => error.rateLimited && /HTTP 403/.test(error.message));
 });
 
 test('uses subscription login with no execution tools or inherited GitHub credentials', async () => {
@@ -139,4 +141,14 @@ test('polls read notifications too and ignores other authors without running a r
   await poll(config, gh, state, async () => {});
   assert.match(paths[0], /all=true/);
   assert.deepEqual(state.requests, {});
+});
+
+test('keeps reply excerpts complete without splitting decimals into sentences', () => {
+  const doc = makeDoc();
+  doc.summary = 'An exact posterior. Longer background.';
+  doc.sections.at(-1).blocks.push({ type: 'finding', title: 'Mean', status: 'suggestion', text: 'The mean is 0.571. This longer explanation belongs in the report.' });
+  const body = reviewComment(doc, 'https://example.com/report/', { repo: 'owner/repo', id: 12 });
+  assert.match(body, /The mean is 0\.571\./);
+  assert.ok(!body.includes('longer explanation'));
+  assert.ok(!body.includes('Longer background'));
 });
