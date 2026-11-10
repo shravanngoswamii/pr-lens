@@ -8,6 +8,8 @@
 Linked-work snapshots: 2026-11-10.
 Unread items remain explicit.
 The reviews move from the problem and public example to design, impact and conclusions.
+Both include parsed declaration coverage and graphs pinned to base and head.
+File groups retain full method signatures without implying call relationships.
 AbstractMCMC also checked the skill from a fresh agent context.
 
 ```sh

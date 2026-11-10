@@ -65,6 +65,26 @@
       "id": "release-plan",
       "label": "Maintainer reply on patch release, November 3",
       "url": "https://github.com/TuringLang/AbstractMCMC.jl/pull/222#issuecomment-6608126565"
+    },
+    {
+      "id": "definition-base-4c9f40e5ebe1",
+      "label": "Base: src/sample.jl",
+      "url": "https://github.com/TuringLang/AbstractMCMC.jl/blob/418afe0df723635aa6c228eb7b12c09a849c8380/src/sample.jl#L1"
+    },
+    {
+      "id": "definition-head-4c9f40e5ebe1",
+      "label": "Head: src/sample.jl",
+      "url": "https://github.com/TuringLang/AbstractMCMC.jl/blob/3aac86be81ea389a3c03e15a3b601c4b67884bcf/src/sample.jl#L1"
+    },
+    {
+      "id": "baseline-sample-rng",
+      "label": "Base: Public ensemble sample with an RNG",
+      "url": "https://github.com/TuringLang/AbstractMCMC.jl/blob/418afe0df723635aa6c228eb7b12c09a849c8380/src/sample.jl#L96-L106"
+    },
+    {
+      "id": "baseline-serial",
+      "label": "Base: Serial ensemble validation and chain setup",
+      "url": "https://github.com/TuringLang/AbstractMCMC.jl/blob/418afe0df723635aa6c228eb7b12c09a849c8380/src/sample.jl#L855-L906"
     }
   ],
   "sections": [
@@ -262,7 +282,91 @@
                 "head-fallbacks"
               ]
             }
-          ]
+          ],
+          "baseline": {
+            "revision": "418afe0df723635aa6c228eb7b12c09a849c8380",
+            "scope": "The selected serial input-validation path. Syntax alone does not establish that the fallback is defined at runtime.",
+            "nodes": [
+              {
+                "id": "sample-rng",
+                "label": "sample",
+                "kind": "method",
+                "signature": "StatsBase.sample(rng::Random.AbstractRNG, model::AbstractModel, sampler::AbstractSampler, parallel::AbstractMCMCEnsemble, N::Integer, nchains::Integer; kwargs...)",
+                "text": "Dispatches to mcmcsample by ensemble.",
+                "refs": [
+                  "baseline-sample-rng"
+                ]
+              },
+              {
+                "id": "serial",
+                "label": "mcmcsample",
+                "kind": "method",
+                "signature": "mcmcsample(rng::Random.AbstractRNG, model::AbstractModel, sampler::AbstractSampler, ::MCMCSerial, N::Integer, nchains::Integer; progressname=\"Sampling\", initial_params=nothing, initial_state=nothing, kwargs...)",
+                "text": "Checks initial_params, then initial_state, before sampling chains.",
+                "refs": [
+                  "baseline-serial"
+                ]
+              },
+              {
+                "id": "state",
+                "label": "state fallback",
+                "kind": "method",
+                "signature": "check_initial_state(x::Any, n::Any)",
+                "text": "The generic fallback declaration is present in source but @nospecialize prevents the intended method from being defined.",
+                "refs": [
+                  "base-fallbacks"
+                ]
+              },
+              {
+                "id": "method-error",
+                "label": "MethodError",
+                "kind": "type",
+                "text": "Dispatch fails because the intended generic fallback was not defined.",
+                "refs": [
+                  "base-fallbacks",
+                  "julia-issue"
+                ]
+              }
+            ],
+            "edges": [
+              {
+                "id": "select-serial",
+                "from": "sample-rng",
+                "to": "serial",
+                "label": "calls",
+                "status": "source",
+                "text": "MCMCSerial selects this method.",
+                "refs": [
+                  "baseline-sample-rng",
+                  "baseline-serial"
+                ]
+              },
+              {
+                "id": "validate-state",
+                "from": "serial",
+                "to": "state",
+                "label": "calls",
+                "status": "source",
+                "text": "After initial_params passes. Inputs other than Nothing or AbstractArray select the fallback.",
+                "refs": [
+                  "baseline-serial",
+                  "base-fallbacks"
+                ]
+              },
+              {
+                "id": "reject-state",
+                "from": "state",
+                "to": "method-error",
+                "label": "fails with",
+                "status": "observed",
+                "text": "The integer initial_state probe raised MethodError on base.",
+                "refs": [
+                  "base-fallbacks",
+                  "julia-issue"
+                ]
+              }
+            ]
+          }
         },
         {
           "type": "text",
@@ -577,6 +681,428 @@
               ]
             }
           ]
+        }
+      ]
+    },
+    {
+      "id": "definition-groups",
+      "title": "Definition groups",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "File groups keep the full declaration inventory readable. Select a group and open Changed definitions to inspect its members. Grouping does not imply that its methods call one another."
+        },
+        {
+          "type": "diagram",
+          "id": "definitions-support",
+          "title": "Support declarations",
+          "text": "File groups list changed declarations and their signatures. Edges show membership in this review group, not calls between methods.",
+          "direction": "LR",
+          "nodes": [
+            {
+              "id": "area-support",
+              "label": "Support declarations",
+              "kind": "group",
+              "text": "A review group for the source files shown here."
+            },
+            {
+              "id": "file-4c9f40e5ebe1",
+              "label": "src/sample.jl",
+              "kind": "group",
+              "text": "Changed declarations recorded for this source file. Unchanged declarations are not listed.",
+              "refs": [
+                "definition-head-4c9f40e5ebe1"
+              ]
+            }
+          ],
+          "edges": [
+            {
+              "id": "contains-file-4c9f40e5ebe1",
+              "from": "area-support",
+              "to": "file-4c9f40e5ebe1",
+              "label": "includes file",
+              "status": "source",
+              "text": "Membership in this review group. No call relationship is implied.",
+              "refs": [
+                "definition-head-4c9f40e5ebe1"
+              ]
+            }
+          ],
+          "baseline": {
+            "revision": "418afe0df723635aa6c228eb7b12c09a849c8380",
+            "scope": "Source files in this review group at the base commit. Groups list changed declarations, not a complete call graph.",
+            "nodes": [
+              {
+                "id": "area-support",
+                "label": "Support declarations",
+                "kind": "group",
+                "text": "A review group for the source files shown here."
+              },
+              {
+                "id": "file-4c9f40e5ebe1",
+                "label": "src/sample.jl",
+                "kind": "group",
+                "text": "Changed declarations recorded for this source file. Unchanged declarations are not listed.",
+                "refs": [
+                  "definition-base-4c9f40e5ebe1"
+                ]
+              }
+            ],
+            "edges": [
+              {
+                "id": "contains-file-4c9f40e5ebe1",
+                "from": "area-support",
+                "to": "file-4c9f40e5ebe1",
+                "label": "includes file",
+                "status": "source",
+                "text": "Membership in this review group. No call relationship is implied.",
+                "refs": [
+                  "definition-base-4c9f40e5ebe1"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "definitions",
+      "title": "Definitions",
+      "blocks": [
+        {
+          "type": "inventory",
+          "title": "Definition changes",
+          "text": "All parsed declaration changes in the stated source scope are listed here. Types have individual nodes. Methods are also listed by file with complete signatures. Unexpanded code remains in Collection notes.",
+          "data": {
+            "version": 1,
+            "language": "Julia",
+            "parser": "Julia 1.13.0 Meta.parseall",
+            "base": "418afe0df723635aa6c228eb7b12c09a849c8380",
+            "head": "3aac86be81ea389a3c03e15a3b601c4b67884bcf",
+            "scope": [
+              "src/",
+              "ext/"
+            ],
+            "files": [
+              "src/sample.jl"
+            ],
+            "items": [
+              {
+                "id": "def-4623a315f994b3889245",
+                "kind": "method",
+                "name": "check_initial_params",
+                "signature": "check_initial_params(x, n)",
+                "change": "changed",
+                "before": {
+                  "signature": "check_initial_params(x, n)",
+                  "fingerprint": "8b68d77f1ef79007e292af5ce4cee9a619669d8f49fb2546c0f45612fad65c28",
+                  "locations": [
+                    {
+                      "path": "src/sample.jl",
+                      "line": 915
+                    }
+                  ]
+                },
+                "after": {
+                  "signature": "check_initial_params(x, n)",
+                  "fingerprint": "f818b3f6d1e05990518213eba3925f2f27829e11d0fbd8f62f778fe5192df5af",
+                  "locations": [
+                    {
+                      "path": "src/sample.jl",
+                      "line": 915
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "def-3ad9fba4b1fb0315534d",
+                "kind": "method",
+                "name": "check_initial_state",
+                "signature": "check_initial_state(x, n)",
+                "change": "changed",
+                "before": {
+                  "signature": "check_initial_state(x, n)",
+                  "fingerprint": "9225100b7bcb1b12b00f29a26528fef7e05d2b7c6fcf34b54b831404a500815a",
+                  "locations": [
+                    {
+                      "path": "src/sample.jl",
+                      "line": 933
+                    }
+                  ]
+                },
+                "after": {
+                  "signature": "check_initial_state(x, n)",
+                  "fingerprint": "d9d0993465db88f16620242b6ab9107df46490936ff784349a36701948f2ca39",
+                  "locations": [
+                    {
+                      "path": "src/sample.jl",
+                      "line": 936
+                    }
+                  ]
+                }
+              }
+            ],
+            "notes": [
+              {
+                "line": 14,
+                "path": "src/sample.jl",
+                "text": "Macro @info was not expanded. Only written declarations are listed.",
+                "revision": "418afe0df723635aa6c228eb7b12c09a849c8380"
+              },
+              {
+                "line": 111,
+                "path": "src/sample.jl",
+                "text": "Macro @warn was not expanded. Only written declarations are listed.",
+                "revision": "418afe0df723635aa6c228eb7b12c09a849c8380"
+              },
+              {
+                "line": 204,
+                "path": "src/sample.jl",
+                "text": "Macro @maybewithricherlogger was not expanded. Only written declarations are listed.",
+                "revision": "418afe0df723635aa6c228eb7b12c09a849c8380"
+              },
+              {
+                "line": 353,
+                "path": "src/sample.jl",
+                "text": "Macro @assert was not expanded. Only written declarations are listed.",
+                "revision": "418afe0df723635aa6c228eb7b12c09a849c8380"
+              },
+              {
+                "line": 404,
+                "path": "src/sample.jl",
+                "text": "Macro @maybewithricherlogger was not expanded. Only written declarations are listed.",
+                "revision": "418afe0df723635aa6c228eb7b12c09a849c8380"
+              },
+              {
+                "line": 544,
+                "path": "src/sample.jl",
+                "text": "Macro @warn was not expanded. Only written declarations are listed.",
+                "revision": "418afe0df723635aa6c228eb7b12c09a849c8380"
+              },
+              {
+                "line": 549,
+                "path": "src/sample.jl",
+                "text": "Macro @warn was not expanded. Only written declarations are listed.",
+                "revision": "418afe0df723635aa6c228eb7b12c09a849c8380"
+              },
+              {
+                "line": 586,
+                "path": "src/sample.jl",
+                "text": "Macro @maybewithricherlogger was not expanded. Only written declarations are listed.",
+                "revision": "418afe0df723635aa6c228eb7b12c09a849c8380"
+              },
+              {
+                "line": 616,
+                "path": "src/sample.jl",
+                "text": "Macro Distributed.@sync was not expanded. Only written declarations are listed.",
+                "revision": "418afe0df723635aa6c228eb7b12c09a849c8380"
+              },
+              {
+                "line": 619,
+                "path": "src/sample.jl",
+                "text": "Macro Distributed.@async was not expanded. Only written declarations are listed.",
+                "revision": "418afe0df723635aa6c228eb7b12c09a849c8380"
+              },
+              {
+                "line": 639,
+                "path": "src/sample.jl",
+                "text": "Macro Distributed.@async was not expanded. Only written declarations are listed.",
+                "revision": "418afe0df723635aa6c228eb7b12c09a849c8380"
+              },
+              {
+                "line": 641,
+                "path": "src/sample.jl",
+                "text": "Macro Distributed.@sync was not expanded. Only written declarations are listed.",
+                "revision": "418afe0df723635aa6c228eb7b12c09a849c8380"
+              },
+              {
+                "line": 653,
+                "path": "src/sample.jl",
+                "text": "Macro Threads.@spawn was not expanded. Only written declarations are listed.",
+                "revision": "418afe0df723635aa6c228eb7b12c09a849c8380"
+              },
+              {
+                "line": 732,
+                "path": "src/sample.jl",
+                "text": "Macro @warn was not expanded. Only written declarations are listed.",
+                "revision": "418afe0df723635aa6c228eb7b12c09a849c8380"
+              },
+              {
+                "line": 737,
+                "path": "src/sample.jl",
+                "text": "Macro @warn was not expanded. Only written declarations are listed.",
+                "revision": "418afe0df723635aa6c228eb7b12c09a849c8380"
+              },
+              {
+                "line": 767,
+                "path": "src/sample.jl",
+                "text": "Macro @maybewithricherlogger was not expanded. Only written declarations are listed.",
+                "revision": "418afe0df723635aa6c228eb7b12c09a849c8380"
+              },
+              {
+                "line": 786,
+                "path": "src/sample.jl",
+                "text": "Macro Distributed.@sync was not expanded. Only written declarations are listed.",
+                "revision": "418afe0df723635aa6c228eb7b12c09a849c8380"
+              },
+              {
+                "line": 789,
+                "path": "src/sample.jl",
+                "text": "Macro Distributed.@async was not expanded. Only written declarations are listed.",
+                "revision": "418afe0df723635aa6c228eb7b12c09a849c8380"
+              },
+              {
+                "line": 807,
+                "path": "src/sample.jl",
+                "text": "Macro Distributed.@async was not expanded. Only written declarations are listed.",
+                "revision": "418afe0df723635aa6c228eb7b12c09a849c8380"
+              },
+              {
+                "line": 874,
+                "path": "src/sample.jl",
+                "text": "Macro @warn was not expanded. Only written declarations are listed.",
+                "revision": "418afe0df723635aa6c228eb7b12c09a849c8380"
+              },
+              {
+                "line": 14,
+                "path": "src/sample.jl",
+                "text": "Macro @info was not expanded. Only written declarations are listed.",
+                "revision": "3aac86be81ea389a3c03e15a3b601c4b67884bcf"
+              },
+              {
+                "line": 111,
+                "path": "src/sample.jl",
+                "text": "Macro @warn was not expanded. Only written declarations are listed.",
+                "revision": "3aac86be81ea389a3c03e15a3b601c4b67884bcf"
+              },
+              {
+                "line": 204,
+                "path": "src/sample.jl",
+                "text": "Macro @maybewithricherlogger was not expanded. Only written declarations are listed.",
+                "revision": "3aac86be81ea389a3c03e15a3b601c4b67884bcf"
+              },
+              {
+                "line": 353,
+                "path": "src/sample.jl",
+                "text": "Macro @assert was not expanded. Only written declarations are listed.",
+                "revision": "3aac86be81ea389a3c03e15a3b601c4b67884bcf"
+              },
+              {
+                "line": 404,
+                "path": "src/sample.jl",
+                "text": "Macro @maybewithricherlogger was not expanded. Only written declarations are listed.",
+                "revision": "3aac86be81ea389a3c03e15a3b601c4b67884bcf"
+              },
+              {
+                "line": 544,
+                "path": "src/sample.jl",
+                "text": "Macro @warn was not expanded. Only written declarations are listed.",
+                "revision": "3aac86be81ea389a3c03e15a3b601c4b67884bcf"
+              },
+              {
+                "line": 549,
+                "path": "src/sample.jl",
+                "text": "Macro @warn was not expanded. Only written declarations are listed.",
+                "revision": "3aac86be81ea389a3c03e15a3b601c4b67884bcf"
+              },
+              {
+                "line": 586,
+                "path": "src/sample.jl",
+                "text": "Macro @maybewithricherlogger was not expanded. Only written declarations are listed.",
+                "revision": "3aac86be81ea389a3c03e15a3b601c4b67884bcf"
+              },
+              {
+                "line": 616,
+                "path": "src/sample.jl",
+                "text": "Macro Distributed.@sync was not expanded. Only written declarations are listed.",
+                "revision": "3aac86be81ea389a3c03e15a3b601c4b67884bcf"
+              },
+              {
+                "line": 619,
+                "path": "src/sample.jl",
+                "text": "Macro Distributed.@async was not expanded. Only written declarations are listed.",
+                "revision": "3aac86be81ea389a3c03e15a3b601c4b67884bcf"
+              },
+              {
+                "line": 639,
+                "path": "src/sample.jl",
+                "text": "Macro Distributed.@async was not expanded. Only written declarations are listed.",
+                "revision": "3aac86be81ea389a3c03e15a3b601c4b67884bcf"
+              },
+              {
+                "line": 641,
+                "path": "src/sample.jl",
+                "text": "Macro Distributed.@sync was not expanded. Only written declarations are listed.",
+                "revision": "3aac86be81ea389a3c03e15a3b601c4b67884bcf"
+              },
+              {
+                "line": 653,
+                "path": "src/sample.jl",
+                "text": "Macro Threads.@spawn was not expanded. Only written declarations are listed.",
+                "revision": "3aac86be81ea389a3c03e15a3b601c4b67884bcf"
+              },
+              {
+                "line": 732,
+                "path": "src/sample.jl",
+                "text": "Macro @warn was not expanded. Only written declarations are listed.",
+                "revision": "3aac86be81ea389a3c03e15a3b601c4b67884bcf"
+              },
+              {
+                "line": 737,
+                "path": "src/sample.jl",
+                "text": "Macro @warn was not expanded. Only written declarations are listed.",
+                "revision": "3aac86be81ea389a3c03e15a3b601c4b67884bcf"
+              },
+              {
+                "line": 767,
+                "path": "src/sample.jl",
+                "text": "Macro @maybewithricherlogger was not expanded. Only written declarations are listed.",
+                "revision": "3aac86be81ea389a3c03e15a3b601c4b67884bcf"
+              },
+              {
+                "line": 786,
+                "path": "src/sample.jl",
+                "text": "Macro Distributed.@sync was not expanded. Only written declarations are listed.",
+                "revision": "3aac86be81ea389a3c03e15a3b601c4b67884bcf"
+              },
+              {
+                "line": 789,
+                "path": "src/sample.jl",
+                "text": "Macro Distributed.@async was not expanded. Only written declarations are listed.",
+                "revision": "3aac86be81ea389a3c03e15a3b601c4b67884bcf"
+              },
+              {
+                "line": 807,
+                "path": "src/sample.jl",
+                "text": "Macro Distributed.@async was not expanded. Only written declarations are listed.",
+                "revision": "3aac86be81ea389a3c03e15a3b601c4b67884bcf"
+              },
+              {
+                "line": 874,
+                "path": "src/sample.jl",
+                "text": "Macro @warn was not expanded. Only written declarations are listed.",
+                "revision": "3aac86be81ea389a3c03e15a3b601c4b67884bcf"
+              }
+            ]
+          },
+          "links": [
+            {
+              "definition": "def-3ad9fba4b1fb0315534d",
+              "diagram": "serial-validation",
+              "node": "state"
+            },
+            {
+              "definition": "def-4623a315f994b3889245",
+              "diagram": "definitions-support",
+              "node": "file-4c9f40e5ebe1"
+            },
+            {
+              "definition": "def-3ad9fba4b1fb0315534d",
+              "diagram": "definitions-support",
+              "node": "file-4c9f40e5ebe1"
+            }
+          ],
+          "omissions": []
         }
       ]
     },
