@@ -70,7 +70,7 @@ export async function collectLinkedWork(url, { maxDepth = 3, maxItems = 60, read
     const id = itemId(item);
     if (!nodes.has(id)) {
       nodes.set(id, { id, url: `https://github.com/${item.repo}/${item.kind === 'pr' ? 'pull' : 'issues'}/${item.number}`,
-        title: `${item.repo}#${item.number}`, kind: item.kind, state: 'unknown', summary: 'Not read. Its role still needs review.', status: 'unread' });
+        title: `${item.repo}#${item.number}`, kind: item.kind, state: 'unknown', summary: 'Not read.', status: 'unread' });
       queue.push({ ...item, depth });
     }
     return id;
@@ -79,7 +79,7 @@ export async function collectLinkedWork(url, { maxDepth = 3, maxItems = 60, read
     const from = itemId(parent);
     const to = discover(item, parent.depth + 1);
     const id = `edge-${hash(`${from}:${to}:${label}`)}`;
-    if (!edges.has(id)) edges.set(id, { id, from, to, label, text: 'A collected reference. Explain its design role after reading the linked work.', evidence: [] });
+    if (!edges.has(id)) edges.set(id, { id, from, to, label, text: 'Collected reference.', evidence: [] });
     const edge = edges.get(id);
     if (!edge.evidence.some(entry => entry.url === evidence.url && entry.text === evidence.text)) edge.evidence.push(evidence);
   }
@@ -88,7 +88,7 @@ export async function collectLinkedWork(url, { maxDepth = 3, maxItems = 60, read
     const item = queue[i];
     const node = nodes.get(itemId(item));
     if (stopped || maxItems !== null && attempted >= maxItems || maxDepth !== null && item.depth > maxDepth) {
-      node.detail = stopped ? 'Collection stopped after a GitHub rate limit.' : item.depth > maxDepth && maxDepth !== null ? 'Depth limit. This item was discovered but not read.' : 'Item budget. This item was discovered but not read.';
+      node.detail = stopped ? 'Collection stopped after a GitHub rate limit.' : item.depth > maxDepth && maxDepth !== null ? 'Depth limit.' : 'Item budget.';
       continue;
     }
     attempted++;
@@ -101,7 +101,7 @@ export async function collectLinkedWork(url, { maxDepth = 3, maxItems = 60, read
     node.title = issue.title;
     node.state = issue.state;
     node.status = 'read';
-    node.summary = 'Read the collected body and discussion, then explain this item in your own words.';
+    node.summary = 'Needs an explanation after review.';
     const jobs = [
       ['comments', `${endpoint}/comments?per_page=100`, true],
       ['timeline', `${endpoint}/timeline?per_page=100`, true],
@@ -117,7 +117,7 @@ export async function collectLinkedWork(url, { maxDepth = 3, maxItems = 60, read
       if (result.status === 'fulfilled') data[jobs[index][0]] = result.value;
       else {
         node.status = 'partial';
-        node.detail = 'Some discussion or metadata could not be read.';
+        node.detail = 'Incomplete discussion or metadata.';
         notes.add(`${node.url}: ${jobs[index][0]} could not be read.`);
         stopped ||= Boolean(result.reason.rateLimited);
       }
@@ -131,7 +131,7 @@ export async function collectLinkedWork(url, { maxDepth = 3, maxItems = 60, read
       for (const reference of refs.items) connect(item, reference, 'mentions', { url: text.url, text: `Reference in ${text.location}.` });
     }
     for (const event of data.timeline ?? []) if (event.event === 'cross-referenced' && event.source?.issue?.html_url) {
-      try { connect(item, parseItem(event.source.issue.html_url), 'referenced by', { url: node.url, text: 'Cross-reference listed in this item’s GitHub timeline.' }); }
+      try { connect(item, parseItem(event.source.issue.html_url), 'referenced by', { url: node.url, text: 'Timeline cross-reference.' }); }
       catch { notes.add(`${node.url}: a timeline reference could not be parsed.`); }
     }
     records.push({ id: node.id, updatedAt: issue.updated_at, body: issue.body ?? '', discussion: texts.slice(1),
@@ -139,8 +139,8 @@ export async function collectLinkedWork(url, { maxDepth = 3, maxItems = 60, read
     onProgress({ attempted, discovered: nodes.size });
   }
   const block = { type: 'linked-work', id: 'linked-work', title: 'Linked issues and pull requests',
-    text: 'Discovery paths, not a dependency order. Descriptions and relationship meanings still need an agent review.',
-    root: itemId(root), checkedAt: new Date().toISOString(), scope: 'GitHub issue/PR references in bodies, paginated comments, review submissions and inline comments, plus incoming cross-references exposed by issue timelines. Text references can include examples or quoted text and need interpretation.',
+    text: 'Discovery paths. Explanations need review.',
+    root: itemId(root), checkedAt: new Date().toISOString(), scope: 'Bodies, paginated comments, submitted/inline reviews and incoming timeline references. Mentions may be quoted or incidental.',
     analysis: 'draft', complete: [...nodes.values()].every(node => node.status === 'read') && !notes.size,
     limits: { maxDepth, maxItems }, notes: [...notes], nodes: [...nodes.values()], edges: [...edges.values()] };
   validateLinkedWork(block);

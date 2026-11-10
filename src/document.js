@@ -135,7 +135,7 @@ export function validate(doc) {
   return doc;
 }
 
-// Labels are data, never Mermaid syntax, directives or HTML.
+// Labels must not become Mermaid syntax.
 const label = text => [...text].map(c => /[a-zA-Z0-9 ]/.test(c) ? c : `#${c.codePointAt(0)};`).join('');
 
 export function toMermaid(graph) {

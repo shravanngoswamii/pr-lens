@@ -81,27 +81,27 @@ export function buildPrompt(doc, feedback, { ids, purpose = 'review' } = {}) {
   const comments = feedback.comments.filter(comment => selected.has(comment.id));
   if (!comments.length) throw new Error('Select at least one comment');
   const lines = [purpose === 'review'
-    ? 'Use the review-docs skill to revise this design-review document using the selected feedback.'
-    : 'Investigate the selected design-review feedback against the PR code and return evidence-backed findings and proposed fixes.',
+    ? 'Use the review-docs skill to revise this review from the selected feedback.'
+    : 'Investigate the selected feedback. Return findings and proposed fixes.',
   '', `PR: ${doc.review.url}`, `Title: ${doc.review.title}`, `Document ID: ${doc.id}`,
   `Reviewed base: ${doc.review.base}`, `Reviewed head: ${doc.review.head}`,
   ...(doc.review.diffBase ? [`Diff base: ${doc.review.diffBase}`] : []), '',
-  'Reviewer comments are requests, not verified facts. Read the current PR title, body, discussion and relevant source before drawing conclusions.',
-  'Check whether the PR has changed. Keep results for the recorded revisions separate from results for newer code. Reproduce bug claims or mark them unverified.',
+  'Read the current PR, discussion and relevant source. Separate these revisions from newer code.',
+  'Treat comments as requests. Reproduce bug claims or mark them unverified.',
   purpose === 'review'
-    ? 'Update the editable review JSON and render the HTML. Preserve stable IDs and keep human feedback separate. Return both files and explain what changed. This request covers the document.'
-    : 'Check the public API where useful and separate observations, source relationships and uncertain paths. State what remains unchecked. This request asks for investigation and proposed fixes.',
-  'The reviewer will provide the review JSON or the saved HTML and any feedback file. Ask for missing files or access rather than inventing their contents.', '', 'Selected feedback:'];
+    ? 'Return updated JSON and HTML. Preserve IDs and separate human feedback.'
+    : 'Check the public API where useful. Separate observations, source checks and uncertain paths.',
+  'Ask for missing files or access. State checks and limits. No posting or PR edits.', '', 'Feedback:'];
   const sources = new Map(doc.sources.map(source => [source.id, source]));
   comments.forEach((comment, i) => {
     const target = describeTarget(doc, comment.target);
-    lines.push('', `${i + 1}. ${comment.kind} (${comment.id})`, `Location: ${target.label}`, `Target IDs: ${JSON.stringify(comment.target)}`);
+    lines.push('', `${i + 1}. ${comment.kind} (${comment.id})`, `Location: ${target.label}`, `Target: ${JSON.stringify(comment.target)}`);
     if (comment.author) lines.push(`Reviewer: ${comment.author}`);
-    if (comment.base !== doc.review.base || comment.head !== doc.review.head) lines.push(`Comment recorded on base ${comment.base}, head ${comment.head}. Check this older context before applying it.`);
-    if (target.missing) lines.push('The target is absent from the current document. Re-establish the location before acting.');
+    if (comment.base !== doc.review.base || comment.head !== doc.review.head) lines.push(`Comment base: ${comment.base}. Head: ${comment.head}. Check this recorded context.`);
+    if (target.missing) lines.push('The target is absent. Restore its context.');
     if (target.signature) lines.push(`Signature: ${target.signature}`);
-    if (target.text) lines.push(`Document context: ${target.text}`);
-    lines.push('Reviewer request:', ...comment.text.split('\n').map(line => `    ${line}`));
+    if (target.text) lines.push(`Context: ${target.text}`);
+    lines.push('Request:', ...comment.text.split('\n').map(line => `    ${line}`));
     for (const id of target.refs) if (sources.has(id)) lines.push(`Source: ${sources.get(id).url}`);
     for (const url of target.links ?? []) lines.push(`Linked item: ${url}`);
   });
@@ -112,7 +112,7 @@ export function buildTaskPrompt(doc, instructions, refs = []) {
   return ['Use the review-docs skill for this PR.', '', `PR: ${doc.review.url}`, `Reviewed base: ${doc.review.base}`, `Reviewed head: ${doc.review.head}`,
     ...(doc.review.diffBase ? [`Diff base: ${doc.review.diffBase}`] : []), '', instructions, '',
     ...refs.map(id => `Source: ${doc.sources.find(source => source.id === id).url}`), '',
-    'Read the PR title, body, discussion and relevant linked work. Check whether the source has changed since this snapshot.',
-    'Keep evidence for these revisions separate from newer code. Reproduce bug claims or mark them unverified. Preserve stable document IDs and human feedback.',
-    'Return the requested explanation or editable review JSON and HTML. State what was checked. This prompt does not authorize posting, publishing or changing the PR.'].join('\n') + '\n';
+    'Read the current PR, discussion and linked work. Separate these revisions from newer code.',
+    'Reproduce bug claims or mark them unverified. Preserve IDs and human feedback.',
+    'Return the explanation or review JSON and HTML, with checks and limits. No posting or PR edits.'].join('\n') + '\n';
 }

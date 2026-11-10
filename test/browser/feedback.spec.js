@@ -81,7 +81,7 @@ test('saves a portable offline HTML with inert comments when browser storage and
   await page.getByLabel('Comment', { exact: true }).fill(text);
   await page.getByRole('button', { name: 'Add comment', exact: true }).click();
   await page.getByRole('button', { name: 'Copy agent prompt' }).click();
-  await expect(page.getByText('Clipboard access is unavailable. Copy the selected prompt text.')).toBeVisible();
+  await expect(page.getByText('Clipboard unavailable. Copy the selected text.')).toBeVisible();
   await expect(page.getByLabel('Agent prompt', { exact: true })).toBeFocused();
   await page.getByLabel('Comment', { exact: true }).fill('PRIVATE UNSAVED DRAFT');
   const html = await save(page, 'HTML with comments');
@@ -119,7 +119,7 @@ test('imports reviewer files and preserves stale locations while rejecting unrel
   };
   await upload(incoming);
   await expect(page.locator('.comment')).toContainText('Location no longer in this document');
-  await expect(page.locator('.comment')).toContainText('Recorded at head ccccccc');
+  await expect(page.locator('.comment')).toContainText('base aaaaaaa, head ccccccc');
   await upload({ ...incoming, reviewUrl: 'https://github.com/other/repo/pull/1' });
   await expect(page.getByRole('status').filter({ hasText: 'Could not import feedback.' })).toContainText('different review');
   await expect(page.locator('.comment')).toHaveCount(1);

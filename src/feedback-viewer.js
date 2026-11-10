@@ -7,11 +7,11 @@ export function initFeedback(doc) {
   const choices = targets(doc);
   const storageKey = `review-docs:${doc.review.url}:${doc.id}:${doc.review.head}`;
   let feedback = validateFeedback(JSON.parse(document.querySelector('#feedback-data').textContent), doc);
-  let storageNotice = 'Comments stay in this browser. Save a review copy to share them.';
+  let storageNotice = 'Local comments. Save HTML to keep or share.';
   try {
     const cached = localStorage.getItem(storageKey);
     if (cached) feedback = mergeFeedback(feedback, JSON.parse(cached), doc).feedback;
-  } catch { storageNotice = 'Browser storage is unavailable. Save a review copy to keep your comments.'; }
+  } catch { storageNotice = 'Storage unavailable. Save HTML to keep comments.'; }
   const selected = new Set(feedback.comments.filter(comment => comment.status === 'open').map(comment => comment.id));
   let editingId = null;
   let undo = null;
@@ -26,8 +26,8 @@ export function initFeedback(doc) {
     <div class="form-actions"><button type="submit" class="primary" id="save-comment">Add comment</button><button type="button" id="cancel-edit" hidden>Cancel edit</button></div></form>
     <p id="feedback-status" class="feedback-help" role="status"></p><button type="button" id="undo-delete" hidden>Undo removal</button>
     <div id="comment-list"></div>
-    <div class="prompt-area"><h3>Send feedback to an agent</h3><p class="feedback-help" id="selection-count"></p>
-    <label for="prompt-purpose">Ask the agent to</label><select id="prompt-purpose"><option value="review">Revise the review document</option><option value="code">Investigate the PR code</option></select>
+    <div class="prompt-area"><h3>Agent prompt</h3><p class="feedback-help" id="selection-count"></p>
+    <label for="prompt-purpose">Ask the agent to</label><select id="prompt-purpose"><option value="review">Revise document</option><option value="code">Investigate code</option></select>
     <div class="form-actions"><button type="button" class="primary" id="copy-prompt">Copy agent prompt</button></div>
     <details id="prompt-preview"><summary>Preview prompt</summary><label class="sr-only" for="prompt-text">Agent prompt</label><textarea id="prompt-text" readonly rows="9"></textarea></details></div>`;
   const get = id => panel.querySelector(`#${id}`);
@@ -79,11 +79,11 @@ export function initFeedback(doc) {
 
   function persist() {
     try { localStorage.setItem(storageKey, JSON.stringify(feedback)); }
-    catch { get('storage-notice').textContent = 'Browser storage is unavailable. Save a review copy to keep your comments.'; }
+    catch { get('storage-notice').textContent = 'Storage unavailable. Save HTML to keep comments.'; }
   }
   function updatePrompt() {
     const count = selected.size;
-    get('selection-count').textContent = `${count} ${count === 1 ? 'comment selected' : 'comments selected'}. Select requests from the comment list.`;
+    get('selection-count').textContent = `${count} selected`;
     get('copy-prompt').disabled = count === 0;
     get('prompt-text').value = count ? buildPrompt(doc, feedback, { ids: [...selected], purpose: get('prompt-purpose').value }) : '';
   }
@@ -99,7 +99,7 @@ export function initFeedback(doc) {
     const list = get('comment-list');
     list.replaceChildren();
     toggle.textContent = `Comments (${feedback.comments.length})`;
-    if (!feedback.comments.length) make('p', 'No comments yet. Add a question, suggestion or issue about this review.', list, 'feedback-help');
+    if (!feedback.comments.length) make('p', 'No comments yet.', list, 'feedback-help');
     for (const comment of feedback.comments) {
       const row = make('article', '', list, 'comment');
       row.dataset.commentId = comment.id;
@@ -112,8 +112,8 @@ export function initFeedback(doc) {
       make('span', `${comment.kind}${comment.author ? ` by ${comment.author}` : ''} · ${comment.status}`, label);
       const target = describeTarget(doc, comment.target);
       make('p', target.label, row, 'comment-location');
-      if (target.missing) make('p', 'The original location was removed. Re-establish its context before applying this request.', row, 'feedback-help');
-      if (comment.base !== doc.review.base || comment.head !== doc.review.head) make('p', `Recorded at head ${comment.head.slice(0, 7)}. Check the older revision.`, row, 'feedback-help');
+      if (target.missing) make('p', 'Location removed. Check its original context.', row, 'feedback-help');
+      if (comment.base !== doc.review.base || comment.head !== doc.review.head) make('p', `Different revisions: base ${comment.base.slice(0, 7)}, head ${comment.head.slice(0, 7)}.`, row, 'feedback-help');
       make('p', comment.text, row, 'comment-body');
       const actions = make('div', '', row, 'comment-actions');
       const edit = make('button', 'Edit', actions);
@@ -179,12 +179,12 @@ export function initFeedback(doc) {
   });
   get('prompt-purpose').addEventListener('change', updatePrompt);
   get('copy-prompt').addEventListener('click', async () => {
-    try { await navigator.clipboard.writeText(get('prompt-text').value); say('Agent prompt copied.'); }
+    try { await navigator.clipboard.writeText(get('prompt-text').value); say('Prompt copied.'); }
     catch {
       get('prompt-preview').open = true;
       get('prompt-text').focus();
       get('prompt-text').select();
-      say('Clipboard access is unavailable. Copy the selected prompt text.');
+      say('Clipboard unavailable. Copy the selected text.');
     }
   });
 

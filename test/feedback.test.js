@@ -26,7 +26,7 @@ test('retains old or missing targets without presenting them as current source',
   validateFeedback(notes, document());
   assert.equal(describeTarget(document(), notes.comments[0].target).missing, true);
   assert.match(buildPrompt(document(), notes), /target is absent/);
-  assert.match(buildPrompt(document(), notes), /older context/);
+  assert.match(buildPrompt(document(), notes), /recorded context/);
 });
 
 test('merges additions and newer edits and rejects conflicting edits without mutating inputs', () => {

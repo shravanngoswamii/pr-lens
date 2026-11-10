@@ -47,8 +47,9 @@ async function draw(graph, index) {
     element('p', node.text, selection);
     if (node.signature) element('code', node.signature, element('pre', '', selection));
     addRefs(node.refs, selection);
-    const comment = element('button', 'Comment on this node', selection);
+    const comment = element('button', 'Comment', selection);
     comment.type = 'button';
+    comment.setAttribute('aria-label', 'Comment on this node');
     comment.dataset.commentTarget = JSON.stringify({ section: figure.closest('section').dataset.section, diagram: graph.id, node: node.id });
     const related = graph.edges.filter(edge => edge.from === node.id || edge.to === node.id);
     if (related.length) element('h4', 'Relationships', selection);
@@ -67,7 +68,7 @@ async function draw(graph, index) {
     const result = await mermaid.render(`diagram${index}`, syntax);
     viewport.innerHTML = result.svg;
     svg = viewport.querySelector('svg');
-    // Mermaid 12 leaves entities in edge labels. Restore the original as SVG text.
+    // Mermaid leaves edge entities encoded.
     svg.querySelectorAll('.edgeLabels > .edgeLabel').forEach((group, i) => {
       const text = group.querySelector('text');
       text.textContent = graph.edges[i].label;
@@ -166,7 +167,7 @@ async function draw(graph, index) {
     figure.dataset.ready = 'true';
   } catch (error) {
     viewport.replaceChildren();
-    element('p', `Diagram could not be drawn: ${error.message}. Use the node list below.`, viewport).setAttribute('role', 'alert');
+    element('p', `Diagram failed: ${error.message}. See text details below.`, viewport).setAttribute('role', 'alert');
     figure.dataset.ready = 'error';
   }
 }

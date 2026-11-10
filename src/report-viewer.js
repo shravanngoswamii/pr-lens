@@ -27,7 +27,7 @@ export function initReport(doc) {
       field.value = text;
       field.focus();
       field.select();
-      status.textContent = 'Text selected. Copy it with your keyboard or context menu.';
+      status.textContent = 'Copy the selected text.';
     }
   });
 
@@ -70,12 +70,13 @@ export function initReport(doc) {
         const actions = element('div', '', body);
         actions.className = 'linked-actions';
         link('Open on GitHub', node.url, actions);
-        const comment = element('button', 'Comment on this item', actions);
+        const comment = element('button', 'Comment', actions);
         comment.type = 'button';
+        comment.setAttribute('aria-label', 'Comment on this item');
         comment.dataset.commentTarget = JSON.stringify({ section: section.id, diagram: block.id, node: id });
-        if (incoming.get(id) > 1) element('p', `Linked ${incoming.get(id)} times in this collection. Each path refers to the same item.`, body).className = 'block-meta';
+        if (incoming.get(id) > 1) element('p', `Linked ${incoming.get(id)} times.`, body).className = 'block-meta';
         if (cycle) {
-          element('p', 'Already on this path. Its children are shown at the earlier occurrence.', body).className = 'block-meta';
+          element('p', 'Already on this path. Expand the earlier item.', body).className = 'block-meta';
           return;
         }
         const children = outgoing.get(id);
@@ -95,11 +96,11 @@ export function initReport(doc) {
         const root = branch(block.root, new Set());
         tree.append(root);
         root.open = true;
-        count.textContent = 'Expand an item to follow its links. Search includes all collected items.';
+        count.textContent = 'Expand to follow links. Search covers all items.';
       } else {
         const matches = block.nodes.filter(node => `${node.title} ${node.url} ${node.state} ${node.status} ${node.summary}`.toLowerCase().includes(query));
         for (const node of matches) tree.append(branch(node.id, new Set()));
-        count.textContent = `${matches.length} of ${block.nodes.length} items match. Clear search to return to the root hierarchy.`;
+        count.textContent = `${matches.length}/${block.nodes.length} matches. Clear search for the hierarchy.`;
       }
     }
     search.addEventListener('input', show);
