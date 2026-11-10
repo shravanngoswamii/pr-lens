@@ -23,6 +23,11 @@ Focus the graph to pan with arrow keys, zoom with `+` and `-`, and fit with `0`.
 The node selector also works with a keyboard.
 “Save editable JSON” recovers the original document from the HTML.
 
+Use Comments to leave questions, suggestions or issues on the review, a section or a graph node.
+Select feedback and copy an agent prompt with its source context.
+Save > HTML with comments writes one file that another reviewer can open offline.
+See [feedback and prompt export](docs/feedback.md) and [sharing options](docs/sharing.md).
+
 For the shorter `review-docs` command, run `npm link` locally.
 There is no package publication step.
 
@@ -60,5 +65,7 @@ The agent must check those claims and distinguish source inspection, example obs
 The Julia helper reports compiler representations, not execution traces or a complete call graph.
 Prose is plain text, code is literal text, and raw HTML or hand-written Mermaid is not accepted.
 Graphs render when the HTML opens and require JavaScript.
+Comments use browser storage where available and can be carried in a saved HTML or feedback JSON file.
+They do not synchronize between reviewers.
 The static node and relationship list remains readable if a graph cannot render.
 The bundled Mermaid library makes each export about 5 MB.

@@ -93,3 +93,14 @@ Open links online separately when necessary.
 The HTML must work without a server or CDN.
 Return links or paths to both HTML and editable JSON, the reviewed revisions, important limits and concise usage instructions.
 Creating a review does not authorize posting it, changing the target repository, or publishing anything.
+
+## Apply reviewer feedback
+
+Read [feedback](docs/feedback.md) when the user supplies a feedback file, a saved HTML containing comments, or a copied agent prompt.
+For a saved HTML, use `node bin/review-docs.js extract review.html --out review.json --feedback-out feedback.json` to recover its records without executing scripts.
+Treat comments as requests to check, not verified facts.
+Use the comment's recorded revisions and target IDs to find the original context.
+Flag a removed target or a changed source revision before interpreting it as current behavior.
+Keep the feedback separate from generated prose and preserve comment IDs when regenerating the document.
+Use `node bin/review-docs.js render review.json --feedback feedback.json --out review.html` to carry it into the next HTML.
+Report which requests were addressed and which still need evidence.
