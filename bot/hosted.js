@@ -31,23 +31,36 @@ export async function scanHosted(config, gh, commentURL) {
 }
 
 export async function setupHosted(config, { deployKey = process.env.REPORTS_DEPLOY_KEY, execute = run } = {}) {
-  if (!deployKey?.includes('BEGIN OPENSSH PRIVATE KEY')) throw new Error('Set the REPORTS_DEPLOY_KEY Actions secret');
   const user = JSON.parse((await execute('gh', ['api', 'user'])).stdout);
   if (user.login.toLowerCase() !== config.login.toLowerCase()) throw new Error('REVIEW_BOT_TOKEN belongs to a different account');
-  const keyDir = await mkdtemp(join(tmpdir(), 'review-docs-ssh-'));
-  const key = join(keyDir, 'key'), hosts = join(keyDir, 'known_hosts');
-  await writeFile(key, deployKey.trim() + '\n', { mode: 0o600 });
-  const meta = JSON.parse((await execute('gh', ['api', 'meta'])).stdout);
-  if (!Array.isArray(meta.ssh_keys) || !meta.ssh_keys.length) throw new Error('GitHub SSH host keys are missing');
-  await writeFile(hosts, meta.ssh_keys.map(value => `github.com ${value}`).join('\n') + '\n', { mode: 0o600 });
+  let ssh;
+  if (deployKey) {
+    if (!deployKey.includes('BEGIN OPENSSH PRIVATE KEY')) throw new Error('Invalid REPORTS_DEPLOY_KEY');
+    const keyDir = await mkdtemp(join(tmpdir(), 'pr-lens-ssh-'));
+    const key = join(keyDir, 'key'), hosts = join(keyDir, 'known_hosts');
+    await writeFile(key, deployKey.trim() + '\n', { mode: 0o600 });
+    const meta = JSON.parse((await execute('gh', ['api', 'meta'])).stdout);
+    if (!Array.isArray(meta.ssh_keys) || !meta.ssh_keys.length) throw new Error('GitHub SSH host keys are missing');
+    await writeFile(hosts, meta.ssh_keys.map(value => `github.com ${value}`).join('\n') + '\n', { mode: 0o600 });
+    const quote = value => `'${value.replaceAll("'", "'\\''")}'`;
+    ssh = `ssh -i ${quote(key)} -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${quote(hosts)}`;
+  } else {
+    const repo = JSON.parse((await execute('gh', ['api', `repos/${config.publish.repo}`])).stdout);
+    if (!repo.permissions?.push) throw new Error('The bot needs push access to the reports repository, or REPORTS_DEPLOY_KEY');
+  }
   await mkdir(dirname(config.publish.checkout), { recursive: true });
   await execute('git', ['-c', 'credential.helper=', '-c', 'core.hooksPath=/dev/null', 'clone', '--quiet', '--single-branch', '--depth=1', '--branch', config.publish.branch, `https://github.com/${config.publish.repo}.git`, config.publish.checkout]);
-  const quote = value => `'${value.replaceAll("'", "'\\''")}'`;
   for (const [name, value] of [
     ['user.name', user.login], ['user.email', `${user.id}+${user.login}@users.noreply.github.com`],
-    ['core.sshCommand', `ssh -i ${quote(key)} -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${quote(hosts)}`],
   ]) await execute('git', ['-C', config.publish.checkout, 'config', name, value]);
-  await execute('git', ['-C', config.publish.checkout, 'remote', 'set-url', '--push', 'origin', `git@github.com:${config.publish.repo}.git`]);
+  if (ssh) {
+    await execute('git', ['-C', config.publish.checkout, 'config', 'core.sshCommand', ssh]);
+    await execute('git', ['-C', config.publish.checkout, 'remote', 'set-url', '--push', 'origin', `git@github.com:${config.publish.repo}.git`]);
+  } else {
+    await execute('git', ['-C', config.publish.checkout, 'config', 'credential.helper', '']);
+    await execute('git', ['-C', config.publish.checkout, 'config', '--add', 'credential.helper', '!gh auth git-credential']);
+    await execute('git', ['-C', config.publish.checkout, 'config', 'credential.useHttpPath', 'true']);
+  }
   await execute('git', ['-C', config.publish.checkout, 'push', '--dry-run', 'origin', `HEAD:${config.publish.branch}`]);
 }
 

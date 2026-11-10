@@ -7,9 +7,23 @@ import { hostedConfig, checkHostedActor, scanHosted, setupHosted, compactState }
 import { validateConfig } from '../bot/config.js';
 import { github, isRequest } from '../bot/github.js';
 import { claudeEnvironment } from '../bot/claude.js';
+import { configureBot } from '../scripts/configure-bot.js';
 
 const input = { version: 1, login: 'review-bot', requesters: [{ login: 'reviewer', id: 12 }, { login: 'mentor', id: 34 }], stateDir: 'state',
   publish: { checkout: 'site', repo: 'owner/site', branch: 'gh-pages', prefix: 'reviews', url: 'https://example.com/site' } };
+
+test('creates a portable configuration with resolved requester identities', async () => {
+  const execute = async (command, args) => {
+    assert.equal(command, 'gh');
+    assert.deepEqual(args, ['api', 'users/reviewer']);
+    return { stdout: '{"login":"reviewer","id":12}' };
+  };
+  const result = await configureBot('my-bot', 'my-bot/reports', ['reviewer'], execute);
+  assert.deepEqual(result.requesters, [{ login: 'reviewer', id: 12 }]);
+  assert.equal(result.publish.url, 'https://my-bot.github.io/reports');
+  await assert.rejects(() => configureBot('my-bot', 'my-bot/reports', ['../user'], execute), /Usage/);
+  await assert.rejects(() => configureBot('my-bot', 'my-bot/reports', ['reviewer', 'reviewer'], execute), /Duplicate/);
+});
 
 test('pins requester identities and restricts manual hosted dispatches', () => {
   const config = hostedConfig(input, '/tmp/hosted');
@@ -90,4 +104,16 @@ test('scopes the publishing key to its checkout and verifies GitHub SSH hosts', 
     assert.ok(!calls.some(([, args]) => args.includes('--global')));
     assert.ok(!JSON.stringify(config).includes('PRIVATE KEY'));
   } finally { await rm(dir, { recursive: true, force: true }); if (keyDir) await rm(keyDir, { recursive: true, force: true }); }
+});
+
+test('publishes with the bot token when it can push to the report repository', async () => {
+  const calls = [], config = hostedConfig(input, '/tmp/hosted');
+  const execute = async (command, args) => {
+    calls.push([command, args]);
+    return { stdout: command === 'gh' ? JSON.stringify(args[1] === 'user' ? { login: 'review-bot', id: 55 } : { permissions: { push: true } }) : '' };
+  };
+  await setupHosted(config, { deployKey: '', execute });
+  assert.ok(calls.some(([, args]) => args.includes('!gh auth git-credential')));
+  assert.ok(calls.every(([, args]) => !args.includes('--global') && !args.includes('core.sshCommand')));
+  await assert.rejects(() => setupHosted(config, { deployKey: '', execute: async () => ({ stdout: '{"login":"review-bot","permissions":{"push":false}}' }) }), /push access/);
 });
