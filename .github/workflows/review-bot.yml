@@ -1,5 +1,7 @@
 name: Review PR mentions
 on:
+  schedule:
+    - cron: '7,37 * * * *'
   workflow_dispatch:
     inputs:
       comment_url:

@@ -10,6 +10,7 @@ Inline review comments are not triggers.
 
 [Review PR mentions](https://github.com/shravanngoswamii/review-docs/actions/workflows/review-bot.yml) runs on GitHub's servers.
 The laptop can be off.
+Checks run every 30 minutes, subject to GitHub scheduling delays.
 It polls notifications, reacts as the bot, reviews with Claude Code, checks the HTML offline, deploys it and replies.
 Idle checks skip Claude and browser setup.
 Claude uses the subscription allowance.
