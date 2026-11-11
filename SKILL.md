@@ -111,6 +111,7 @@ Keep nonblocking questions and suggestions in Review.
 Use one short sentence for the recommendation summary.
 A source-only review must state its limits and must not imply runtime verification.
 Keep wording direct and factual.
+Use short sentences without semicolons.
 Avoid slogans, metaphors and dramatic phrasing.
 Keep the main explanation brief.
 Avoid repeated caveats and generic test requests.
