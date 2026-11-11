@@ -45,7 +45,24 @@ It stores these values only in your bot repository:
 Keep `output/` ignored by git.
 Keep credentials out of reports and workflow caches.
 
-## Create sessions
+## Regular cloud sessions
+
+You can use a regular session instead of an API-triggered task.
+Create it in Claude Code with the bot's reports repository and your chosen model and effort.
+Link it as the bot:
+
+```sh
+node bot/sessions.js link YOUR-BOT/pr-reviews PR_URL SESSION_URL --model opus --effort high
+```
+
+Prefix the command with `ghsb exec YOUR-SANDBOX --` when using gh-sandbox.
+Set `"cloud": { "triggers": {} }` in `REVIARY_CONFIG` for manually linked sessions only.
+The helper records the choices you supply and does not verify the session's model.
+It creates no session and sends no message.
+Replacing an existing link needs `--fresh`.
+Later PR requests use `--backend cloud` and reuse that session.
+
+## API-triggered sessions
 
 Create an API-triggered task at [Claude scheduled tasks](https://claude.ai/code/routines).
 Select your bot's reports repository and choose a model and effort level.
@@ -81,6 +98,10 @@ The refresh token controls existing sessions.
 The task token creates first or fresh sessions.
 If you miss the task token, use **Edit task > API trigger > Regenerate** and save its replacement.
 Add one task and matching key for each model and effort combination you offer.
+The API accepts text only and cannot override a task's saved model or effort.
+A task without a time trigger is not a recurring schedule.
+It creates the first or explicitly requested fresh session.
+Later reviews use normal follow-ups in that session.
 
 Create the session registry once:
 

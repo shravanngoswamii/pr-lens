@@ -1,4 +1,8 @@
-import { validateOptions } from './options.js';
+import { validateOptions, parseOptions } from './options.js';
+import { github } from './github.js';
+import { randomUUID } from 'node:crypto';
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const validID = id => /^(?:session|cse)_[A-Za-z0-9]{10,100}$/.test(id ?? '');
 
@@ -52,4 +56,26 @@ export async function prSession(store, request, { fresh = false } = {}, create) 
   const session = { id: result.id, url: `https://claude.ai/code/${result.id}`, ...(result.model ? { model: result.model } : {}), ...(result.effort ? { effort: result.effort } : {}) };
   await store.set(key, { ...pending, status: 'ready', session });
   return structuredClone(session);
+}
+
+export async function linkSession(gh, repo, prURL, input, options) {
+  const match = /^https:\/\/github\.com\/([A-Za-z0-9-]+\/[A-Za-z0-9_.-]+)\/pull\/([1-9]\d*)$/.exec(prURL);
+  const id = /^https:\/\/claude\.ai\/code\/((?:session|cse)_[A-Za-z0-9]+)(?:\?[^#]*)?$/.exec(input)?.[1] ?? input;
+  validateOptions(options);
+  if (!match || !validID(id) || !options.model || !options.effort || options.backend !== undefined) throw new Error('Use a PR URL, cloud session ID, model and effort');
+  const repository = await gh.api(`repos/${match[1]}`);
+  if (repository.private) throw new Error('Public PRs only');
+  await gh.api(`repos/${match[1]}/pulls/${match[2]}`);
+  const store = await openSessions(gh, repo), key = `${repository.id}/${match[2]}`;
+  if (store.get(key) && !options.fresh) throw new Error('This PR has a session. Use --fresh to replace it explicitly');
+  return prSession(store, { repositoryId: repository.id, number: Number(match[2]), id: `link-${randomUUID()}` }, options, async () => ({ id, model: options.model, effort: options.effort }));
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  try {
+    const [command, repo, pr, session, ...flags] = process.argv.slice(2);
+    const options = parseOptions(flags);
+    if (command !== 'link' || !repo || !pr || !session || !options) throw new Error('Usage: node bot/sessions.js link BOT_REPO PR_URL SESSION_ID --model MODEL --effort EFFORT [--fresh]');
+    console.log((await linkSession(github({}), repo, pr, session, options)).url);
+  } catch (error) { console.error(error.message); process.exitCode = 1; }
 }

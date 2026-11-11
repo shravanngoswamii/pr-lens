@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { openSessions, prSession } from '../bot/sessions.js';
+import { openSessions, prSession, linkSession } from '../bot/sessions.js';
 
 const first = 'session_01CCCCCCCCCCCCCCCCCCCCCC', second = 'session_01DDDDDDDDDDDDDDDDDDDDDD';
 const request = { repositoryId: 123, number: 4, id: 'inbox-42' };
@@ -60,4 +60,14 @@ test('permits a retry when the provider explicitly rejected creation', async () 
   await assert.rejects(() => prSession(store, request, {}, async () => { throw Object.assign(new Error('Rate limited'), { notCreated: true }); }), /Rate limited/);
   assert.equal(store.get('123/4'), undefined);
   assert.equal((await prSession(store, request, {}, async () => ({ id: first }))).id, first);
+});
+
+test('links a regular cloud session without creating one and requires an explicit replacement', async () => {
+  const gh = registry(), read = gh.api;
+  gh.api = (path, options) => path === 'repos/owner/repo' ? { id: 123, private: false } : path.endsWith('/pulls/4') ? {} : read(path, options);
+  const options = { model: 'opus', effort: 'high' }, pr = 'https://github.com/owner/repo/pull/4';
+  assert.equal((await linkSession(gh, 'bot/reports', pr, `https://claude.ai/code/${first}?from=cli`, options)).id, first);
+  await assert.rejects(() => linkSession(gh, 'bot/reports', pr, second, options), /explicitly/);
+  assert.equal((await linkSession(gh, 'bot/reports', pr, second, { ...options, fresh: true })).id, second);
+  assert.equal((await openSessions(gh, 'bot/reports')).get('123/4').session.model, 'opus');
 });
