@@ -55,7 +55,8 @@ See [Claude model and effort settings](https://code.claude.com/docs/en/model-con
 
 The laptop can be off.
 Inbox comments start the worker through GitHub's `issue_comment` event.
-Mentions and reviewer requests are checked every 30 minutes, subject to GitHub delays.
+Mention and reviewer-request checks are scheduled every five minutes.
+GitHub can delay scheduled jobs.
 GitHub disables public schedules after 60 days without repository activity.
 Re-enable them with `gh workflow enable review-inbox.yml --repo OWNER/TOOL`.
 Idle checks do not call Claude.

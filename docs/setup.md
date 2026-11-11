@@ -72,7 +72,7 @@ The bot reacts in the inbox and replies on the PR.
 Only configured requester IDs are allowed.
 The authorized worker uses `cache-mode: write` to save retry checkpoints for inbox events.
 
-PR mentions and reviewer requests are polled every 30 minutes.
+PR mentions and reviewer requests use a five-minute schedule, subject to GitHub delays.
 Reviewer requests need the bot as a repository collaborator.
 Comment triggers do not need collaborator access.
 Keep the bot's mention and review-request notifications enabled.
