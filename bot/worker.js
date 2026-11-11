@@ -10,7 +10,7 @@ import { openSessions } from './sessions.js';
 import { inspectHTML } from './inspect.js';
 import { publish, waitForPublication } from './publish.js';
 
-const markdown = text => text.replace(/[\\`*_{}\[\]<>#]/g, '\\$&').replace(/@/g, '&#64;');
+const markdown = text => text.replaceAll('\u00b7', '*').replace(/[\\`*_{}\[\]<>#]/g, '\\$&').replace(/@/g, '&#64;');
 // Earlier replies use this marker for deduplication.
 const reviewMarker = id => `<!-- review-docs:${id}:`;
 const excerpt = (text, limit) => {

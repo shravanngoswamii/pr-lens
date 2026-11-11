@@ -177,10 +177,12 @@ test('does not publish a saved report from a replaced cloud session', async () =
 
 test('keeps reply excerpts complete without splitting decimals into sentences', () => {
   const doc = makeDoc();
-  doc.summary = 'An exact posterior. Longer background.';
+  doc.summary = 'An exact posterior for u\u00b7v. Longer background.';
   doc.sections.at(-1).blocks.push({ type: 'finding', title: 'Mean', status: 'suggestion', text: 'The mean is 0.571. This longer explanation belongs in the report.' });
   const body = reviewComment(doc, 'https://example.com/report/', { repo: 'owner/repo', id: 12 });
   assert.match(body, /The mean is 0\.571\./);
   assert.ok(!body.includes('longer explanation'));
   assert.ok(!body.includes('Longer background'));
+  assert.ok(body.includes('u\\*v'));
+  assert.ok(!body.includes('\u00b7'));
 });
