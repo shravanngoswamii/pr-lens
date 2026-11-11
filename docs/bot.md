@@ -81,6 +81,15 @@ A hosted Codex adapter is not included.
 See [Claude authentication](https://code.claude.com/docs/en/github-actions#manual-setup) and [Codex CI authentication](https://learn.chatgpt.com/docs/auth/ci-cd-auth).
 Subscription limits and GitHub Actions limits apply separately.
 
+## Claude cloud sessions
+
+[Claude cloud tasks](https://code.claude.com/docs/en/routines) use your subscription and can start through an API trigger.
+They run on Anthropic's infrastructure while your laptop is off.
+This worker still runs on GitHub Actions.
+A cloud adapter would keep requester checks, state and publishing in the bot repository, then validate the cloud result before publishing.
+The documented trigger accepts context text, so each model and effort combination would need its own configured task.
+Its trigger token is separate from `CLAUDE_CODE_OAUTH_TOKEN`.
+
 ## Local
 
 Copy [bot.example.json](../bot.example.json), replace its accounts and set absolute paths.
