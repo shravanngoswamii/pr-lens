@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-import { writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { run } from '../bot/process.js';
@@ -25,7 +24,6 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   try {
     const [login, repo, ...requesters] = process.argv.slice(2);
     const config = await configureBot(login, repo, requesters);
-    await writeFile('bot.hosted.json', JSON.stringify(config, null, 2) + '\n');
-    console.log('Saved bot.hosted.json. Commit it before enabling the worker.');
+    console.log(JSON.stringify(config, null, 2));
   } catch (error) { console.error(error.message); process.exitCode = 1; }
 }

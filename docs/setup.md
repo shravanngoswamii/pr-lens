@@ -2,7 +2,8 @@
 
 Use a separate GitHub bot account and your own Claude subscription.
 The bot's reports repository runs the worker and hosts its output.
-PR Lens supplies the reusable workflow and renderer.
+PR Lens supplies the reusable workflow, skill and renderer.
+No fork or credentials in the PR Lens repository are needed.
 
 ## Reports repository
 
@@ -14,27 +15,29 @@ Create an issue for review requests.
 
 ## Configuration
 
-Clone PR Lens and resolve the allowed requesters' IDs:
+Clone PR Lens alongside your bot repository.
+From the bot repository checkout, generate its configuration:
 
 ```sh
-node scripts/configure-bot.js YOUR-BOT YOUR-BOT/pr-lens-reports YOUR-LOGIN
+node ../pr-lens/scripts/configure-bot.js YOUR-BOT YOUR-BOT/pr-lens-reports YOUR-LOGIN > bot-config.json
 ```
 
 Add more requester logins as arguments.
-Add `"inbox": { "repo": "YOUR-BOT/pr-lens-reports", "issue": 1 }` to `bot.hosted.json` with your issue number.
+Add `"inbox": { "repo": "YOUR-BOT/pr-lens-reports", "issue": 1 }` to `bot-config.json` with your issue number.
 Set `"model": "sonnet"`, or another model your subscription supports.
 Edit `publish.url` for custom domains.
 
 As the bot, save the configuration:
 
 ```sh
-gh variable set PR_LENS_CONFIG --repo YOUR-BOT/pr-lens-reports < bot.hosted.json
+gh variable set PR_LENS_CONFIG --repo YOUR-BOT/pr-lens-reports < bot-config.json
 ```
 
 Copy [review-inbox.yml](../examples/review-inbox.yml) to `.github/workflows/review-inbox.yml` in the reports repository.
 Replace `OWNER/TOOL` with `shravanngoswamii/pr-lens` or your fork.
 Replace both `COMMIT_SHA` values with the same full tool commit.
-Commit it on the default branch.
+Commit it and the non-secret `bot-config.json` on the bot repository's default branch.
+After editing the JSON, save it to `PR_LENS_CONFIG` again.
 
 ## Credentials
 
@@ -45,8 +48,12 @@ Add these Actions secrets to the reports repository:
 | `REVIEW_BOT_TOKEN` | The bot's GitHub token with `public_repo` and `notifications` scopes |
 | `CLAUDE_CODE_OAUTH_TOKEN` | Subscription token from `claude setup-token` |
 
+Generate the Claude token locally with `claude setup-token`.
 Use hidden prompts with `gh secret set NAME --repo YOUR-BOT/pr-lens-reports`.
-Never commit tokens.
+Never put tokens in the JSON or commit them.
+Replace the matching Actions secret when a credential expires.
+When using a minimal runtime token, add the workflow through GitHub's web editor as the bot.
+Pushing workflow files by CLI also requires GitHub's `workflow` scope.
 
 ## Enable
 

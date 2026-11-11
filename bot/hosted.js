@@ -83,7 +83,8 @@ export async function compactState(config) {
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
     const root = process.cwd();
-    const config = hostedConfig(JSON.parse(process.env.REVIEW_BOT_CONFIG || await readFile(join(root, 'bot.hosted.json'), 'utf8')), root);
+    if (!process.env.REVIEW_BOT_CONFIG) throw new Error('Set REVIEW_BOT_CONFIG to the calling bot repository configuration');
+    const config = hostedConfig(JSON.parse(process.env.REVIEW_BOT_CONFIG), root);
     if (process.argv[2] === 'compact') await compactState(config);
     else if (process.argv[2] === 'scan') {
       checkHostedActor(config);
@@ -97,6 +98,6 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
       await mkdir(join(root, 'output'), { recursive: true });
       await writeFile(join(root, 'output/bot-hosted.json'), JSON.stringify(config, null, 2) + '\n');
       await setupHosted(config);
-    } else throw new Error('Usage: node bot/hosted.js setup|compact');
+    } else throw new Error('Usage: node bot/hosted.js scan|setup|compact');
   } catch (error) { console.error(`review-bot: ${error.message}`); process.exitCode = 1; }
 }

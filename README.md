@@ -42,6 +42,10 @@ It does not run the PR's package tests.
 Codex can use the skill interactively.
 Hosted Codex subscription reviews are not included.
 
+PR Lens contains the skill, helpers, renderer and reusable workflow.
+Each bot repository owns its triggers, configuration, Actions secrets, state and reports.
+Users can call the shared workflow without forking PR Lens.
+
 [Format](docs/format.md) · [Helpers](docs/helpers.md) · [Linked work](docs/linked-work.md) · [Feedback](docs/feedback.md) · [Sharing](docs/sharing.md) · [Examples](examples/README.md) · [DrawShare](docs/drawshare.md)
 
 ## Test

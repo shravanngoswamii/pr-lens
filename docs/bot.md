@@ -2,7 +2,7 @@
 
 Post a public PR URL on the configured inbox issue for an immediate review.
 You can also comment `@YOUR-BOT review` on a public PR, or request the bot as a reviewer.
-Only accounts listed in `bot.hosted.json` can trigger it.
+Only accounts listed in the bot repository's `PR_LENS_CONFIG` can request reviews.
 Use the whole comment for the PR URL or mention command.
 Inline comments are not triggers.
 Reviewer requests require the bot to be a repository collaborator.
@@ -40,7 +40,7 @@ Deployment and the live revision are checked before replying.
 ## Set up your bot
 
 Follow [setup](setup.md) with your own accounts and credentials.
-The [demo inbox](https://github.com/shravangoswami-bot/pr-lens-reports/issues/1) allows `shravanngoswamii`, `yebai` and `sunxd3`.
+Each bot owner chooses their requesters.
 GitHub account IDs pin their identities.
 Set `model` to a Claude Code model alias or full name.
 The report records the requested model and provider-reported model names under About this review.
@@ -85,3 +85,26 @@ Posted replies are checked before posting again.
 Failed jobs need an explicit retry.
 Public Actions logs and caches must be treated as public.
 Credentials stay outside the cache and the model's evidence.
+
+## Repository ownership
+
+PR Lens supplies code and the reusable workflow.
+The caller's bot repository owns the workflow run and its credentials.
+The shared code runs on the caller's GitHub runner with explicitly supplied secret inputs.
+Pin the tool commit in the caller workflow and update it when upgrading.
+
+| Data | Location |
+| --- | --- |
+| Bot GitHub token | Bot repository Actions secret `REVIEW_BOT_TOKEN` |
+| Claude subscription token | Bot repository Actions secret `CLAUDE_CODE_OAUTH_TOKEN` |
+| Bot name, requester IDs, model and publishing paths | Bot repository Actions variable `PR_LENS_CONFIG` |
+| Worker switch | Bot repository Actions variable `PR_LENS_ENABLED` |
+| Request cursor and job results | Bot repository Actions cache |
+| HTML and editable JSON | Bot repository `gh-pages` branch |
+
+GitHub also creates a temporary `GITHUB_TOKEN` for each job.
+This workflow limits it to reading contents and Actions metadata.
+The bot's token supplies cross-repository GitHub access.
+Claude receives its subscription token without the GitHub credentials.
+Credentials are injected into the job environment and are not written to reports or cached state.
+No personal access token from the bot owner is needed in PR Lens.

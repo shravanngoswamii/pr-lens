@@ -1,13 +1,15 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, readFile, access, rm, stat } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readFile, access, rm, stat, readdir } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
+import { fileURLToPath } from 'node:url';
 import { hostedConfig, checkHostedActor, scanHosted, setupHosted, compactState } from '../bot/hosted.js';
 import { validateConfig } from '../bot/config.js';
 import { github, isRequest } from '../bot/github.js';
 import { claudeEnvironment } from '../bot/claude.js';
 import { configureBot } from '../scripts/configure-bot.js';
+import { run } from '../bot/process.js';
 
 const input = { version: 1, login: 'review-bot', requesters: [{ login: 'reviewer', id: 12 }, { login: 'mentor', id: 34 }], stateDir: 'state',
   publish: { checkout: 'site', repo: 'owner/site', branch: 'gh-pages', prefix: 'reviews', url: 'https://example.com/site' } };
@@ -23,6 +25,29 @@ test('creates a portable configuration with resolved requester identities', asyn
   assert.equal(result.publish.url, 'https://my-bot.github.io/reports');
   await assert.rejects(() => configureBot('my-bot', 'my-bot/reports', ['../user'], execute), /Usage/);
   await assert.rejects(() => configureBot('my-bot', 'my-bot/reports', ['reviewer', 'reviewer'], execute), /Duplicate/);
+});
+
+test('prints configuration JSON without creating an instance file', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'pr-lens-config-cli-'));
+  try {
+    await writeFile(join(dir, 'gh'), '#!/usr/bin/env node\nconsole.log(JSON.stringify({login:"reviewer",id:12}));\n', { mode: 0o755 });
+    const script = fileURLToPath(new URL('../scripts/configure-bot.js', import.meta.url));
+    const { stdout } = await run(process.execPath, [script, 'my-bot', 'my-bot/reports', 'reviewer'], { cwd: dir, env: { ...process.env, PATH: `${dir}:${process.env.PATH}` } });
+    assert.deepEqual(JSON.parse(stdout).requesters, [{ login: 'reviewer', id: 12 }]);
+    assert.deepEqual(await readdir(dir), ['gh']);
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test('requires caller configuration even when an instance file is present', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'pr-lens-config-source-'));
+  const env = { ...process.env }; delete env.REVIEW_BOT_CONFIG;
+  const script = fileURLToPath(new URL('../bot/hosted.js', import.meta.url));
+  try {
+    await writeFile(join(dir, 'bot.hosted.json'), JSON.stringify(input));
+    await assert.rejects(() => run(process.execPath, [script, 'compact'], { cwd: dir, env }), error => /Set REVIEW_BOT_CONFIG/.test(error.stderr));
+    await writeFile(join(dir, 'bot.hosted.json'), 'Ignored instance file');
+    await run(process.execPath, [script, 'compact'], { cwd: dir, env: { ...env, REVIEW_BOT_CONFIG: JSON.stringify(input) } });
+  } finally { await rm(dir, { recursive: true, force: true }); }
 });
 
 test('pins requester identities and restricts manual hosted dispatches', () => {
