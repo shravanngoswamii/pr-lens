@@ -40,11 +40,12 @@ export function validate(doc) {
   string(doc.summary, '$.summary');
   object(doc.review, '$.review', ['url', 'title', 'base', 'head', 'diffBase', 'checkedAt', 'agent']);
   if (doc.review.agent !== undefined) {
-    object(doc.review.agent, '$.review.agent', ['name', 'requestedModel', 'requestedEffort', 'models']);
+    object(doc.review.agent, '$.review.agent', ['name', 'requestedModel', 'requestedEffort', 'models', 'session']);
     for (const key of ['name', 'requestedModel']) string(doc.review.agent[key], `$.review.agent.${key}`);
     if (doc.review.agent.requestedEffort !== undefined && !['default', 'low', 'medium', 'high', 'xhigh', 'max'].includes(doc.review.agent.requestedEffort)) fail('$.review.agent.requestedEffort', 'invalid effort level');
     array(doc.review.agent.models, '$.review.agent.models');
     doc.review.agent.models.forEach((name, i) => string(name, `$.review.agent.models[${i}]`));
+    if (doc.review.agent.session !== undefined && !/^https:\/\/claude\.ai\/code\/(?:session|cse)_[A-Za-z0-9]{10,100}$/.test(doc.review.agent.session)) fail('$.review.agent.session', 'expected a Claude cloud session URL');
   }
   string(doc.review.title, '$.review.title');
   if (!/^https:\/\/github\.com\/[^/?#]+\/[^/?#]+\/pull\/[1-9]\d*$/.test(doc.review.url)) fail('$.review.url', 'expected a GitHub PR URL');

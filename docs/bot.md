@@ -41,7 +41,7 @@ See [Claude model and effort settings](https://code.claude.com/docs/en/model-con
 | Step | Location |
 | --- | --- |
 | Find requests and collect source | GitHub-hosted Ubuntu runner |
-| Analyze the PR | Claude Code on that runner, using your subscription |
+| Analyze the PR | Claude cloud when configured, otherwise Claude Code on the runner |
 | Parse Julia declarations | Julia on the runner, without loading the package |
 | Validate and inspect HTML | Node and offline Chromium on the runner |
 | Serve HTML and editable JSON | The bot's public GitHub Pages repository |
@@ -83,12 +83,15 @@ Subscription limits and GitHub Actions limits apply separately.
 
 ## Claude cloud sessions
 
+[Set up and renew the cloud login](cloud.md).
 [Claude cloud sessions](https://code.claude.com/docs/en/claude-code-on-the-web#send-follow-ups-from-the-cli) accept follow-up messages through the signed-in CLI.
 Cloud-task triggers create a new session for each run.
-Reusing a PR session needs a saved session ID and follow-up delivery.
+With `cloud` configured, the worker reuses each PR's saved session and runs analysis in Claude's cloud.
+Use `--fresh` to replace it.
+Model and effort changes require a fresh session.
 Use **Run workflow > Check cloud access** to test the hosted credentials without creating a session or running a review.
 Inference access and cloud-session access are checked separately.
-The review worker still runs on GitHub Actions.
+GitHub Actions handles authorization, source checks, rendering and publication.
 
 ## Local
 
@@ -133,7 +136,11 @@ Pin the tool commit in the caller workflow and update it when upgrading.
 | Data | Location |
 | --- | --- |
 | Bot GitHub token | Bot repository Actions secret `REVIEW_BOT_TOKEN` |
-| Claude subscription token | Bot repository Actions secret `CLAUDE_CODE_OAUTH_TOKEN` |
+| Runner inference token | Bot repository Actions secret `CLAUDE_CODE_OAUTH_TOKEN` |
+| Cloud login refresh token | Bot repository Actions secret `CLAUDE_CODE_OAUTH_REFRESH_TOKEN` |
+| Cloud task creation tokens | Bot repository Actions secret `CLAUDE_CLOUD_TRIGGERS` |
+| Cloud login scopes | Bot repository Actions variable `CLAUDE_CODE_OAUTH_SCOPES` |
+| PR sessions and delivery receipts | Bot repository Actions variable `REVIARY_SESSIONS` |
 | Bot name, requester IDs, model and publishing paths | Bot repository Actions variable `REVIARY_CONFIG` |
 | Worker switch | Bot repository Actions variable `REVIARY_ENABLED` |
 | Request cursor and job results | Bot repository Actions cache |

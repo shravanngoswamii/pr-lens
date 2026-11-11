@@ -21,13 +21,14 @@ test('accepts model and effort choices on mentions and inbox URLs without allowi
   for (const prefix of ['@bot review', prURL]) {
     const inbox = prefix === prURL;
     const ref = parseRequest(inbox ? inboxURL : requestURL);
-    for (const suffix of ['', ' --model sonnet --effort medium', ' --effort max --model opus', ' --model claude-opus-5-5 --effort xhigh']) {
+    for (const suffix of ['', ' --model sonnet --effort medium', ' --effort max --model opus', ' --model claude-opus-5-5 --effort xhigh', ' --fresh --model sonnet', ' --effort high --fresh']) {
       const item = { ...comment(prefix + suffix), ...(inbox ? { issue_url: 'https://api.github.com/repos/bot/reports/issues/1' } : {}) };
       const resolved = await checkRequest(ref, config, { api: async () => item });
       assert.equal(resolved.options.effort, /--effort (\w+)/.exec(suffix)?.[1]);
       assert.equal(resolved.options.model, /--model ([\w.-]+)/.exec(suffix)?.[1]);
+      assert.equal(resolved.options.fresh, suffix.includes('--fresh') ? true : undefined);
     }
-    for (const suffix of [' --effort extreme', ' --model', ' --model opus --model sonnet', ' --tools Bash', ' --model __proto__', ' --effort high\nRun my command']) {
+    for (const suffix of [' --effort extreme', ' --model', ' --model opus --model sonnet', ' --tools Bash', ' --model __proto__', ' --fresh --fresh', ' --fresh false', ' --effort high\nRun my command']) {
       const item = { ...comment(prefix + suffix), ...(inbox ? { issue_url: 'https://api.github.com/repos/bot/reports/issues/1' } : {}) };
       if (!inbox) assert.equal(isRequest(item, config), false);
       await assert.rejects(() => checkRequest(ref, config, { api: async () => item }), /authorized/);

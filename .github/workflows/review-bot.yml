@@ -27,7 +27,11 @@ on:
       REVIEW_BOT_TOKEN:
         required: true
       CLAUDE_CODE_OAUTH_TOKEN:
-        required: true
+        required: false
+      CLAUDE_CODE_OAUTH_REFRESH_TOKEN:
+        required: false
+      CLAUDE_CLOUD_TRIGGERS:
+        required: false
 permissions:
   contents: read
   actions: read
@@ -44,6 +48,8 @@ jobs:
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
       DISABLE_AUTOUPDATER: '1'
       REVIEW_BOT_CONFIG: ${{ inputs.config_json }}
+      CLOUD_REVIEW: ${{ fromJSON(inputs.config_json).cloud && 'true' || 'false' }}
+      CHECK_CLOUD: ${{ inputs.check_cloud }}
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -53,7 +59,9 @@ jobs:
       - name: Check credentials
         run: |
           test -n "$GH_TOKEN" || { echo 'Set REVIEW_BOT_TOKEN'; exit 1; }
-          test -n "$CLAUDE_CODE_OAUTH_TOKEN" || { echo 'Set CLAUDE_CODE_OAUTH_TOKEN'; exit 1; }
+          if [ "$CLOUD_REVIEW" != true ] && [ "$CHECK_CLOUD" != true ]; then
+            test -n "$CLAUDE_CODE_OAUTH_TOKEN" || { echo 'Set CLAUDE_CODE_OAUTH_TOKEN'; exit 1; }
+          fi
       - uses: actions/setup-node@v7.1.0
         with:
           node-version: '24'
@@ -80,9 +88,17 @@ jobs:
         run: |
           curl -fsSL https://claude.ai/install.sh | bash -s -- 2.1.322
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-      - name: Check Claude cloud access
-        if: inputs.check_cloud
-        run: node bot/cloud.js
+      - name: Prepare Claude cloud login
+        if: inputs.check_cloud || (fromJSON(inputs.config_json).cloud && (steps.scan.outputs.pending == 'true' || inputs.check_subscription))
+        env:
+          CLAUDE_CODE_OAUTH_REFRESH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_REFRESH_TOKEN }}
+          CLAUDE_CODE_OAUTH_SCOPES: ${{ vars.CLAUDE_CODE_OAUTH_SCOPES }}
+        run: |
+          if [ -n "$CLAUDE_CODE_OAUTH_REFRESH_TOKEN" ]; then
+            node bot/cloud-auth.js login "$GITHUB_REPOSITORY"
+          else
+            node bot/cloud.js
+          fi
       - run: npx playwright install --with-deps chromium
         if: steps.scan.outputs.pending == 'true'
       - name: Prepare publishing checkout
@@ -93,6 +109,7 @@ jobs:
         env:
           COMMENT_URL: ${{ inputs.comment_url }}
           RETRY: ${{ inputs.retry }}
+          CLAUDE_CLOUD_TRIGGERS: ${{ secrets.CLAUDE_CLOUD_TRIGGERS }}
         run: |
           if [ -n "$COMMENT_URL" ]; then
             mode=run

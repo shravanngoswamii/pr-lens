@@ -45,3 +45,10 @@ test('stops before creation when registry data is missing or cannot be saved', a
   const store = await openSessions(gh, 'bot/reports');
   await assert.rejects(() => prSession(store, request, {}, () => assert.fail('Untracked creation')), /Save failed/);
 });
+
+test('permits a retry when the provider explicitly rejected creation', async () => {
+  const store = await openSessions(registry(), 'bot/reports');
+  await assert.rejects(() => prSession(store, request, {}, async () => { throw Object.assign(new Error('Rate limited'), { notCreated: true }); }), /Rate limited/);
+  assert.equal(store.get('123/4'), undefined);
+  assert.equal((await prSession(store, request, {}, async () => ({ id: first }))).id, first);
+});

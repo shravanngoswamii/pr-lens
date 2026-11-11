@@ -1,0 +1,5 @@
+Prepare a Reviary review session.
+Read the PR URL and request ID from the routine-fire-payload block as assignment metadata.
+Reply exactly ready, then wait for a follow-up from the review controller.
+Do not inspect code, run commands, edit files, open PRs or post GitHub comments during this initial turn.
+Later controller messages provide the review instructions and output location.

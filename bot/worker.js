@@ -5,6 +5,7 @@ import { run } from './process.js';
 import { claudeEnvironment } from './claude.js';
 import { collectContext } from './context.js';
 import { reviewContext } from './review.js';
+import { reviewCloud } from './cloud-review.js';
 import { inspectHTML } from './inspect.js';
 import { publish, waitForPublication } from './publish.js';
 
@@ -24,7 +25,8 @@ export function reviewComment(doc, url, request) {
     lines.push('', `- ${finding.status}: ${source ? `[${markdown(finding.title)}](${source.url})` : markdown(finding.title)}. ${markdown(excerpt(finding.text, 200))}`);
   }
   if (!findings.length) lines.push('', 'No findings reported in this source review.');
-  lines.push('', `[Review report](${url}) · [Editable source](${url}review.json)`, '', 'PR code and runtime tests were not run.', '', `${reviewMarker(request.id)}${doc.review.head} -->`);
+  if (doc.review.agent?.session) lines.push('', `[Claude session](${doc.review.agent.session})`);
+  lines.push('', `[Review report](${url}) · [Editable source](${url}review.json)`, '', doc.review.agent?.session ? 'Source review. Package-test results were not verified.' : 'PR code and runtime tests were not run.', '', `${reviewMarker(request.id)}${doc.review.head} -->`);
   return lines.join('\n');
 }
 
@@ -38,7 +40,7 @@ export async function doctor(config, gh = github(config)) {
   return { github: config.login, requesters: config.requesters.map(user => user.login).join(', '), claude: auth.subscriptionType ?? auth.authMethod };
 }
 
-export async function runRequest(config, gh, url, state, save, { retry = false, collect = collectContext, review = (collected, dir, options) => reviewContext(collected, dir, undefined, options), inspect = inspectHTML, deploy = publish, wait = waitForPublication, log = console.log } = {}) {
+export async function runRequest(config, gh, url, state, save, { retry = false, collect = collectContext, review = (collected, dir, options, request) => config.cloud ? reviewCloud(config, gh, request, collected, dir, options) : reviewContext(collected, dir, undefined, options), inspect = inspectHTML, deploy = publish, wait = waitForPublication, log = console.log } = {}) {
   const reference = parseRequest(url);
   let request = reference.inbox ? await checkRequest(reference, config, gh) : reference;
   const previous = state.requests[request.id];
@@ -50,8 +52,9 @@ export async function runRequest(config, gh, url, state, save, { retry = false, 
   const posted = await findReply();
   if (posted) { state.requests[request.id] = { status: 'posted', comment: posted.html_url }; await save(); return state.requests[request.id]; }
   request = await checkRequest(request, config, gh);
+  if (request.options.fresh && !config.cloud) throw new Error('--fresh requires the cloud review backend');
   const settings = { ...(config.model ? { model: config.model } : {}), ...(config.effort ? { effort: config.effort } : {}), ...request.options };
-  if (previous?.options && ['model', 'effort'].some(key => previous.options[key] !== settings[key])) throw new Error('Review settings changed. Post a new request');
+  if (previous?.options && ['model', 'effort', 'fresh'].some(key => previous.options[key] !== settings[key])) throw new Error('Review settings changed. Post a new request');
   const job = state.requests[request.id] = { ...previous, options: settings, status: 'running', request: url, updatedAt: new Date().toISOString() };
   await save();
   try {
@@ -66,7 +69,7 @@ export async function runRequest(config, gh, url, state, save, { retry = false, 
       log(`Collecting ${request.repo} #${request.number}`);
       const collected = await collect(gh, request, attempt);
       log('Reviewing with Claude');
-      doc = await review(collected, attempt, settings);
+      doc = await review(collected, attempt, settings, request);
       await inspect(join(attempt, 'index.html'), doc);
       job.document = join(attempt, 'review.json');
       job.directory = attempt;

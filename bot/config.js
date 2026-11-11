@@ -9,6 +9,15 @@ export function validateConfig(config) {
   if (config.since !== undefined && (!/^\d{4}-\d{2}-\d{2}T.*Z$/.test(config.since) || !Number.isFinite(Date.parse(config.since)))) throw new Error('since must be a UTC timestamp');
   if (config.inbox !== undefined && (!config.inbox || !/^[A-Za-z0-9-]+\/[A-Za-z0-9_.-]+$/.test(config.inbox.repo) || !Number.isSafeInteger(config.inbox.issue) || config.inbox.issue < 1)) throw new Error('Use an inbox repository and positive issue number');
   validateOptions(config);
+  if (config.fresh !== undefined) throw new Error('fresh is a request option');
+  if (config.cloud !== undefined) {
+    if (!config.cloud || typeof config.cloud !== 'object' || Array.isArray(config.cloud) || !config.cloud.triggers || typeof config.cloud.triggers !== 'object' || Array.isArray(config.cloud.triggers)) throw new Error('Use cloud.triggers for cloud task URLs');
+    for (const [key, url] of Object.entries(config.cloud.triggers)) {
+      const [model, effort, extra] = key.split('/');
+      validateOptions({ model, effort });
+      if (!model || !effort || extra || !/^https:\/\/api\.anthropic\.com\/v1\/claude_code\/routines\/trig_[A-Za-z0-9]+\/fire$/.test(url)) throw new Error('Use model/effort keys and Claude cloud task fire URLs');
+    }
+  }
   if (config.requesters.some(user => user.login.toLowerCase() === config.login.toLowerCase())) throw new Error('Bot and requesters must be separate accounts');
   if (!isAbsolute(config.stateDir ?? '')) throw new Error('stateDir must be absolute');
   const pub = config.publish;

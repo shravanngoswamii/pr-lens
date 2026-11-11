@@ -7,6 +7,7 @@ function validate(value) {
   for (const [key, entry] of Object.entries(value.sessions)) {
     if (!/^[1-9]\d*\/[1-9]\d*$/.test(key) || !entry || typeof entry.request !== 'string' || !['creating', 'ready'].includes(entry.status) || entry.status === 'ready' && !validID(entry.session?.id)) throw new Error('Invalid cloud-session registry entry');
     if (entry.session) validateOptions(entry.session);
+    if (entry.delivery && (typeof entry.delivery.request !== 'string' || !['sending', 'queued'].includes(entry.delivery.status))) throw new Error('Invalid cloud delivery receipt');
   }
   return value;
 }
@@ -20,7 +21,10 @@ export async function openSessions(gh, repo) {
   return {
     get: key => structuredClone(state.sessions[key]),
     set: async (key, entry) => {
-      const next = validate({ version: 1, sessions: { ...state.sessions, [key]: structuredClone(entry) } });
+      const sessions = { ...state.sessions };
+      if (entry === undefined) delete sessions[key];
+      else sessions[key] = structuredClone(entry);
+      const next = validate({ version: 1, sessions });
       await gh.api(path, { method: 'PATCH', body: { name, value: JSON.stringify(next) } });
       state = next;
     },
@@ -35,7 +39,12 @@ export async function prSession(store, request, { fresh = false } = {}, create) 
   if (current && (!fresh || current.request === operation)) return { ...structuredClone(current.session), url: `https://claude.ai/code/${current.session.id}` };
   const pending = { status: 'creating', request: operation, ...(current ? { previous: current.session.id } : {}) };
   await store.set(key, pending);
-  const result = await create();
+  let result;
+  try { result = await create(); }
+  catch (error) {
+    if (error.notCreated) await store.set(key, current);
+    throw error;
+  }
   if (!validID(result?.id)) throw new Error('Claude returned an invalid cloud session ID');
   validateOptions(result);
   const session = { id: result.id, url: `https://claude.ai/code/${result.id}`, ...(result.model ? { model: result.model } : {}), ...(result.effort ? { effort: result.effort } : {}) };

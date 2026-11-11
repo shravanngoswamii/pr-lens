@@ -47,9 +47,10 @@ Add these Actions secrets to the reports repository:
 | Secret | Value |
 | --- | --- |
 | `REVIEW_BOT_TOKEN` | The bot's GitHub token with `public_repo` and `notifications` scopes |
-| `CLAUDE_CODE_OAUTH_TOKEN` | Subscription token from `claude setup-token` |
+| `CLAUDE_CODE_OAUTH_TOKEN` | Runner reviews only: subscription token from `claude setup-token` |
 
 Generate the Claude token locally with `claude setup-token`.
+For Claude cloud reviews, use [cloud setup](cloud.md) instead of the inference token.
 Use hidden prompts with `gh secret set NAME --repo YOUR-BOT/reviary-reports`.
 Never put tokens in the JSON or commit them.
 Replace the matching Actions secret when a credential expires.

@@ -22,6 +22,16 @@ export function checkReview(doc, context) {
   return doc;
 }
 
+export async function saveReview(doc, context, dir, agent) {
+  checkReview(doc, context);
+  doc.review.agent = agent;
+  const section = doc.sections.find(section => section.group === 'review');
+  section.blocks.push({ type: 'check', title: 'Review scope', status: 'unverified', text: context.limits.join('\n\n') });
+  await writeFile(join(dir, 'review.json'), JSON.stringify(doc, null, 2) + '\n');
+  await writeFile(join(dir, 'index.html'), await render(doc));
+  return doc;
+}
+
 export async function reviewContext(collected, dir, ask = askClaude, { model, effort } = {}) {
   const [skill, format] = await Promise.all(['../SKILL.md', '../docs/format.md'].map(path => readFile(new URL(path, import.meta.url), 'utf8')));
   const { context, readFiles } = collected;
@@ -40,13 +50,7 @@ export async function reviewContext(collected, dir, ask = askClaude, { model, ef
       continue;
     }
     try {
-      const doc = checkReview(result.document, context);
-      doc.review.agent = { name: 'Claude Code', requestedModel: model ?? 'default', requestedEffort: effort ?? 'default', models: [...models] };
-      const section = doc.sections.find(section => section.group === 'review');
-      section.blocks.push({ type: 'check', title: 'Review scope', status: 'unverified', text: context.limits.join('\n\n') });
-      await writeFile(join(dir, 'review.json'), JSON.stringify(doc, null, 2) + '\n');
-      await writeFile(join(dir, 'index.html'), await render(doc));
-      return doc;
+      return await saveReview(result.document, context, dir, { name: 'Claude Code', requestedModel: model ?? 'default', requestedEffort: effort ?? 'default', models: [...models] });
     } catch (error) {
       if (turn === 4) throw error;
       correction = `The last document was rejected: ${error.message}. Correct it.\nPrevious document: ${JSON.stringify(result.document)}`;

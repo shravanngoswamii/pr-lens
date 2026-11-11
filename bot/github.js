@@ -11,7 +11,7 @@ export function github(config, execute = run) {
     try { ({ stdout } = await execute(config.sandbox ? 'ghsb' : 'gh', args, { input: body === undefined ? '' : JSON.stringify(body) })); }
     catch (cause) {
       const status = cause.stderr?.match(/HTTP (\d+)/)?.[1];
-      throw Object.assign(new Error(`GitHub ${method} ${path} failed${status ? ` (HTTP ${status})` : ''}`), { rateLimited: /rate limit/i.test(cause.stderr ?? '') });
+      throw Object.assign(new Error(`GitHub ${method} ${path} failed${status ? ` (HTTP ${status})` : ''}`), { status: status ? Number(status) : undefined, rateLimited: /rate limit/i.test(cause.stderr ?? '') });
     }
     const parts = stdout.split(/\r?\n\r?\n/);
     const headers = parts.shift();
@@ -61,7 +61,7 @@ function inboxTarget(comment, config) {
 }
 
 function withOptions(request, options) {
-  if (request.options && ['model', 'effort'].some(key => request.options[key] !== options[key])) throw new Error('Review options changed. Post a new request');
+  if (request.options && ['model', 'effort', 'fresh'].some(key => request.options[key] !== options[key])) throw new Error('Review options changed. Post a new request');
   return { ...request, options };
 }
 
