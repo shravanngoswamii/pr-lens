@@ -22,5 +22,10 @@
     "branch": "gh-pages",
     "prefix": "reviews",
     "url": "https://shravangoswami-bot.github.io/pr-lens-reports"
-  }
+  },
+  "inbox": {
+    "repo": "shravangoswami-bot/pr-lens-reports",
+    "issue": 1
+  },
+  "model": "sonnet"
 }

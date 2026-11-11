@@ -33,6 +33,7 @@ test('pins requester identities and restricts manual hosted dispatches', () => {
   assert.throws(() => checkHostedActor(config, { GITHUB_EVENT_NAME: 'workflow_dispatch', GITHUB_ACTOR_ID: '99' }), /cannot dispatch/);
   assert.throws(() => checkHostedActor(config, { GITHUB_EVENT_NAME: 'issue_comment', GITHUB_ACTOR_ID: '99' }), /cannot dispatch/);
   checkHostedActor(config, { GITHUB_EVENT_NAME: 'issue_comment', GITHUB_ACTOR_ID: '34' });
+  checkHostedActor(config, { GITHUB_EVENT_NAME: 'workflow_dispatch', GITHUB_ACTOR: 'review-bot', GITHUB_ACTOR_ID: '55' });
   checkHostedActor(config, { GITHUB_EVENT_NAME: 'workflow_dispatch', GITHUB_ACTOR_ID: '12' });
   assert.throws(() => validateConfig({ ...config, requesters: [{ login: 'reviewer', id: '12' }] }), /numeric account/);
   assert.throws(() => validateConfig({ ...config, requesters: [config.requesters[0], config.requesters[0]] }), /Duplicate/);

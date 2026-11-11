@@ -1,8 +1,9 @@
 # Review bot
 
-Comment `@YOUR-BOT review` on a public PR, or request the bot as a reviewer.
+Post a public PR URL on the configured inbox issue for an immediate review.
+You can also comment `@YOUR-BOT review` on a public PR, or request the bot as a reviewer.
 Only accounts listed in `bot.hosted.json` can trigger it.
-The whole comment must be the command.
+Use the whole comment for the PR URL or mention command.
 Inline comments are not triggers.
 Reviewer requests require the bot to be a repository collaborator.
 The requester also needs GitHub's permission to assign reviewers.
@@ -19,16 +20,18 @@ The requester also needs GitHub's permission to assign reviewers.
 | Run the PR's package tests | Not part of this worker |
 
 The laptop can be off.
-The worker checks every 30 minutes, subject to GitHub delays.
+Inbox comments start the worker through GitHub's `issue_comment` event.
+Mentions and reviewer requests are checked every 30 minutes, subject to GitHub delays.
 GitHub disables public schedules after 60 days without repository activity.
-Re-enable them with `gh workflow enable review-bot.yml --repo OWNER/TOOL`.
+Re-enable them with `gh workflow enable review-inbox.yml --repo OWNER/TOOL`.
 Idle checks do not call Claude.
 Use **Run workflow** for an immediate check.
 An optional comment or `#event-ID` request URL selects one request.
 Use **retry** only after a failed run.
 New revisions need a new comment or reviewer request.
 
-Comment requests get an eyes reaction and a reply.
+Inbox requests get an eyes reaction on the inbox comment and a reply on the PR.
+Mention requests get an eyes reaction and a reply on the PR.
 Reviewer requests get a comment review pinned to the checked head.
 The bot never approves or requests changes.
 Reports use `reviews/OWNER/REPO/PR/HEAD/REQUEST/`.
@@ -37,8 +40,11 @@ Deployment and the live revision are checked before replying.
 ## Set up your bot
 
 Follow [setup](setup.md) with your own accounts and credentials.
-The included configuration allows `shravanngoswamii`, `yebai` and `sunxd3`.
+The [demo inbox](https://github.com/shravangoswami-bot/pr-lens-reports/issues/1) allows `shravanngoswamii`, `yebai` and `sunxd3`.
 GitHub account IDs pin their identities.
+Set `model` to a Claude Code model alias or full name.
+The report records the requested model and provider-reported model names under About this review.
+Older reports may lack model metadata.
 
 The hosted worker currently supports Claude subscriptions.
 The skill also works with Codex interactively.

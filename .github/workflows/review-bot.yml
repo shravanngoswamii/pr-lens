@@ -1,20 +1,32 @@
 name: Review pull requests
 on:
-  schedule:
-    - cron: '7,37 * * * *'
-  workflow_dispatch:
+  workflow_call:
     inputs:
-      comment_url:
-        description: Optional PR comment or review request URL
+      tool_repository:
+        required: true
         type: string
+      tool_ref:
+        required: true
+        type: string
+      config_json:
+        required: true
+        type: string
+      comment_url:
+        type: string
+        default: ''
       retry:
-        description: Resume a failed request
         type: boolean
         default: false
       check_subscription:
-        description: Check Claude subscription authentication
         type: boolean
         default: false
+    secrets:
+      REVIEW_BOT_TOKEN:
+        required: true
+      CLAUDE_CODE_OAUTH_TOKEN:
+        required: true
+      REPORTS_DEPLOY_KEY:
+        required: false
 permissions:
   contents: read
   actions: read
@@ -30,9 +42,12 @@ jobs:
       GH_TOKEN: ${{ secrets.REVIEW_BOT_TOKEN }}
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
       DISABLE_AUTOUPDATER: '1'
+      REVIEW_BOT_CONFIG: ${{ inputs.config_json }}
     steps:
       - uses: actions/checkout@v7.0.1
         with:
+          repository: ${{ inputs.tool_repository }}
+          ref: ${{ inputs.tool_ref }}
           persist-credentials: false
       - name: Check credentials
         run: |
@@ -59,7 +74,7 @@ jobs:
       - run: npm ci
         if: steps.scan.outputs.pending == 'true'
       - name: Install Claude Code
-        if: steps.scan.outputs.pending == 'true'
+        if: steps.scan.outputs.pending == 'true' || inputs.check_subscription
         run: |
           curl -fsSL https://claude.ai/install.sh | bash -s -- 2.1.322
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
@@ -84,14 +99,15 @@ jobs:
             node bin/review-bot.js once output/bot-hosted.json
           fi
       - name: Check Claude subscription
-        if: steps.scan.outputs.pending == 'true' && inputs.check_subscription
+        if: inputs.check_subscription
         run: |
           node --input-type=module - <<'JS'
           import { mkdtemp } from 'node:fs/promises';
           import { tmpdir } from 'node:os';
           import { join } from 'node:path';
           import { askClaude } from './bot/claude.js';
-          const result = await askClaude('Return exactly {"files":[]}. This checks subscription authentication.', await mkdtemp(join(tmpdir(), 'review-docs-check-')));
+          const { model } = JSON.parse(process.env.REVIEW_BOT_CONFIG);
+          const result = await askClaude('Return exactly {"files":[]}. This checks subscription authentication.', await mkdtemp(join(tmpdir(), 'review-docs-check-')), undefined, { model, onModels: names => console.log(`Claude models: ${names.join(', ') || 'unreported'}`) });
           if (!Array.isArray(result.files) || result.files.length) throw new Error('Subscription check did not complete');
           console.log('Claude subscription request completed.');
           JS

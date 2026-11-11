@@ -34,7 +34,8 @@ Ask an agent:
 Load [SKILL.md](SKILL.md) here, or copy this checkout into your agent's skill directory and run `npm ci`.
 
 Run your own [review bot](docs/bot.md) with a Claude subscription.
-Comment or request the bot as a reviewer.
+Post a PR URL on its inbox issue for an immediate review.
+Mentions and reviewer requests are also supported through polling.
 GitHub Actions runs the review and publishes the report to your bot's GitHub Pages site.
 The worker reads source and checks the report.
 It does not run the PR's package tests.

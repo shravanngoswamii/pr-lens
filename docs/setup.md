@@ -1,63 +1,73 @@
 # Set up a hosted bot
 
 Use a separate GitHub bot account and your own Claude subscription.
-Fork [PR Lens](https://github.com/shravanngoswamii/pr-lens) into your account and clone the fork.
-The worker stays off until you enable it.
+The bot's reports repository runs the worker and hosts its output.
+PR Lens supplies the reusable workflow and renderer.
 
 ## Reports repository
 
-As the bot, create a public repository with a README.
-Create a `gh-pages` branch from its default branch.
+As the bot, create a public repository with a README and enable issues.
+Create a `gh-pages` branch and make it the default branch.
 In **Settings > Pages**, select **Deploy from a branch**, `gh-pages`, `/ (root)`.
 Add an empty `.nojekyll` file on that branch.
-The bot needs push access.
-Keep this repository separate from the tool.
+Create an issue for review requests.
 
 ## Configuration
 
-In your tool checkout, resolve the allowed requesters' account IDs:
+Clone PR Lens and resolve the allowed requesters' IDs:
 
 ```sh
 node scripts/configure-bot.js YOUR-BOT YOUR-BOT/pr-lens-reports YOUR-LOGIN
 ```
 
 Add more requester logins as arguments.
-Commit `bot.hosted.json` and push to your fork's default branch.
-The script assumes a project Pages URL without a custom domain.
-Edit `publish.url` if yours differs.
+Add `"inbox": { "repo": "YOUR-BOT/pr-lens-reports", "issue": 1 }` to `bot.hosted.json` with your issue number.
+Set `"model": "sonnet"`, or another model your subscription supports.
+Edit `publish.url` for custom domains.
+
+As the bot, save the configuration:
+
+```sh
+gh variable set PR_LENS_CONFIG --repo YOUR-BOT/pr-lens-reports < bot.hosted.json
+```
+
+Copy [review-inbox.yml](../examples/review-inbox.yml) to `.github/workflows/review-inbox.yml` in the reports repository.
+Replace `OWNER/TOOL` with `shravanngoswamii/pr-lens` or your fork.
+Replace both `COMMIT_SHA` values with the same full tool commit.
+Commit it on the default branch.
 
 ## Credentials
 
-Add these Actions secrets to the tool fork:
+Add these Actions secrets to the reports repository:
 
 | Secret | Value |
 | --- | --- |
 | `REVIEW_BOT_TOKEN` | The bot's GitHub token with `public_repo` and `notifications` scopes |
 | `CLAUDE_CODE_OAUTH_TOKEN` | Subscription token from `claude setup-token` |
 
-Use hidden prompts with `gh secret set NAME --repo OWNER/TOOL`.
+Use hidden prompts with `gh secret set NAME --repo YOUR-BOT/pr-lens-reports`.
 Never commit tokens.
-An optional `REPORTS_DEPLOY_KEY` can replace token-based publishing to the reports repository.
 
 ## Enable
 
-Enable Actions in your fork, then enable the worker:
-
 ```sh
-gh variable set PR_LENS_ENABLED --body true --repo OWNER/TOOL
-gh workflow enable review-bot.yml --repo OWNER/TOOL
-gh workflow run review-bot.yml --repo OWNER/TOOL
+gh variable set PR_LENS_ENABLED --body true --repo YOUR-BOT/pr-lens-reports
+gh workflow enable review-inbox.yml --repo YOUR-BOT/pr-lens-reports
 ```
 
-Check the run in Actions.
-Then mention the bot on a public PR from an allowed account.
-For reviewer requests, add the bot as a read-only collaborator in the target repository and accept its invitation as the bot.
-Comment triggers do not need collaborator access.
-Keep its review-request and mention email notifications enabled.
-The polling cursor starts one day before the first run.
-Keep the fork's default branch and workflow changes under your control.
-No model or publishing secrets are used in contributor test runs.
+Post a public PR URL as the whole comment on the inbox issue.
+Its creation starts a review without waiting for the poller.
+GitHub may queue the job.
+The bot reacts in the inbox and replies on the PR.
+Only configured requester IDs are allowed.
 
-The worker runs source review and report checks.
+PR mentions and reviewer requests are polled every 30 minutes.
+Reviewer requests need the bot as a repository collaborator.
+Comment triggers do not need collaborator access.
+Keep the bot's mention and review-request notifications enabled.
+Run one worker instance per bot so state and publishing stay serialized.
+
+Use **Run workflow > Check Claude subscription** for an authentication and model check.
+The worker reviews source and checks HTML.
 It does not run package tests or publish private PRs.
-See [the flow and limits](bot.md).
+See [flow and limits](bot.md).

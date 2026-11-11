@@ -13,6 +13,7 @@ export function hostedConfig(input, root) {
 }
 
 export function checkHostedActor(config, env = process.env) {
+  if (env.GITHUB_EVENT_NAME === 'workflow_dispatch' && env.GITHUB_ACTOR?.toLowerCase() === config.login.toLowerCase()) return;
   if (['workflow_dispatch', 'issue_comment'].includes(env.GITHUB_EVENT_NAME) && !config.requesters.some(user => String(user.id) === env.GITHUB_ACTOR_ID)) throw new Error('This account cannot dispatch the review worker');
 }
 
