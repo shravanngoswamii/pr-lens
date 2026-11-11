@@ -2,6 +2,25 @@
 
 Use the reviewed project's environment and record its Julia and dependency versions.
 
+## Linked work
+
+```sh
+node scripts/linked-work.js PR_URL --out facts.json
+```
+
+Uses read-only `gh` calls to collect issue/PR bodies, comments, reviews, inline reviews and incoming timeline references.
+Recognizes GitHub URLs, `#123`, `owner/repo#123` and short ranges.
+Defaults to depth 3 and 60 fetched items, with the root at depth zero.
+Use `--max-depth all --max-items all` for unlimited traversal.
+The hosted bot uses smaller limits.
+
+Output contains `block` for the document and `records` for the agent to read.
+Write short item and relationship explanations, set `block.analysis` to `reviewed`, then insert the block into the review.
+Keep evidence when describing a stronger relationship than a mention.
+Cycles are visited once and limits, access failures and unread items stay visible.
+Websites, attachments, source files and commit messages are outside collection scope.
+Keep private records outside the public reports repository.
+
 ## Changed lines
 
 ```sh

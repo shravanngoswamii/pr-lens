@@ -23,7 +23,6 @@ Use the [skill](SKILL.md) to prepare a review from a PR URL.
 A shared workflow coordinates reviews from your bot's repository.
 Choose [Claude cloud or a worker VM](docs/bot.md#review-options) for each request.
 Cloud reviews keep one session per PR.
-That repository owns its credentials, settings and reports.
 Reviews inspect source and check the HTML.
 Package tests are not run.
 

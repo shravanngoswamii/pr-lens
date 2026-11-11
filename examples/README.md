@@ -7,17 +7,14 @@
 
 Linked-work snapshots: 2026-11-10.
 Unread items remain explicit.
-The reviews move from the problem and public example to design, impact and conclusions.
-Both include parsed declaration coverage and graphs pinned to base and head.
-File groups retain full method signatures without implying call relationships.
-AbstractMCMC also checked the skill from a fresh agent context.
+Both reviews include declaration coverage and graphs pinned to base and head.
 
 ```sh
 mkdir -p output
 node bin/reviary.js render examples/dynamicppl-1529.json --out output/review.html
 ```
 
-HTML is inspected offline and excluded from Git because each file bundles about 6 MB of assets.
+Generated HTML bundles its assets and stays outside Git.
 
 ## Reproduce
 
@@ -34,10 +31,8 @@ REVIEW_REVISION=head julia --threads=2 --project=/path/to/head-env examples/abst
 Full manifests and logs stay outside this repository.
 Fingerprints identify environments but cannot recreate them.
 
-[particle-metadata.jl](particle-metadata.jl) preserves the earlier Turing probe byte for byte.
-It requires Turing `67a9f804e376a1fc18ed8362532458063f443864` and the matching DynamicPPL environment.
-Its saved 60-check comparison was reused, not rerun.
-It fails on the reviewed head with unchanged Turing hooks and does not test the author's local migration.
+[particle-metadata.jl](particle-metadata.jl) requires Turing `67a9f804e376a1fc18ed8362532458063f443864` and the matching DynamicPPL environment.
+The saved 60-check result used unchanged Turing hooks, not the author's local migration.
 `PARTICLE_PORT=true` enables an experimental in-process adapter.
 
 `npm test` checks this tool, not the external package probes.

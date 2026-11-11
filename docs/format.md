@@ -181,4 +181,4 @@ Retain evidence when explaining a stronger relationship.
 The viewer shows discovery paths with shared nodes and cycles.
 `complete: true` requires every node read and no coverage notes.
 Completeness remains limited by API visibility, recognized references and check time.
-Use [the collector](linked-work.md) to gather facts before writing explanations.
+Use [the collector](helpers.md#linked-work) before writing explanations.

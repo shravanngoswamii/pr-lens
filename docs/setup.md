@@ -1,84 +1,203 @@
-# Set up a hosted bot
+# Set up your bot
 
-Use a separate GitHub bot account and your own Claude subscription.
-The bot's reports repository runs the worker and hosts its output.
-Reviary supplies the reusable workflow, skill and renderer.
-No fork or credentials in the Reviary repository are needed.
+Use your own GitHub bot account and Claude subscription.
+Your bot's public repository stores its settings, credentials and reports.
+Reviary supplies the skill and workflow.
+No fork is needed.
 
-## Reports repository
+## 1. Get the tools
 
-As the bot, create a public repository with a README and enable issues.
-Create a `gh-pages` branch and make it the default branch.
-In **Settings > Pages**, select **Deploy from a branch**, `gh-pages`, `/ (root)`.
-Add an empty `.nojekyll` file on that branch.
-Create an issue for review requests.
-
-## Configuration
-
-Clone Reviary alongside your bot repository.
-From the bot repository checkout, generate its configuration:
+Open a fresh Bash terminal on Linux or WSL.
+Install [Node.js 22.12+](https://nodejs.org/en/download), [GitHub CLI](https://cli.github.com/) and [Claude Code](https://code.claude.com/docs/en/quickstart).
 
 ```sh
-node ../reviary/scripts/configure-bot.js YOUR-BOT YOUR-BOT/reviary-reports YOUR-LOGIN > bot-config.json
+git clone https://github.com/shravanngoswamii/reviary.git
+cd reviary
+mkdir -p output
 ```
 
-Add more requester logins as arguments.
-Add `"inbox": { "repo": "YOUR-BOT/reviary-reports", "issue": 1 }` to `bot-config.json` with your issue number.
-Generated settings use Sonnet and medium effort.
-Change those values for a different default.
-Request comments can [override these defaults](bot.md#review-options).
-Edit `publish.url` for custom domains.
+Run the commands below from this directory.
+Replace `YOUR-BOT` with the bot's GitHub login and `YOUR-LOGIN` with your personal login.
 
-As the bot, save the configuration:
+## 2. Create the reports repository
+
+Sign in to GitHub as the bot.
+
+1. [Create a public repository](https://github.com/new) named `pr-reviews` with a README.
+2. On **Code > Branches**, rename the default branch to `gh-pages`.
+3. Use **Add file > Create new file** to add an empty `.nojekyll` file.
+4. In **Settings > Pages**, choose **Deploy from a branch**, `gh-pages`, `/ (root)` and save.
+5. Under **Issues**, create an issue named `Review requests` and note its number.
+
+If Issues or Actions are disabled, enable them in the repository's Settings.
+
+## 3. Create the GitHub token
+
+While signed in as the bot, open [Settings > Developer settings > Personal access tokens > Tokens (classic)](https://github.com/settings/tokens).
+Choose **Generate new token (classic)**, name it `Reviary`, choose an expiry and select `repo` and `notifications`.
+Click **Generate token** and copy it.
+Classic tokens allow replies on public PRs outside the bot's own repositories.
+
+In the same terminal, paste it at this hidden prompt:
 
 ```sh
-gh variable set REVIARY_CONFIG --repo YOUR-BOT/reviary-reports < bot-config.json && rm bot-config.json
+read -rsp 'Bot GitHub token: ' GH_TOKEN
+export GH_TOKEN
+printf '\n'
+gh api user --jq .login
 ```
 
-Copy [review-inbox.yml](../examples/review-inbox.yml) to `.github/workflows/review-inbox.yml` in the reports repository.
-Replace `OWNER/TOOL` with `shravanngoswamii/reviary` or your fork.
-Replace both `COMMIT_SHA` values with the same full tool commit.
-Commit the workflow on the bot repository's default branch.
-Keep settings in `REVIARY_CONFIG` under **Settings > Secrets and variables > Actions > Variables**.
+The output must be `YOUR-BOT`.
+This terminal now uses the bot without changing your saved GitHub login.
+Save the same token in the reports repository:
 
-## Credentials
+```sh
+printf '%s' "$GH_TOKEN" | gh secret set REVIEW_BOT_TOKEN --repo YOUR-BOT/pr-reviews
+```
 
-Add these Actions secrets to the reports repository:
+All secrets appear under **pr-reviews > Settings > Secrets and variables > Actions > Secrets**.
+Never paste tokens in configuration files or chat.
 
-| Secret | Value |
+## 4. Choose the requesters
+
+```sh
+node scripts/configure-bot.js YOUR-BOT YOUR-BOT/pr-reviews YOUR-LOGIN > output/bot-config.json
+```
+
+Add other allowed logins after `YOUR-LOGIN`.
+The helper looks up their GitHub IDs and sets Sonnet with medium effort.
+
+Open `output/bot-config.json` and add these fields inside the outer `{}`.
+Separate fields with commas.
+Use your inbox issue number:
+
+```json
+"backend": "cloud",
+"inbox": {"repo": "YOUR-BOT/pr-reviews", "issue": 1}
+```
+
+## 5. Connect Claude
+
+Cloud reviews keep one session per PR and run while your laptop is off.
+For VM reviews instead, use the optional steps below and skip the rest of this step.
+
+### Cloud login
+
+1. Open [Claude Code](https://claude.ai/code) and connect your GitHub account.
+2. If that account differs from the bot, invite it through **pr-reviews > Settings > Collaborators > Add people** with Write access.
+3. Accept the invitation from the connected account and allow Claude to access `pr-reviews`.
+4. Run these commands and complete the Claude browser sign-in with your subscription account:
+
+```sh
+CLAUDE_CONFIG_DIR="$PWD/output/cloud-login" claude auth login
+node bot/cloud-auth.js save output/cloud-login YOUR-BOT/pr-reviews
+```
+
+The helper saves `CLAUDE_CODE_OAUTH_REFRESH_TOKEN` as an Actions secret and `CLAUDE_CODE_OAUTH_SCOPES` as an Actions variable.
+Repeat this login within 30 days to renew access.
+[Claude's CI authentication guide](https://code.claude.com/docs/en/self-hosted-environments-testing#authenticate-from-ci) explains this limit.
+
+### Session creation
+
+At [Claude tasks](https://claude.ai/code/routines), choose **New task > Set up manually** if that menu appears.
+
+| Field | Value |
 | --- | --- |
-| `REVIEW_BOT_TOKEN` | The bot's GitHub token with `public_repo` and `notifications` scopes |
-| `CLAUDE_CODE_OAUTH_TOKEN` | Runner reviews only: subscription token from `claude setup-token` |
+| Name | `Reviary Sonnet medium` |
+| Prompt | Contents of [cloud-task.txt](../examples/cloud-task.txt) |
+| Repository | `YOUR-BOT/pr-reviews` |
+| Model and effort | Sonnet, Medium |
+| Trigger | API only |
+| Connectors | Remove unused connectors |
 
-Generate the Claude token locally with `claude setup-token`.
-For Claude cloud reviews, use [cloud setup](cloud.md) instead of the inference token.
-Use hidden prompts with `gh secret set NAME --repo YOUR-BOT/reviary-reports`.
-Never put tokens in the JSON or commit them.
-Replace the matching Actions secret when a credential expires.
-When using a minimal runtime token, add the workflow through GitHub's web editor as the bot.
-Pushing workflow files by CLI also requires GitHub's `workflow` scope.
+Click **Create** and copy the API token before closing its dialog.
+If adding the API trigger later, use **Edit > API > Generate token**.
+Copy its **Fire URL** from the API panel.
+[Claude's task guide](https://code.claude.com/docs/en/routines#add-an-api-trigger) shows these controls.
 
-## Enable
+Add this top-level field to `output/bot-config.json`, replacing the URL:
 
-```sh
-gh variable set REVIARY_ENABLED --body true --repo YOUR-BOT/reviary-reports
-gh workflow enable review-inbox.yml --repo YOUR-BOT/reviary-reports
+```json
+"cloud": {
+  "triggers": {
+    "sonnet/medium": "YOUR_FIRE_URL"
+  }
+}
 ```
 
-Post a public PR URL as the whole comment on the inbox issue.
-Its creation starts a review without waiting for the poller.
-GitHub may queue the job.
-The bot reacts in the inbox and replies on the PR.
-Only configured requester IDs are allowed.
-The authorized worker uses `cache-mode: write` to save retry checkpoints for inbox events.
+Run this command, then paste `{"sonnet/medium":"YOUR_TASK_TOKEN"}` at its hidden prompt with the real token:
 
-PR mentions and reviewer requests use a five-minute schedule, subject to GitHub delays.
-Reviewer requests need the bot as a repository collaborator.
-Comment triggers do not need collaborator access.
-Keep the bot's mention and review-request notifications enabled.
-Run one worker instance per bot so state and publishing stay serialized.
+```sh
+env -u GH_PROMPT_DISABLED gh secret set CLAUDE_CLOUD_TRIGGERS --repo YOUR-BOT/pr-reviews
+```
 
-Use **Run workflow > Check Claude subscription** for an authentication and model check.
-The worker reviews source and checks HTML.
-It does not run package tests or publish private PRs.
-See [flow and limits](bot.md).
+The Fire URL is a setting.
+The task token is a secret that creates first or `--fresh` sessions.
+The cloud login sends follow-ups to saved sessions.
+Add one task and matching JSON key for each model and effort pair you offer.
+
+Create the session list once:
+
+```sh
+gh api --method POST repos/YOUR-BOT/pr-reviews/actions/variables \
+  -f name=REVIARY_SESSIONS -f 'value={"version":1,"sessions":{}}'
+```
+
+Keep this variable when renewing or upgrading.
+The command fails if it already exists.
+
+<details>
+<summary>Use a GitHub VM instead, or offer both modes</summary>
+
+Run `claude setup-token` and sign in with your Claude subscription.
+Copy the token it prints, then save it at this hidden prompt:
+
+```sh
+env -u GH_PROMPT_DISABLED gh secret set CLAUDE_CODE_OAUTH_TOKEN --repo YOUR-BOT/pr-reviews
+```
+
+For VM-only setup, set `"backend": "vm"` and omit `cloud` in `output/bot-config.json`.
+To offer both modes, complete cloud setup too.
+Requests can choose `--backend cloud` or `--backend vm`.
+
+</details>
+
+## 6. Save the settings and workflow
+
+```sh
+gh variable set REVIARY_CONFIG --repo YOUR-BOT/pr-reviews < output/bot-config.json
+git rev-parse HEAD
+```
+
+Copy the full commit SHA printed by the second command.
+On GitHub, use **Add file > Create new file** in `pr-reviews`:
+
+1. Name the file `.github/workflows/review-inbox.yml`.
+2. Paste [review-inbox.yml](../examples/review-inbox.yml).
+3. Replace every `OWNER/TOOL` with `shravanngoswamii/reviary`.
+4. Replace both `COMMIT_SHA` values with the copied SHA.
+5. Commit to `gh-pages`.
+
+Enable the bot:
+
+```sh
+gh variable set REVIARY_ENABLED --body true --repo YOUR-BOT/pr-reviews
+gh workflow enable review-inbox.yml --repo YOUR-BOT/pr-reviews
+```
+
+Settings are under **Settings > Secrets and variables > Actions > Variables**.
+Keep one worker per bot.
+
+## 7. Try a review
+
+In `pr-reviews`, open **Actions > Review requests > Run workflow**.
+Select **Check cloud access** for cloud, or **Check Claude subscription** for VM, and run it.
+These checks do not start reviews.
+
+From an allowed personal account, post a public PR URL as the whole comment on the inbox issue.
+The bot reacts, reviews the PR, publishes HTML and replies on the PR.
+Follow the run under Actions if it fails.
+Reviews read source without running package tests.
+
+For options, PR mentions and retries, see [using the bot](bot.md).
+For renewal or session recovery, see [cloud maintenance](cloud.md).
