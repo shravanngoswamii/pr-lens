@@ -10,6 +10,7 @@ Prose is plain text with blank lines between paragraphs.
   "id": "review-name",
   "title": "The design change",
   "summary": "Problem and approach.",
+  "conclusion": {"decision": "approve", "summary": "No blocker in the checked scope.", "reasons": []},
   "review": {
     "url": "https://github.com/owner/repo/pull/1",
     "title": "Actual PR title",

@@ -21331,5 +21331,19 @@
       ],
       "group": "review"
     }
-  ]
+  ],
+  "conclusion": {
+    "decision": "hold",
+    "summary": "Hold until the companion Turing migration can be checked.",
+    "reasons": [
+      {
+        "text": "The tested Turing revision loses particle metadata with this head. Provide the author's migration revision and check saved loglikelihood and tracked values there.",
+        "refs": [
+          "smc",
+          "saved",
+          "pr"
+        ]
+      }
+    ]
+  }
 }

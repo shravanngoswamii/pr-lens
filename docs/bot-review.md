@@ -18,6 +18,7 @@ Keep the explanation small and use * for multiplication.
 Include an approve or hold conclusion for the checked scope.
 Give hold reasons a source and a clear next check or fix.
 Keep nonblocking suggestions out of the hold reasons.
+Leave generic scope and checklist text to the controller.
 Code snippets need a language, such as `julia`.
 
 Save this envelope as `reviary-result.json` in the assignment's reports repository:

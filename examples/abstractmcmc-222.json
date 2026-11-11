@@ -1160,5 +1160,10 @@
       ],
       "group": "review"
     }
-  ]
+  ],
+  "conclusion": {
+    "decision": "approve",
+    "summary": "Approve for the checked invalid-input behavior. No blocking issue remains in that scope.",
+    "reasons": []
+  }
 }

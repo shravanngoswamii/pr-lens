@@ -47,7 +47,7 @@ See [Claude model and effort settings](https://code.claude.com/docs/en/model-con
 | Step | Location |
 | --- | --- |
 | Find requests and collect source | GitHub-hosted Ubuntu runner |
-| Analyze the PR | Claude cloud when configured, otherwise Claude Code on the runner |
+| Analyze the PR | Claude cloud or Claude Code on the runner, selected per request |
 | Parse Julia declarations | Julia on the runner, without loading the package |
 | Validate and inspect HTML | Node and offline Chromium on the runner |
 | Serve HTML and editable JSON | The bot's public GitHub Pages repository |
