@@ -115,6 +115,7 @@ Only the bot publishes HTML and replies on the PR.
 In the bot repository, choose **Actions > Review requests > Run workflow > Check cloud access**.
 The check targets a nonexistent session.
 It creates no session and runs no review.
+It also checks the task-token JSON and configured keys without firing a task.
 A successful inference check does not verify cloud-session access.
 
 The hosted login exchanges the refresh token through `claude auth login`.

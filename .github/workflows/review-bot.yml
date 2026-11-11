@@ -82,7 +82,7 @@ jobs:
         with:
           version: '1.10'
       - run: npm ci
-        if: steps.scan.outputs.pending == 'true'
+        if: steps.scan.outputs.pending == 'true' || inputs.check_cloud
       - name: Install Claude Code
         if: steps.scan.outputs.pending == 'true' || inputs.check_subscription || inputs.check_cloud
         run: |
@@ -99,6 +99,20 @@ jobs:
           else
             node bot/cloud.js
           fi
+      - name: Check cloud task credentials
+        if: inputs.check_cloud && fromJSON(inputs.config_json).cloud
+        env:
+          CLAUDE_CLOUD_TRIGGERS: ${{ secrets.CLAUDE_CLOUD_TRIGGERS }}
+        run: |
+          node --input-type=module - <<'JS'
+          import { cloudCreator } from './bot/cloud-review.js';
+          const config = JSON.parse(process.env.REVIEW_BOT_CONFIG);
+          for (const key of Object.keys(config.cloud.triggers)) {
+            const [model, effort] = key.split('/');
+            cloudCreator(config, model, effort, {});
+            console.log(`Cloud task credentials configured: ${key}`);
+          }
+          JS
       - run: npx playwright install --with-deps chromium
         if: steps.scan.outputs.pending == 'true'
       - name: Prepare publishing checkout
