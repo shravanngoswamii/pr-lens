@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, readFile, access, rm, stat, readdir } from 'node:fs/promises';
-import { join, dirname } from 'node:path';
+import { mkdtemp, mkdir, writeFile, readFile, access, rm, readdir } from 'node:fs/promises';
+import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { hostedConfig, checkHostedActor, scanHosted, setupHosted, compactState } from '../bot/hosted.js';
@@ -120,34 +120,14 @@ test('caches completed metadata while retaining failed review artifacts for retr
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
 
-test('scopes the publishing key to its checkout and verifies GitHub SSH hosts', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'review-docs-hosted-key-'));
-  let keyDir;
-  try {
-    const config = hostedConfig(input, dir), calls = [];
-    await setupHosted(config, { deployKey: '-----BEGIN OPENSSH PRIVATE KEY-----\nfixture\n-----END OPENSSH PRIVATE KEY-----', execute: async (command, args) => {
-      calls.push([command, args]);
-      return { stdout: args[0] === 'api' ? JSON.stringify(args[1] === 'user' ? { login: 'review-bot', id: 55 } : { ssh_keys: ['ssh-ed25519 public-host-key'] }) : '' };
-    } });
-    const ssh = calls.find(([, args]) => args.includes('core.sshCommand'))[1].at(-1);
-    const key = ssh.match(/-i '([^']+)'/)[1]; keyDir = dirname(key);
-    assert.equal((await stat(key)).mode & 0o777, 0o600);
-    assert.match(ssh, /StrictHostKeyChecking=yes/);
-    assert.match(await readFile(join(keyDir, 'known_hosts'), 'utf8'), /github.com ssh-ed25519/);
-    assert.ok(calls.some(([, args]) => args.includes('--push') && args.at(-1) === 'git@github.com:owner/site.git'));
-    assert.ok(!calls.some(([, args]) => args.includes('--global')));
-    assert.ok(!JSON.stringify(config).includes('PRIVATE KEY'));
-  } finally { await rm(dir, { recursive: true, force: true }); if (keyDir) await rm(keyDir, { recursive: true, force: true }); }
-});
-
 test('publishes with the bot token when it can push to the report repository', async () => {
   const calls = [], config = hostedConfig(input, '/tmp/hosted');
   const execute = async (command, args) => {
     calls.push([command, args]);
     return { stdout: command === 'gh' ? JSON.stringify(args[1] === 'user' ? { login: 'review-bot', id: 55 } : { permissions: { push: true } }) : '' };
   };
-  await setupHosted(config, { deployKey: '', execute });
+  await setupHosted(config, { execute });
   assert.ok(calls.some(([, args]) => args.includes('!gh auth git-credential')));
   assert.ok(calls.every(([, args]) => !args.includes('--global') && !args.includes('core.sshCommand')));
-  await assert.rejects(() => setupHosted(config, { deployKey: '', execute: async () => ({ stdout: '{"login":"review-bot","permissions":{"push":false}}' }) }), /push access/);
+  await assert.rejects(() => setupHosted(config, { execute: async () => ({ stdout: '{"login":"review-bot","permissions":{"push":false}}' }) }), /push access/);
 });
