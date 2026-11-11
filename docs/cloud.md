@@ -127,7 +127,11 @@ Missing registry data stops the worker.
 An unavailable session or uncertain delivery stops the request for recovery.
 It never silently creates a replacement.
 
-Cloud sessions push JSON to `claude/reviary-REQUEST_ID` in the bot repository.
+Each request gets a small `reviary-request.json` on `claude/reviary-REQUEST_ID` in the bot repository.
+It holds public PR metadata, linked records and the Julia inventory, not a source-code cache.
+The short cloud prompt points to that assignment and a pinned Reviary commit.
+Claude clones Reviary and reads its skill and [bot guide](bot-review.md).
+Cloud sessions push their result JSON to the same branch.
 GitHub Actions checks its request, session and revisions, validates its source links, then renders and inspects the report.
 Only the bot publishes HTML and replies on the PR.
 

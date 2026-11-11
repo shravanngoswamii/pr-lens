@@ -7,8 +7,9 @@ import { reviewCloud, cloudCreator, cloudResult } from '../bot/cloud-review.js';
 import { document } from './fixture.js';
 
 const id = 'session_01EEEEEEEEEEEEEEEEEEEEEE';
+const tool = { repository: 'owner/tool', ref: 'c'.repeat(40) };
 const request = { repo: 'owner/repo', number: 1, id: '42', options: {} };
-const config = { cloud: { triggers: {} }, publish: { repo: 'bot/reports' } };
+const config = { cloud: { triggers: {} }, publish: { repo: 'bot/reports', branch: 'gh-pages' } };
 const fixture = () => {
   const doc = document();
   doc.sections[0].group = 'design';
@@ -22,6 +23,11 @@ const fixture = () => {
       if (options) registry = JSON.parse(options.body.value);
       return { value: JSON.stringify(registry) };
     }
+    if (path.includes('reviary-request.json')) {
+      if (!options) throw Object.assign(new Error('Missing'), { status: 404 });
+      return { commit: { sha: 'd'.repeat(40) } };
+    }
+    if (path.includes('/git/ref/')) return { object: { sha: 'e'.repeat(40) } };
     assert.equal(path, 'repos/bot/reports/contents/reviary-result.json?ref=claude%2Freviary-42');
     if (!ready) throw Object.assign(new Error('Missing'), { status: 404 });
     return { encoding: 'base64', size: 1000, content: Buffer.from(JSON.stringify({ request: '42', session: id, document: doc })).toString('base64') };
@@ -35,11 +41,12 @@ test('reuses a cloud session, validates its output and renders a source-linked r
   value.doc.review.checkedAt = '2026-11-11T16:00:00Z';
   let sends = 0;
   try {
-    const result = await reviewCloud(config, value.gh, request, value.collected, dir, {}, { send: async (session, prompt) => {
+    const result = await reviewCloud(config, value.gh, request, value.collected, dir, {}, { tool, send: async (session, prompt) => {
       sends++;
       assert.equal(session, id);
       assert.ok(prompt.includes('claude/reviary-42'));
-      assert.ok(prompt.includes('Do not run PR code or package tests'));
+      assert.ok(prompt.includes('docs/bot-review.md'));
+      assert.ok(prompt.length < 1000);
       value.ready();
     }, delay: async () => {} });
     assert.equal(sends, 1);
@@ -55,7 +62,7 @@ test('a pending review survives retries without queuing the same message twice',
   const dir = await mkdtemp(join(tmpdir(), 'reviary-cloud-pending-'));
   const value = fixture();
   let sends = 0;
-  const options = { send: async () => { sends++; }, timeout: 0 };
+  const options = { tool, send: async () => { sends++; }, timeout: 0 };
   try {
     for (let i = 0; i < 2; i++) await assert.rejects(() => reviewCloud(config, value.gh, request, value.collected, dir, {}, options), /still pending/);
     assert.equal(sends, 1);
