@@ -3,7 +3,7 @@
 Post a public PR URL on the configured inbox issue for an immediate review.
 You can also comment `@YOUR-BOT review` on a public PR, or request the bot as a reviewer.
 Only accounts listed in the bot repository's `REVIARY_CONFIG` can request reviews.
-Use the whole comment for the PR URL or mention command with optional model and effort flags.
+Use the whole comment for the PR URL or mention command with optional backend, model and effort flags.
 Inline comments are not triggers.
 Reviewer requests require the bot to be a repository collaborator.
 The requester also needs GitHub's permission to assign reviewers.
@@ -13,8 +13,9 @@ The requester also needs GitHub's permission to assign reviewers.
 Append options to a mention or inbox URL:
 
 ```text
-@YOUR-BOT review --model opus --effort high
-https://github.com/OWNER/REPO/pull/NUMBER --model sonnet --effort medium
+@YOUR-BOT review --backend cloud --model sonnet --effort medium
+@YOUR-BOT review --backend vm --model opus --effort high
+https://github.com/OWNER/REPO/pull/NUMBER --backend vm
 ```
 
 | Model | Effort | Options |
@@ -25,8 +26,13 @@ https://github.com/OWNER/REPO/pull/NUMBER --model sonnet --effort medium
 | Opus | Extra high | `--model opus --effort xhigh` |
 | Opus | Max | `--model opus --effort max` |
 
-Either flag is optional.
-Missing values use the bot configuration, then Claude's defaults.
+Flags are optional.
+`backend` defaults to the bot configuration, then cloud when configured, otherwise VM.
+VM reviews use a fresh Claude Code process on the worker.
+They leave saved cloud sessions unchanged.
+Cloud reviews reuse the PR session and its model and effort.
+A different cloud model or effort needs `--fresh` and a matching task preset.
+Missing VM model and effort values use the bot configuration, then Claude's defaults.
 Reviewer requests use the bot configuration.
 Use a model alias or full model ID your subscription supports.
 Effort accepts `low`, `medium`, `high`, `xhigh` and `max`.

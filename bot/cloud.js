@@ -8,8 +8,10 @@ const sessionPattern = /^(?:session|cse)_[A-Za-z0-9]{10,100}$/;
 async function send(session, prompt, execute) {
   if (!sessionPattern.test(session)) throw new Error('Invalid Claude cloud session ID');
   let stdout;
+  const env = claudeEnvironment();
+  delete env.CLAUDE_CODE_OAUTH_TOKEN;
   try {
-    ({ stdout } = await execute('claude', ['-p', '--cloud', session, '--output-format', 'json'], { input: prompt, env: claudeEnvironment(), timeout: 60000 }));
+    ({ stdout } = await execute('claude', ['-p', '--cloud', session, '--output-format', 'json'], { input: prompt, env, timeout: 60000 }));
   } catch (error) { stdout = error.stdout; }
   let result;
   try { result = JSON.parse(stdout); } catch { throw new Error('Claude cloud access is unavailable. Sign in with claude auth login'); }

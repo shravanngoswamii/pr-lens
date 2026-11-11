@@ -7,6 +7,7 @@ import { collectContext } from './context.js';
 import { reviewContext } from './review.js';
 import { reviewCloud } from './cloud-review.js';
 import { openSessions } from './sessions.js';
+import { reviewBackend } from './options.js';
 import { inspectHTML } from './inspect.js';
 import { publish, waitForPublication } from './publish.js';
 
@@ -41,7 +42,7 @@ export async function doctor(config, gh = github(config)) {
   return { github: config.login, requesters: config.requesters.map(user => user.login).join(', '), claude: auth.subscriptionType ?? auth.authMethod };
 }
 
-export async function runRequest(config, gh, url, state, save, { retry = false, collect = collectContext, review = (collected, dir, options, request) => config.cloud ? reviewCloud(config, gh, request, collected, dir, options) : reviewContext(collected, dir, undefined, options), inspect = inspectHTML, deploy = publish, wait = waitForPublication, log = console.log } = {}) {
+export async function runRequest(config, gh, url, state, save, { retry = false, collect = collectContext, review = (collected, dir, options, request) => options.backend === 'cloud' ? reviewCloud(config, gh, request, collected, dir, options) : reviewContext(collected, dir, undefined, options), inspect = inspectHTML, deploy = publish, wait = waitForPublication, log = console.log } = {}) {
   const reference = parseRequest(url);
   let request = reference.inbox ? await checkRequest(reference, config, gh) : reference;
   const previous = state.requests[request.id];
@@ -54,9 +55,8 @@ export async function runRequest(config, gh, url, state, save, { retry = false, 
   const posted = await findReply();
   if (posted) { state.requests[request.id] = { status: 'posted', comment: posted.html_url }; await save(); return state.requests[request.id]; }
   request = await checkRequest(request, config, gh);
-  if (request.options.fresh && !config.cloud) throw new Error('--fresh requires the cloud review backend');
-  const settings = { ...(config.model ? { model: config.model } : {}), ...(config.effort ? { effort: config.effort } : {}), ...request.options };
-  if (previous?.options && ['model', 'effort', 'fresh'].some(key => previous.options[key] !== settings[key])) throw new Error('Review settings changed. Post a new request');
+  const settings = { ...(config.model ? { model: config.model } : {}), ...(config.effort ? { effort: config.effort } : {}), ...request.options, backend: reviewBackend(config, request.options) };
+  if (previous?.options && ['model', 'effort', 'fresh', 'backend'].some(key => (key !== 'backend' || previous.options.backend !== undefined) && previous.options[key] !== settings[key])) throw new Error('Review settings changed. Post a new request');
   const job = state.requests[request.id] = { ...previous, options: settings, status: 'running', request: url, updatedAt: new Date().toISOString() };
   await save();
   try {
@@ -66,7 +66,7 @@ export async function runRequest(config, gh, url, state, save, { retry = false, 
     let doc;
     if (job.document) {
       doc = JSON.parse(await readFile(job.document, 'utf8'));
-      if (config.cloud) {
+      if (settings.backend === 'cloud') {
         const entry = (await openSessions(gh, config.publish.repo)).get(`${repository.id}/${request.number}`);
         if (entry?.status !== 'ready' || doc.review.agent?.session !== `https://claude.ai/code/${entry.session.id}`) throw new Error('Saved review belongs to a replaced cloud session. Post a new review request');
       }

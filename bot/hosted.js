@@ -5,6 +5,7 @@ import { validateConfig } from './config.js';
 import { run } from './process.js';
 import { github, parseRequest, checkRequest, scanRequests } from './github.js';
 import { withState } from './state.js';
+import { reviewBackend } from './options.js';
 
 export function hostedConfig(input, root) {
   return validateConfig({ ...input, since: new Date(Date.now() - 86400000).toISOString(), stateDir: resolve(root, input.stateDir),
@@ -18,15 +19,19 @@ export function checkHostedActor(config, env = process.env) {
 
 export async function scanHosted(config, gh, commentURL) {
   if ((await gh.api('user')).login.toLowerCase() !== config.login.toLowerCase()) throw new Error('REVIEW_BOT_TOKEN belongs to a different account');
+  const modes = async urls => {
+    const backends = new Set();
+    for (const url of urls) backends.add(reviewBackend(config, (await checkRequest(parseRequest(url), config, gh)).options));
+    return { pending: backends.size > 0, cloud: backends.has('cloud'), vm: backends.has('vm') };
+  };
   if (commentURL) {
-    await checkRequest(parseRequest(commentURL), config, gh);
-    return true;
+    return modes([commentURL]);
   }
   return withState(config, async (state, save) => {
     const started = new Date().toISOString();
-    const pending = (await scanRequests(config, gh, state)).length > 0;
-    if (!pending) { state.since = started; await save(); }
-    return pending;
+    const result = await modes(await scanRequests(config, gh, state));
+    if (!result.pending) { state.since = started; await save(); }
+    return result;
   });
 }
 
@@ -70,9 +75,9 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
       checkHostedActor(config);
       await mkdir(join(root, 'output'), { recursive: true });
       await writeFile(join(root, 'output/bot-hosted.json'), JSON.stringify(config, null, 2) + '\n');
-      const pending = await scanHosted(config, github(config), process.env.COMMENT_URL);
-      if (process.env.GITHUB_OUTPUT) await writeFile(process.env.GITHUB_OUTPUT, `pending=${pending}\n`, { flag: 'a' });
-      console.log(pending ? 'Review request found.' : 'No pending review requests.');
+      const result = await scanHosted(config, github(config), process.env.COMMENT_URL);
+      if (process.env.GITHUB_OUTPUT) await writeFile(process.env.GITHUB_OUTPUT, Object.entries(result).map(([key, value]) => `${key}=${value}\n`).join(''), { flag: 'a' });
+      console.log(result.pending ? 'Review request found.' : 'No pending review requests.');
     }
     else if (process.argv[2] === 'setup') {
       await mkdir(join(root, 'output'), { recursive: true });

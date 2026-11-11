@@ -35,3 +35,17 @@ test('checks cloud access with a nonexistent session and never sends a review', 
   await assert.rejects(() => checkCloud(async (_, args) => ({ stdout: JSON.stringify({ ok: true, session_id: args[args.indexOf('--cloud') + 1] }) })), /could not be verified/);
   await assert.rejects(() => checkCloud(async (_, args) => ({ stdout: JSON.stringify({ ok: false, session_id: args[args.indexOf('--cloud') + 1], error: 'Missing scope. sk-ant-example-token' }) })), error => /Missing scope/.test(error.message) && !error.message.includes('sk-ant-'));
 });
+
+test('cloud delivery uses its cloud login even when a VM inference token is available', async () => {
+  const previous = process.env.CLAUDE_CODE_OAUTH_TOKEN;
+  process.env.CLAUDE_CODE_OAUTH_TOKEN = 'inference-only';
+  try {
+    await sendCloud(session, 'Review.', async (_, __, options) => {
+      assert.equal(options.env.CLAUDE_CODE_OAUTH_TOKEN, undefined);
+      return { stdout: JSON.stringify({ ok: true, session_id: session }) };
+    });
+  } finally {
+    if (previous === undefined) delete process.env.CLAUDE_CODE_OAUTH_TOKEN;
+    else process.env.CLAUDE_CODE_OAUTH_TOKEN = previous;
+  }
+});

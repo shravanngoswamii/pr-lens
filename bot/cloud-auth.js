@@ -22,8 +22,7 @@ export async function loginCloud(repo, execute = run) {
   await execute('claude', ['auth', 'login'], { env, timeout: 60000 });
   await saveCloudAuth(dir, repo, execute);
   process.env.CLAUDE_CONFIG_DIR = dir;
-  delete process.env.CLAUDE_CODE_OAUTH_TOKEN;
-  if (process.env.GITHUB_ENV) await appendFile(process.env.GITHUB_ENV, `CLAUDE_CONFIG_DIR=${dir}\nCLAUDE_CODE_OAUTH_TOKEN=\n`);
+  if (process.env.GITHUB_ENV) await appendFile(process.env.GITHUB_ENV, `CLAUDE_CONFIG_DIR=${dir}\n`);
   await checkCloud(execute);
 }
 

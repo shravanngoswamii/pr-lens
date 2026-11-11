@@ -61,7 +61,7 @@ function inboxTarget(comment, config) {
 }
 
 function withOptions(request, options) {
-  if (request.options && ['model', 'effort', 'fresh'].some(key => request.options[key] !== options[key])) throw new Error('Review options changed. Post a new request');
+  if (request.options && ['model', 'effort', 'fresh', 'backend'].some(key => request.options[key] !== options[key])) throw new Error('Review options changed. Post a new request');
   return { ...request, options };
 }
 

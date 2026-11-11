@@ -82,7 +82,7 @@ test('checks requests before starting Claude and advances idle checkpoints', asy
   const paths = [];
   const gh = { api: async () => ({ login: 'review-bot' }), pages: async path => { paths.push(path); return []; } };
   try {
-    assert.equal(await scanHosted(config, gh), false);
+    assert.deepEqual(await scanHosted(config, gh), { pending: false, cloud: false, vm: false });
     assert.match(paths[0], /^notifications\?all=true/);
     const state = JSON.parse(await readFile(join(config.stateDir, 'state.json')));
     assert.ok(Date.parse(state.since) > Date.parse(config.since));
@@ -130,4 +130,12 @@ test('publishes with the bot token when it can push to the report repository', a
   assert.ok(calls.some(([, args]) => args.includes('!gh auth git-credential')));
   assert.ok(calls.every(([, args]) => !args.includes('--global') && !args.includes('core.sshCommand')));
   await assert.rejects(() => setupHosted(config, { execute: async () => ({ stdout: '{"login":"review-bot","permissions":{"push":false}}' }) }), /push access/);
+});
+
+test('prepares only the authentication needed by a selected backend', async () => {
+  const config = hostedConfig({ ...input, cloud: { triggers: {} } }, '/tmp/hosted');
+  for (const backend of ['cloud', 'vm']) {
+    const gh = { api: async path => path === 'user' ? { login: 'review-bot' } : { user: { id: 12 }, body: `@review-bot review --backend ${backend}`, issue_url: 'https://api.github.com/repos/owner/repo/issues/1' } };
+    assert.deepEqual(await scanHosted(config, gh, 'https://github.com/owner/repo/pull/1#issuecomment-2'), { pending: true, cloud: backend === 'cloud', vm: backend === 'vm' });
+  }
 });
