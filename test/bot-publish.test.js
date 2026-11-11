@@ -42,14 +42,27 @@ test('publishes only reviewed artifacts to a clean dedicated checkout without fo
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
 
-test('waits for successful CI and the matching live revision before allowing a reply', async () => {
-  let calls = 0, fetches = 0;
+test('checks both deployed files even when Pages has no run under the report commit', async () => {
+  const files = { 'index.html': '<title>Review</title>', 'review.json': '{"review":{"head":"a"},"summary":"Reviewed"}' };
+  const directory = await mkdtemp(join(tmpdir(), 'reviary-deployment-'));
+  for (const [name, text] of Object.entries(files)) await writeFile(join(directory, name), text);
+  let fetches = 0;
   const options = {
-    execute: async () => ({ stdout: JSON.stringify([{ status: ++calls === 1 ? 'in_progress' : 'completed', conclusion: calls === 1 ? '' : 'success' }]) }),
-    delay: async () => {},
-    fetchURL: async () => { fetches++; return { ok: true, json: async () => ({ review: { head: 'a'.repeat(40) } }) }; },
+    directory,
+    execute: async () => ({ stdout: '[]' }),
+    delay: async () => assert.equal(fetches, 2),
+    fetchURL: async url => {
+      fetches++;
+      const name = url.split('/').at(-1);
+      const text = fetches <= 2 && name === 'index.html' ? 'Old HTML' : files[name];
+      return { ok: true, arrayBuffer: async () => Buffer.from(text) };
+    },
   };
-  await waitForPublication({ repo: 'owner/site' }, { commit: 'b'.repeat(40), url: 'https://example.com/review/' }, 'a'.repeat(40), options);
-  assert.equal(calls, 2); assert.equal(fetches, 1);
-  await assert.rejects(() => waitForPublication({ repo: 'owner/site' }, {}, '', { ...options, execute: async () => ({ stdout: '[{"status":"completed","conclusion":"failure"}]' }) }), /CI failed/);
+  try {
+    const publication = { commit: 'b'.repeat(40), url: 'https://example.com/review/' };
+    await waitForPublication({ repo: 'owner/site' }, publication, 'a', options);
+    assert.equal(fetches, 4);
+    await assert.rejects(() => waitForPublication({}, publication, 'a', { ...options, timeout: 0 }), /did not match/);
+    await assert.rejects(() => waitForPublication({}, publication, 'other', options), /revision does not match/);
+  } finally { await rm(directory, { recursive: true, force: true }); }
 });

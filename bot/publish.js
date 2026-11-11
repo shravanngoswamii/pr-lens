@@ -1,5 +1,6 @@
-import { copyFile, mkdir } from 'node:fs/promises';
+import { copyFile, mkdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { createHash } from 'node:crypto';
 import { run } from './process.js';
 
 export async function publish(config, request, head, dir, execute = run) {
@@ -22,17 +23,23 @@ export async function publish(config, request, head, dir, execute = run) {
   return { url: `${config.url.replace(/\/$/, '')}/${path}/`, commit: await git(['rev-parse', 'HEAD']) };
 }
 
-export async function waitForPublication(config, publication, head, { execute = run, delay = ms => new Promise(resolve => setTimeout(resolve, ms)), fetchURL = fetch } = {}) {
-  const deadline = Date.now() + 5 * 60 * 1000;
+export async function waitForPublication(config, publication, head, { directory, delay = ms => new Promise(resolve => setTimeout(resolve, ms)), fetchURL = fetch, timeout = 5 * 60 * 1000 } = {}) {
+  if (!directory) throw new Error('Reviewed report directory is required');
+  const names = ['index.html', 'review.json'];
+  const files = await Promise.all(names.map(name => readFile(join(directory, name))));
+  if (JSON.parse(files[1]).review?.head !== head) throw new Error('Report revision does not match publication');
+  const digest = bytes => createHash('sha256').update(bytes).digest('hex');
+  const hashes = files.map(digest);
+  const deadline = Date.now() + timeout;
   while (Date.now() < deadline) {
-    const { stdout } = await execute('gh', ['run', 'list', '--repo', config.repo, '--commit', publication.commit, '--limit', '20', '--json', 'status,conclusion,url']);
-    const runs = JSON.parse(stdout);
-    if (runs.some(run => run.status === 'completed' && run.conclusion !== 'success')) throw new Error('Report deployment CI failed');
-    if (runs.length && runs.every(run => run.status === 'completed' && run.conclusion === 'success')) {
-      const response = await fetchURL(publication.url + 'review.json', { signal: AbortSignal.timeout(15000), cache: 'no-store' });
-      if (response.ok && (await response.json()).review?.head === head) return;
-    }
+    const matches = await Promise.all(names.map(async (name, i) => {
+      try {
+        const response = await fetchURL(publication.url + name, { signal: AbortSignal.timeout(15000), cache: 'no-store' });
+        return response.ok && digest(Buffer.from(await response.arrayBuffer())) === hashes[i];
+      } catch { return false; }
+    }));
+    if (matches.every(Boolean)) return;
     await delay(15000);
   }
-  throw new Error('Report deployment did not finish within five minutes');
+  throw new Error('Deployed report files did not match the reviewed files before the timeout');
 }

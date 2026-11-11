@@ -89,7 +89,7 @@ export async function runRequest(config, gh, url, state, save, { retry = false, 
     await checkRequest(request, config, gh);
     if (!job.publication) { job.publication = await deploy(config.publish, request, doc.review.head, job.directory); await save(); }
     log('Waiting for report deployment');
-    await wait(config.publish, job.publication, doc.review.head);
+    await wait(config.publish, job.publication, doc.review.head, { directory: job.directory });
     const latest = await gh.api(`repos/${request.repo}/pulls/${request.number}`);
     if (latest.head.sha !== doc.review.head || latest.base.sha !== doc.review.base) throw new Error('PR revisions changed during deployment. Post a new review request');
     const duplicate = await findReply();

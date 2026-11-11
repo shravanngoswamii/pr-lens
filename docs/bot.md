@@ -64,6 +64,7 @@ Reviewer requests get a comment review pinned to the checked head.
 The bot never approves or requests changes.
 Reports use `reviews/OWNER/REPO/PR/HEAD/REQUEST/`.
 Deployment and the live revision are checked before replying.
+Deployed HTML and JSON must match the reviewed files byte for byte.
 The worker sets the PR check time from its collected evidence.
 
 ## Set up your bot
