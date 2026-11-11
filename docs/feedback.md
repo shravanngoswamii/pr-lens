@@ -9,6 +9,9 @@ If clipboard access fails, copy the selected text manually.
 Use **Save > HTML with comments** or **Export feedback** to keep comments.
 Browser storage is local and may be unavailable for files.
 Saved HTML excludes unsaved drafts.
+Share the HTML file or publish it with the [bot](bot.md).
+For several reviewers, collect their exported feedback files and import them into one copy.
+Browser copies do not sync.
 Import adds new IDs and keeps the newer `updatedAt` for matching IDs.
 Equal-timestamp conflicts are rejected.
 Keep separate files for independent edits to the same comment.
