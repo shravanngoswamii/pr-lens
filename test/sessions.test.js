@@ -37,6 +37,15 @@ test('preserves an uncertain creation and stops retries from creating a duplicat
   for (const options of [{}, { fresh: true }]) await assert.rejects(() => prSession(restarted, request, options, () => assert.fail('Duplicate creation')), /needs recovery/);
 });
 
+test('rejects a superseded fresh request after another session replaces it', async () => {
+  const gh = registry(), store = await openSessions(gh, 'bot/reports');
+  await prSession(store, request, { fresh: true }, async () => ({ id: first }));
+  await prSession(store, { ...request, id: 'newer' }, { fresh: true }, async () => ({ id: second }));
+  const restarted = await openSessions(gh, 'bot/reports');
+  await assert.rejects(() => prSession(restarted, request, { fresh: true }, async () => ({ id: first })), /superseded/);
+  assert.equal(restarted.get('123/4').session.id, second);
+});
+
 test('stops before creation when registry data is missing or cannot be saved', async () => {
   await assert.rejects(() => openSessions({ api: async () => { throw new Error('Missing'); } }, 'bot/reports'), /Restore REVIARY_SESSIONS/);
   await assert.rejects(() => openSessions({ api: async () => ({ value: '{"version":1,"sessions":[]}' }) }, 'bot/reports'), /Restore REVIARY_SESSIONS/);

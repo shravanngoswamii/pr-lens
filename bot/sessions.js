@@ -7,6 +7,7 @@ function validate(value) {
   for (const [key, entry] of Object.entries(value.sessions)) {
     if (!/^[1-9]\d*\/[1-9]\d*$/.test(key) || !entry || typeof entry.request !== 'string' || !['creating', 'ready'].includes(entry.status) || entry.status === 'ready' && !validID(entry.session?.id)) throw new Error('Invalid cloud-session registry entry');
     if (entry.session) validateOptions(entry.session);
+    if (entry.superseded && (!Array.isArray(entry.superseded) || !entry.superseded.every(id => typeof id === 'string'))) throw new Error('Invalid cloud creation history');
     if (entry.delivery && (typeof entry.delivery.request !== 'string' || !['sending', 'queued'].includes(entry.delivery.status))) throw new Error('Invalid cloud delivery receipt');
   }
   return value;
@@ -35,9 +36,10 @@ export async function prSession(store, request, { fresh = false } = {}, create) 
   if (![request.repositoryId, request.number].every(value => Number.isSafeInteger(value) && value > 0)) throw new Error('Use the GitHub repository ID and PR number');
   const key = `${request.repositoryId}/${request.number}`, operation = String(request.id);
   const current = store.get(key);
+  if (fresh && current?.superseded?.includes(operation)) throw new Error('This fresh request was superseded. Post a new review request');
   if (current?.status === 'creating') throw new Error('Cloud-session creation needs recovery. Link the created session before retrying');
   if (current && (!fresh || current.request === operation)) return { ...structuredClone(current.session), url: `https://claude.ai/code/${current.session.id}` };
-  const pending = { status: 'creating', request: operation, ...(current ? { previous: current.session.id } : {}) };
+  const pending = { status: 'creating', request: operation, ...(current ? { previous: current.session.id, superseded: [...(current.superseded ?? []), current.request] } : {}) };
   await store.set(key, pending);
   let result;
   try { result = await create(); }

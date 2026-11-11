@@ -35,7 +35,7 @@ export async function reviewCloud(config, gh, request, collected, dir, settings,
   const model = request.options.model ?? current?.session?.model ?? settings.model ?? 'sonnet';
   const effort = request.options.effort ?? current?.session?.effort ?? settings.effort ?? 'medium';
   if (current?.status === 'ready' && !request.options.fresh && (model !== current.session.model || effort !== current.session.effort)) throw new Error('Changing a cloud session model or effort needs --fresh');
-  const needsCreation = !current || request.options.fresh && current.request !== String(request.id);
+  const needsCreation = !current || request.options.fresh && current.request !== String(request.id) && !current.superseded?.includes(String(request.id));
   const create = needsCreation ? cloudCreator(config, model, effort, request, { fetchURL }) : undefined;
   const session = await prSession(store, { ...request, repositoryId: repository.id }, request.options, create);
   const key = `${repository.id}/${request.number}`;

@@ -6,6 +6,7 @@ import { claudeEnvironment } from './claude.js';
 import { collectContext } from './context.js';
 import { reviewContext } from './review.js';
 import { reviewCloud } from './cloud-review.js';
+import { openSessions } from './sessions.js';
 import { inspectHTML } from './inspect.js';
 import { publish, waitForPublication } from './publish.js';
 
@@ -46,7 +47,8 @@ export async function runRequest(config, gh, url, state, save, { retry = false, 
   const previous = state.requests[request.id];
   if (previous?.status === 'posted') return previous;
   if (previous && !retry) throw new Error('Request already started. Use retry to resume it');
-  if ((await gh.api(`repos/${request.repo}`)).private) throw new Error('Public PRs only. No private content will be published');
+  const repository = await gh.api(`repos/${request.repo}`);
+  if (repository.private) throw new Error('Public PRs only. No private content will be published');
   const responsePath = request.eventId ? `repos/${request.repo}/pulls/${request.number}/reviews` : `repos/${request.repo}/issues/${request.number}/comments`;
   const findReply = async () => (await gh.pages(responsePath)).find(item => item.user?.login?.toLowerCase() === config.login.toLowerCase() && item.body?.includes(reviewMarker(request.id)));
   const posted = await findReply();
@@ -62,7 +64,13 @@ export async function runRequest(config, gh, url, state, save, { retry = false, 
     const dir = join(config.stateDir, String(request.id));
     await mkdir(dir, { recursive: true });
     let doc;
-    if (job.document) doc = JSON.parse(await readFile(job.document, 'utf8'));
+    if (job.document) {
+      doc = JSON.parse(await readFile(job.document, 'utf8'));
+      if (config.cloud) {
+        const entry = (await openSessions(gh, config.publish.repo)).get(`${repository.id}/${request.number}`);
+        if (entry?.status !== 'ready' || doc.review.agent?.session !== `https://claude.ai/code/${entry.session.id}`) throw new Error('Saved review belongs to a replaced cloud session. Post a new review request');
+      }
+    }
     else {
       const attempt = join(dir, String(Date.now()));
       await mkdir(attempt);

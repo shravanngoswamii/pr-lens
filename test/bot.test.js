@@ -157,6 +157,24 @@ test('polls read notifications too and ignores other authors without running a r
   assert.deepEqual(state.requests, {});
 });
 
+test('does not publish a saved report from a replaced cloud session', async () => {
+  const doc = makeDoc(), stateDir = await mkdtemp(join(tmpdir(), 'reviary-replaced-'));
+  doc.review.agent = { session: 'https://claude.ai/code/session_01AAAAAAAAAAAAAAAAAAAAAA' };
+  const file = join(stateDir, 'review.json');
+  await writeFile(file, JSON.stringify(doc));
+  const state = { requests: { 12: { status: 'failed', document: file } } };
+  const gh = { pages: async () => [], api: async path => {
+    if (path.endsWith('/issues/comments/12')) return request;
+    if (path === 'repos/owner/repo') return { id: 123, private: false };
+    if (path.endsWith('/pulls/1')) return { head: { sha: doc.review.head }, base: { sha: doc.review.base } };
+    if (path.includes('/actions/variables/')) return { value: JSON.stringify({ version: 1, sessions: { '123/1': { status: 'ready', request: 'newer', session: { id: 'session_01BBBBBBBBBBBBBBBBBBBBBB' } } } }) };
+    return {};
+  } };
+  try {
+    await assert.rejects(() => runRequest({ ...config, stateDir, cloud: { triggers: {} } }, gh, commentURL, state, async () => {}, { retry: true, log: () => {}, deploy: async () => assert.fail('Stale report published') }), /replaced cloud session/);
+  } finally { await rm(stateDir, { recursive: true, force: true }); }
+});
+
 test('keeps reply excerpts complete without splitting decimals into sentences', () => {
   const doc = makeDoc();
   doc.summary = 'An exact posterior. Longer background.';

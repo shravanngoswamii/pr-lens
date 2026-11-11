@@ -98,6 +98,7 @@ Renewal and upgrades keep the existing registry.
 The first request creates one when no session is registered.
 `review --fresh` creates a replacement.
 Retrying the same fresh request reuses its replacement.
+Retrying a superseded fresh request stops without creating another session.
 Model or effort changes require `--fresh` and a configured task for that combination.
 
 The bot stores session IDs and delivery receipts in `REVIARY_SESSIONS`, outside the workflow cache.
