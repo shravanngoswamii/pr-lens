@@ -37,8 +37,9 @@ export async function doctor(config, gh = github(config)) {
   return { github: config.login, requester: (config.requesters?.map(user => user.login) ?? [config.requester]).join(', '), claude: auth.subscriptionType ?? auth.authMethod };
 }
 
-export async function runRequest(config, gh, url, state, save, { retry = false, collect = collectContext, review = reviewContext, inspect = inspectHTML, deploy = publish, wait = waitForPublication, log = console.log } = {}) {
-  const request = parseRequest(url);
+export async function runRequest(config, gh, url, state, save, { retry = false, collect = collectContext, review = (collected, dir) => reviewContext(collected, dir, undefined, { model: config.model }), inspect = inspectHTML, deploy = publish, wait = waitForPublication, log = console.log } = {}) {
+  const reference = parseRequest(url);
+  const request = reference.inbox ? await checkRequest(reference, config, gh) : reference;
   const previous = state.requests[request.id];
   if (previous?.status === 'posted') return previous;
   if (previous && !retry) throw new Error('Request already started. Use retry to resume it');
@@ -51,7 +52,7 @@ export async function runRequest(config, gh, url, state, save, { retry = false, 
   const job = state.requests[request.id] = { ...previous, status: 'running', request: url, updatedAt: new Date().toISOString() };
   await save();
   try {
-    if (!request.eventId) await gh.api(`repos/${request.repo}/issues/comments/${request.id}/reactions`, { method: 'POST', body: { content: 'eyes' } });
+    if (!request.eventId) await gh.api(`repos/${request.inbox?.repo ?? request.repo}/issues/comments/${request.inbox?.comment ?? request.id}/reactions`, { method: 'POST', body: { content: 'eyes' } });
     const dir = join(config.stateDir, String(request.id));
     await mkdir(dir, { recursive: true });
     let doc;

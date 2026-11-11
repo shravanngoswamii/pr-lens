@@ -13,7 +13,7 @@ export function hostedConfig(input, root) {
 }
 
 export function checkHostedActor(config, env = process.env) {
-  if (env.GITHUB_EVENT_NAME === 'workflow_dispatch' && !config.requesters.some(user => String(user.id) === env.GITHUB_ACTOR_ID)) throw new Error('This account cannot dispatch the review worker');
+  if (['workflow_dispatch', 'issue_comment'].includes(env.GITHUB_EVENT_NAME) && !config.requesters.some(user => String(user.id) === env.GITHUB_ACTOR_ID)) throw new Error('This account cannot dispatch the review worker');
 }
 
 export async function scanHosted(config, gh, commentURL) {
@@ -70,7 +70,7 @@ export async function compactState(config) {
   try { state = JSON.parse(await readFile(file, 'utf8')); }
   catch (error) { if (error.code === 'ENOENT') return; throw error; }
   for (const [id, job] of Object.entries(state.requests)) if (job.status === 'posted') {
-    if (!/^(review-)?\d+$/.test(id)) throw new Error('Invalid request id in hosted state');
+    if (!/^(review-|inbox-)?\d+$/.test(id)) throw new Error('Invalid request id in hosted state');
     await rm(join(config.stateDir, id), { recursive: true, force: true });
     delete job.document; delete job.directory;
   }
@@ -82,7 +82,7 @@ export async function compactState(config) {
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
     const root = process.cwd();
-    const config = hostedConfig(JSON.parse(await readFile(join(root, 'bot.hosted.json'), 'utf8')), root);
+    const config = hostedConfig(JSON.parse(process.env.REVIEW_BOT_CONFIG || await readFile(join(root, 'bot.hosted.json'), 'utf8')), root);
     if (process.argv[2] === 'compact') await compactState(config);
     else if (process.argv[2] === 'scan') {
       checkHostedActor(config);

@@ -8,6 +8,8 @@ export function validateConfig(config) {
     if (new Set(config.requesters.map(user => user.id)).size !== config.requesters.length) throw new Error('Duplicate requester account id');
   }
   if (config.since !== undefined && (!/^\d{4}-\d{2}-\d{2}T.*Z$/.test(config.since) || !Number.isFinite(Date.parse(config.since)))) throw new Error('since must be a UTC timestamp');
+  if (config.inbox !== undefined && (!config.inbox || !/^[A-Za-z0-9-]+\/[A-Za-z0-9_.-]+$/.test(config.inbox.repo) || !Number.isSafeInteger(config.inbox.issue) || config.inbox.issue < 1)) throw new Error('Use an inbox repository and positive issue number');
+  if (config.model !== undefined && !/^[A-Za-z0-9][A-Za-z0-9._:\[\]-]{0,150}$/.test(config.model)) throw new Error('Invalid Claude model');
   if ((config.requesters ?? [{ login: config.requester }]).some(user => user.login.toLowerCase() === config.login.toLowerCase())) throw new Error('Bot and requesters must be separate accounts');
   if (!isAbsolute(config.stateDir ?? '')) throw new Error('stateDir must be absolute');
   const pub = config.publish;

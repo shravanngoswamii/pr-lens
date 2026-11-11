@@ -45,6 +45,8 @@ function isRequester(actor, config) {
 }
 
 export function parseRequest(url) {
+  const inbox = /^https:\/\/github\.com\/([A-Za-z0-9-]+\/[A-Za-z0-9_.-]+)\/issues\/([1-9]\d*)#issuecomment-([1-9]\d*)$/.exec(url);
+  if (inbox && [inbox[2], inbox[3]].every(value => Number.isSafeInteger(Number(value)))) return { id: `inbox-${inbox[3]}`, inbox: { repo: inbox[1], issue: Number(inbox[2]), comment: Number(inbox[3]) } };
   const match = /^https:\/\/github\.com\/([A-Za-z0-9-]+\/[A-Za-z0-9_.-]+)\/pull\/([1-9]\d*)#event-([1-9]\d*)$/.exec(url);
   if (!match) return parseComment(url);
   if (![match[2], match[3]].every(value => Number.isSafeInteger(Number(value)))) throw new Error('Invalid review request id');
@@ -56,6 +58,15 @@ function reviewerEvents(events, config) {
 }
 
 export async function checkRequest(request, config, gh) {
+  if (request.inbox) {
+    const source = request.inbox;
+    if (source.repo.toLowerCase() !== config.inbox?.repo.toLowerCase() || source.issue !== config.inbox.issue) throw new Error('Use the configured inbox issue');
+    const comment = await gh.api(`repos/${source.repo}/issues/comments/${source.comment}`);
+    const target = /^https:\/\/github\.com\/([A-Za-z0-9-]+\/[A-Za-z0-9_.-]+)\/pull\/([1-9]\d*)\/?$/.exec(comment.body?.trim() ?? '');
+    if (comment.issue_url?.toLowerCase() !== `https://api.github.com/repos/${source.repo}/issues/${source.issue}`.toLowerCase() || !isRequester(comment.user, config) || !target || !Number.isSafeInteger(Number(target[2]))) throw new Error('Inbox comment must be an authorized public PR URL');
+    if (request.repo && (request.repo.toLowerCase() !== target[1].toLowerCase() || request.number !== Number(target[2]))) throw new Error('Inbox target changed. Post a new request');
+    return { ...request, repo: target[1], number: Number(target[2]) };
+  }
   if (!request.eventId) {
     const comment = await gh.api(`repos/${request.repo}/issues/comments/${request.id}`);
     if (comment.issue_url?.toLowerCase() !== `https://api.github.com/repos/${request.repo}/issues/${request.number}`.toLowerCase() || !isRequest(comment, config)) throw new Error('Comment is not an authorized review request');
@@ -71,6 +82,11 @@ export async function scanRequests(config, gh, state) {
   const since = new Date(Date.parse(state.since) - 120000).toISOString();
   const notifications = await gh.pages(`notifications?all=true&since=${encodeURIComponent(since)}`);
   const seen = new Set(), requests = new Map();
+  if (config.inbox) {
+    for (const comment of await gh.pages(`repos/${config.inbox.repo}/issues/${config.inbox.issue}/comments?since=${encodeURIComponent(since)}`)) {
+      if (isRequester(comment.user, config) && /^https:\/\/github\.com\/[A-Za-z0-9-]+\/[A-Za-z0-9_.-]+\/pull\/[1-9]\d*\/?$/.test(comment.body?.trim() ?? '') && !state.requests[`inbox-${comment.id}`] && Date.parse(comment.created_at) >= Date.parse(state.since) - 120000) requests.set(`inbox-${comment.id}`, comment.html_url);
+    }
+  }
   for (const thread of notifications) {
     const match = /^https:\/\/api\.github\.com\/repos\/([A-Za-z0-9-]+\/[A-Za-z0-9_.-]+)\/pulls\/([1-9]\d*)$/.exec(thread.subject?.url ?? '');
     if (thread.subject?.type !== 'PullRequest' || !match || seen.has(thread.subject.url)) continue;

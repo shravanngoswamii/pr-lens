@@ -31,6 +31,8 @@ test('pins requester identities and restricts manual hosted dispatches', () => {
   for (const id of [12, 34]) assert.equal(isRequest({ user: { id, login: 'renamed-account' }, body: '@review-bot review' }, config), true);
   assert.equal(isRequest({ user: { id: 99, login: 'reviewer' }, body: '@review-bot review' }, config), false);
   assert.throws(() => checkHostedActor(config, { GITHUB_EVENT_NAME: 'workflow_dispatch', GITHUB_ACTOR_ID: '99' }), /cannot dispatch/);
+  assert.throws(() => checkHostedActor(config, { GITHUB_EVENT_NAME: 'issue_comment', GITHUB_ACTOR_ID: '99' }), /cannot dispatch/);
+  checkHostedActor(config, { GITHUB_EVENT_NAME: 'issue_comment', GITHUB_ACTOR_ID: '34' });
   checkHostedActor(config, { GITHUB_EVENT_NAME: 'workflow_dispatch', GITHUB_ACTOR_ID: '12' });
   assert.throws(() => validateConfig({ ...config, requesters: [{ login: 'reviewer', id: '12' }] }), /numeric account/);
   assert.throws(() => validateConfig({ ...config, requesters: [config.requesters[0], config.requesters[0]] }), /Duplicate/);
@@ -68,7 +70,7 @@ test('caches completed metadata while retaining failed review artifacts for retr
   const dir = await mkdtemp(join(tmpdir(), 'review-docs-hosted-state-'));
   const config = hostedConfig(input, dir);
   try {
-    for (const name of ['12', '34', 'review-56', 'lock']) await mkdir(join(config.stateDir, name), { recursive: true });
+    for (const name of ['12', '34', 'review-56', 'inbox-78', 'lock']) await mkdir(join(config.stateDir, name), { recursive: true });
     await writeFile(join(config.stateDir, '12', 'index.html'), 'Completed report');
     await writeFile(join(config.stateDir, '34', 'index.html'), 'Failed report');
     const file = join(config.stateDir, 'state.json');
@@ -76,14 +78,17 @@ test('caches completed metadata while retaining failed review artifacts for retr
       12: { status: 'posted', comment: 'https://github.com/owner/repo/pull/1#issuecomment-12', document: '/old/report.json', directory: '/old/dir' },
       34: { status: 'failed', document: 'Keep for retry' },
       'review-56': { status: 'posted', comment: 'Review reply', directory: '/old/dir' },
+      'inbox-78': { status: 'posted', comment: 'Inbox reply', directory: '/old/dir' },
     } }));
     await compactState(config);
     const state = JSON.parse(await readFile(file));
     assert.equal(state.requests[12].document, undefined);
     assert.equal(state.requests[34].document, 'Keep for retry');
     assert.equal(state.requests['review-56'].directory, undefined);
+    assert.equal(state.requests['inbox-78'].directory, undefined);
     await assert.rejects(() => access(join(config.stateDir, '12')));
     await assert.rejects(() => access(join(config.stateDir, 'review-56')));
+    await assert.rejects(() => access(join(config.stateDir, 'inbox-78')));
     await assert.rejects(() => access(join(config.stateDir, 'lock')));
     await access(join(config.stateDir, '34', 'index.html'));
   } finally { await rm(dir, { recursive: true, force: true }); }
