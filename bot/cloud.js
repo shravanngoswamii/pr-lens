@@ -26,7 +26,11 @@ export async function sendCloud(session, prompt, execute = run) {
 export async function checkCloud(execute = run) {
   const session = 'session_01AAAAAAAAAAAAAAAAAAAAAA';
   const result = await send(session, 'Connection check only. No work requested.', execute);
-  if (result.ok || result.error !== `Session not found: ${session}`) throw new Error('Claude cloud authentication could not be verified');
+  if (result.ok) throw new Error('Claude cloud authentication could not be verified');
+  if (result.error !== `Session not found: ${session}`) {
+    const reason = String(result.error ?? 'No error detail').replace(/(?:sk-ant-|gh[pousr]_)[A-Za-z0-9_-]+|eyJ[A-Za-z0-9_.-]{20,}/g, '[redacted]').slice(0, 500);
+    throw new Error(`Claude cloud access failed: ${reason}`);
+  }
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

@@ -33,4 +33,5 @@ test('checks cloud access with a nonexistent session and never sends a review', 
     throw Object.assign(new Error('Not found'), { stdout: JSON.stringify({ ok: false, session_id: id, error: `Session not found: ${id}` }) });
   });
   await assert.rejects(() => checkCloud(async (_, args) => ({ stdout: JSON.stringify({ ok: true, session_id: args[args.indexOf('--cloud') + 1] }) })), /could not be verified/);
+  await assert.rejects(() => checkCloud(async (_, args) => ({ stdout: JSON.stringify({ ok: false, session_id: args[args.indexOf('--cloud') + 1], error: 'Missing scope. sk-ant-example-token' }) })), error => /Missing scope/.test(error.message) && !error.message.includes('sk-ant-'));
 });
