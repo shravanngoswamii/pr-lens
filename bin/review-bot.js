@@ -2,7 +2,8 @@
 import { readFile } from 'node:fs/promises';
 import { validateConfig } from '../bot/config.js';
 import { github } from '../bot/github.js';
-import { doctor, withState, runRequest, poll } from '../bot/worker.js';
+import { doctor, runRequest, poll } from '../bot/worker.js';
+import { withState } from '../bot/state.js';
 
 try {
   const [command, path, flag, comment, ...rest] = process.argv.slice(2);
@@ -10,7 +11,7 @@ try {
   const config = validateConfig(JSON.parse(await readFile(path, 'utf8')));
   const gh = github(config);
   const status = await doctor(config, gh);
-  console.log(`GitHub: ${status.github}. Requests: ${status.requester}. Claude: ${status.claude}.`);
+  console.log(`GitHub: ${status.github}. Requests: ${status.requesters}. Claude: ${status.claude}.`);
   if (command !== 'doctor') await withState(config, async (state, save) => {
     if (command === 'run' || command === 'retry') return runRequest(config, gh, comment, state, save, { retry: command === 'retry' });
     if (command === 'once') {

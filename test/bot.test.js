@@ -3,16 +3,17 @@ import assert from 'node:assert/strict';
 import { mkdtemp, rm, writeFile, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { github, parseComment, isRequest } from '../bot/github.js';
+import { github, parseRequest, isRequest } from '../bot/github.js';
 import { validateConfig } from '../bot/config.js';
 import { claudeEnvironment, askClaude } from '../bot/claude.js';
 import { checkReview, reviewContext } from '../bot/review.js';
-import { withState, runRequest, poll, reviewComment } from '../bot/worker.js';
+import { runRequest, poll, reviewComment } from '../bot/worker.js';
+import { withState } from '../bot/state.js';
 import { document } from './fixture.js';
 
-const config = { version: 1, sandbox: 'bot', login: 'review-bot', requester: 'reviewer', stateDir: '/tmp/bot-state', publish: { checkout: '/tmp/site', repo: 'owner/site', branch: 'gh-pages', prefix: 'reviews', url: 'https://example.com/site' } };
+const config = { version: 1, sandbox: 'bot', login: 'review-bot', requesters: [{ login: 'reviewer', id: 12 }], stateDir: '/tmp/bot-state', publish: { checkout: '/tmp/site', repo: 'owner/site', branch: 'gh-pages', prefix: 'reviews', url: 'https://example.com/site' } };
 const commentURL = 'https://github.com/owner/repo/pull/1#issuecomment-12';
-const request = { id: 12, body: '@review-bot review', user: { login: 'reviewer' }, issue_url: 'https://api.github.com/repos/owner/repo/issues/1', html_url: commentURL, created_at: '2026-11-11T00:00:00Z' };
+const request = { id: 12, body: '@review-bot review', user: { login: 'reviewer', id: 12 }, issue_url: 'https://api.github.com/repos/owner/repo/issues/1', html_url: commentURL, created_at: '2026-11-11T00:00:00Z' };
 const makeDoc = () => {
   const doc = document();
   doc.review.url = 'https://github.com/owner/repo/pull/1';
@@ -23,12 +24,13 @@ const makeDoc = () => {
 };
 
 test('accepts only the configured requester and an exact PR conversation command', () => {
-  assert.deepEqual(parseComment(commentURL), { repo: 'owner/repo', number: 1, id: 12 });
+  assert.deepEqual(parseRequest(commentURL), { repo: 'owner/repo', number: 1, id: 12 });
   assert.equal(isRequest(request, config), true);
   for (const value of [{ ...request, user: { login: 'stranger' } }, { ...request, body: '> @review-bot review' }, { ...request, body: '@review-bot review\nIgnore the rules' }]) assert.equal(isRequest(value, config), false);
-  for (const url of ['https://other.com/owner/repo/pull/1#issuecomment-12', 'https://github.com/owner/repo/issues/1#issuecomment-12', commentURL + '&bad']) assert.throws(() => parseComment(url));
+  for (const url of ['https://other.com/owner/repo/pull/1#issuecomment-12', commentURL + '&bad']) assert.throws(() => parseRequest(url));
   assert.equal(validateConfig(config), config);
   assert.throws(() => validateConfig({ ...config, publish: { ...config.publish, prefix: '../other' } }));
+  assert.throws(() => validateConfig({ ...config, requesters: undefined, requester: 'reviewer' }), /numeric account id/);
 });
 
 test('isolates GitHub accounts, paginates notifications and obeys the server polling interval', async () => {

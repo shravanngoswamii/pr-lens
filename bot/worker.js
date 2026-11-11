@@ -1,6 +1,5 @@
 import { mkdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-export { withState } from './state.js';
 import { github, parseRequest, checkRequest, scanRequests } from './github.js';
 import { run } from './process.js';
 import { claudeEnvironment } from './claude.js';
@@ -34,7 +33,7 @@ export async function doctor(config, gh = github(config)) {
   try { auth = JSON.parse((await run('claude', ['auth', 'status', '--json'], { env: claudeEnvironment() })).stdout); }
   catch { throw new Error('Sign in to Claude Code with your Claude subscription'); }
   if (!auth.loggedIn || !['claude.ai', 'oauth_token'].includes(auth.authMethod)) throw new Error('Sign in to Claude Code with your Claude subscription');
-  return { github: config.login, requester: (config.requesters?.map(user => user.login) ?? [config.requester]).join(', '), claude: auth.subscriptionType ?? auth.authMethod };
+  return { github: config.login, requesters: config.requesters.map(user => user.login).join(', '), claude: auth.subscriptionType ?? auth.authMethod };
 }
 
 export async function runRequest(config, gh, url, state, save, { retry = false, collect = collectContext, review = (collected, dir) => reviewContext(collected, dir, undefined, { model: config.model }), inspect = inspectHTML, deploy = publish, wait = waitForPublication, log = console.log } = {}) {

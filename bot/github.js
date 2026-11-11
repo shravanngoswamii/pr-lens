@@ -30,7 +30,7 @@ export function github(config, execute = run) {
   return { api, pages, read: (path, paginate) => paginate ? pages(path.replace(/[?&]per_page=100/, '')) : api(path), get pollSeconds() { return pollSeconds; } };
 }
 
-export function parseComment(url) {
+function parseComment(url) {
   const match = /^https:\/\/github\.com\/([A-Za-z0-9-]+\/[A-Za-z0-9_.-]+)\/pull\/([1-9]\d*)#issuecomment-([1-9]\d*)$/.exec(url);
   if (!match || ![match[2], match[3]].every(value => Number.isSafeInteger(Number(value)))) throw new Error('Use a PR conversation comment URL ending in #issuecomment-N');
   return { repo: match[1], number: Number(match[2]), id: Number(match[3]) };
@@ -41,7 +41,7 @@ export function isRequest(comment, config) {
 }
 
 function isRequester(actor, config) {
-  return config.requesters ? config.requesters.some(user => user.id === actor?.id) : actor?.login?.toLowerCase() === config.requester.toLowerCase();
+  return config.requesters.some(user => user.id === actor?.id);
 }
 
 export function parseRequest(url) {
