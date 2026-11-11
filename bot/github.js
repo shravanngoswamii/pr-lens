@@ -16,7 +16,8 @@ export function github(config, execute = run) {
     const parts = stdout.split(/\r?\n\r?\n/);
     const headers = parts.shift();
     pollSeconds = Math.max(pollSeconds, Number(headers.match(/^x-poll-interval:\s*(\d+)/im)?.[1] ?? 60));
-    return JSON.parse(parts.join('\n\n'));
+    const payload = parts.join('\n\n');
+    return payload.trim() ? JSON.parse(payload) : undefined;
   }
   async function pages(path) {
     const items = [];

@@ -48,6 +48,8 @@ test('isolates GitHub accounts, paginates notifications and obeys the server pol
   await assert.rejects(() => gh.api('https://other.com/'), /Invalid/);
   const limited = github(config, async () => { throw Object.assign(new Error('Failed'), { stderr: 'API rate limit exceeded (HTTP 403)' }); });
   await assert.rejects(() => limited.api('user'), error => error.rateLimited && /HTTP 403/.test(error.message));
+  const empty = github(config, async () => ({ stdout: 'HTTP/2.0 204 No Content\r\n\r\n' }));
+  assert.equal(await empty.api('repos/owner/repo/actions/variables/STATE', { method: 'PATCH', body: { value: '{}' } }), undefined);
 });
 
 test('uses subscription login with no execution tools or inherited GitHub credentials', async () => {
