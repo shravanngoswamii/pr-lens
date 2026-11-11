@@ -26,6 +26,7 @@ permissions:
   actions: read
 jobs:
   review:
+    cache-mode: write
     if: >-
       vars.REVIARY_ENABLED == 'true' &&
       (github.event_name != 'issue_comment' ||

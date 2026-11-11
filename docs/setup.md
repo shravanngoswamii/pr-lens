@@ -69,6 +69,7 @@ Its creation starts a review without waiting for the poller.
 GitHub may queue the job.
 The bot reacts in the inbox and replies on the PR.
 Only configured requester IDs are allowed.
+The authorized worker uses `cache-mode: write` to save retry checkpoints for inbox events.
 
 PR mentions and reviewer requests are polled every 30 minutes.
 Reviewer requests need the bot as a repository collaborator.
