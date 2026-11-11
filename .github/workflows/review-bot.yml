@@ -113,7 +113,7 @@ jobs:
             console.log(`Cloud task credentials configured: ${key}`);
           }
           JS
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install chromium
         if: steps.scan.outputs.pending == 'true'
       - name: Prepare publishing checkout
         if: steps.scan.outputs.pending == 'true'
