@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { validate } from '../src/document.js';
 import { render } from '../src/render.js';
 import { askClaude } from './claude.js';
+import { defaultOptions } from './options.js';
 
 export function checkReview(doc, context) {
   validate(doc);
@@ -35,7 +36,7 @@ export async function saveReview(doc, context, dir, agent) {
   return doc;
 }
 
-export async function reviewContext(collected, dir, ask = askClaude, { model, effort } = {}) {
+export async function reviewContext(collected, dir, ask = askClaude, { model = defaultOptions.model, effort = defaultOptions.effort } = {}) {
   const [skill, format] = await Promise.all(['../SKILL.md', '../docs/format.md'].map(path => readFile(new URL(path, import.meta.url), 'utf8')));
   const { context, readFiles } = collected;
   let correction = '';

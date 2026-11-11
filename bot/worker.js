@@ -7,7 +7,7 @@ import { collectContext } from './context.js';
 import { reviewContext } from './review.js';
 import { reviewCloud } from './cloud-review.js';
 import { openSessions } from './sessions.js';
-import { reviewBackend } from './options.js';
+import { reviewBackend, defaultOptions } from './options.js';
 import { inspectHTML } from './inspect.js';
 import { publish, waitForPublication } from './publish.js';
 
@@ -56,7 +56,7 @@ export async function runRequest(config, gh, url, state, save, { retry = false, 
   const posted = await findReply();
   if (posted) { state.requests[request.id] = { status: 'posted', comment: posted.html_url }; await save(); return state.requests[request.id]; }
   request = await checkRequest(request, config, gh);
-  const settings = { ...(config.model ? { model: config.model } : {}), ...(config.effort ? { effort: config.effort } : {}), ...request.options, backend: reviewBackend(config, request.options) };
+  const settings = { model: config.model ?? defaultOptions.model, effort: config.effort ?? defaultOptions.effort, ...request.options, backend: reviewBackend(config, request.options) };
   if (previous?.options && ['model', 'effort', 'fresh', 'backend'].some(key => (key !== 'backend' || previous.options.backend !== undefined) && previous.options[key] !== settings[key])) throw new Error('Review settings changed. Post a new request');
   const job = state.requests[request.id] = { ...previous, options: settings, status: 'running', request: url, updatedAt: new Date().toISOString() };
   await save();

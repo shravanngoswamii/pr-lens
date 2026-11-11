@@ -2,6 +2,7 @@ import { cloudAssignment, cloudPrompt, reviewerVersion } from './assignment.js';
 import { openSessions, prSession } from './sessions.js';
 import { sendCloud } from './cloud.js';
 import { saveReview } from './review.js';
+import { defaultOptions } from './options.js';
 
 const cloudScope = context => ({ ...context, limits: ['Cloud source review. Package-test results were not verified.', ...context.limits.slice(1)] });
 
@@ -32,8 +33,8 @@ export async function reviewCloud(config, gh, request, collected, dir, settings,
   const repository = await gh.api(`repos/${request.repo}`);
   const store = await openSessions(gh, config.publish.repo);
   const current = store.get(`${repository.id}/${request.number}`);
-  const model = request.options.model ?? current?.session?.model ?? settings.model ?? 'sonnet';
-  const effort = request.options.effort ?? current?.session?.effort ?? settings.effort ?? 'medium';
+  const model = request.options.model ?? current?.session?.model ?? settings.model ?? defaultOptions.model;
+  const effort = request.options.effort ?? current?.session?.effort ?? settings.effort ?? defaultOptions.effort;
   if (current?.status === 'ready' && !request.options.fresh && (model !== current.session.model || effort !== current.session.effort)) throw new Error('Changing a cloud session model or effort needs --fresh');
   const needsCreation = !current || request.options.fresh && current.request !== String(request.id) && !current.superseded?.includes(String(request.id));
   const create = needsCreation ? cloudCreator(config, model, effort, request, { fetchURL }) : undefined;

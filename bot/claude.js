@@ -1,5 +1,5 @@
 import { run } from './process.js';
-import { validateOptions } from './options.js';
+import { validateOptions, defaultOptions } from './options.js';
 
 export const responseSchema = {
   type: 'object', properties: {
@@ -13,7 +13,7 @@ export function claudeEnvironment(env = process.env) {
   return Object.fromEntries(allowed.filter(key => env[key] !== undefined).map(key => [key, env[key]]));
 }
 
-export async function askClaude(prompt, cwd, execute = run, { model, effort, onModels = () => {} } = {}) {
+export async function askClaude(prompt, cwd, execute = run, { model = defaultOptions.model, effort = defaultOptions.effort, onModels = () => {} } = {}) {
   validateOptions({ model, effort });
   const { stdout } = await execute('claude', ['-p', '--output-format', 'json', '--json-schema', JSON.stringify(responseSchema),
     '--tools', '', '--disable-slash-commands', '--setting-sources', '', '--strict-mcp-config', '--mcp-config', '{"mcpServers":{}}', '--no-session-persistence', ...(model ? ['--model', model] : []), ...(effort ? ['--effort', effort] : [])],

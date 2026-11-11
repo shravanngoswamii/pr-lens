@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { run } from '../bot/process.js';
 import { hostedConfig } from '../bot/hosted.js';
+import { defaultOptions } from '../bot/options.js';
 
 export async function configureBot(login, repo, requesters, execute = run) {
   const account = /^[A-Za-z0-9][A-Za-z0-9-]*$/;
@@ -14,7 +15,7 @@ export async function configureBot(login, repo, requesters, execute = run) {
     users.push({ login: user.login, id: user.id });
   }
   const [owner, name] = repo.split('/');
-  const config = { version: 1, login, requesters: users, stateDir: 'output/bot-state',
+  const config = { version: 1, ...defaultOptions, login, requesters: users, stateDir: 'output/bot-state',
     publish: { checkout: 'output/site', repo, branch: 'gh-pages', prefix: 'reviews', url: `https://${owner.toLowerCase()}.github.io/${name}` } };
   hostedConfig(config, process.cwd());
   return config;

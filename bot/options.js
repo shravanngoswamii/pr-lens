@@ -1,3 +1,5 @@
+export const defaultOptions = Object.freeze({ model: 'sonnet', effort: 'medium' });
+
 export function validateOptions({ model, effort, fresh, backend }) {
   if (backend !== undefined && !['cloud', 'vm'].includes(backend)) throw new Error('Use backend cloud or vm');
   if (model !== undefined && (typeof model !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._:\[\]-]{0,150}$/.test(model))) throw new Error('Invalid Claude model');

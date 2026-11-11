@@ -83,6 +83,15 @@ test('uses subscription login with no execution tools or inherited GitHub creden
   await assert.rejects(() => askClaude('', '/tmp', async () => ({ stdout: '{"subtype":"error_max_turns"}' })), /did not complete/);
 });
 
+test('bare VM reviews select Sonnet and medium effort explicitly', async () => {
+  await askClaude('Review.', '/tmp', async (_, args) => {
+    assert.ok(args.includes('--model'));
+    assert.equal(args[args.indexOf('--model') + 1], 'sonnet');
+    assert.equal(args[args.indexOf('--effort') + 1], 'medium');
+    return { stdout: '{"subtype":"success","structured_output":{"files":[]}}' };
+  });
+});
+
 test('rejects mismatched revisions and source lines before rendering a review', async () => {
   const doc = makeDoc();
   const context = { review: structuredClone(doc.review), source: [{ path: 'src/f.jl', sha: doc.review.head, text: '1: f() = 1' }], limits: ['Runtime checks were not run.'] };

@@ -23,6 +23,8 @@ test('creates a portable configuration with resolved requester identities', asyn
   const result = await configureBot('my-bot', 'my-bot/reports', ['reviewer'], execute);
   assert.deepEqual(result.requesters, [{ login: 'reviewer', id: 12 }]);
   assert.equal(result.publish.url, 'https://my-bot.github.io/reports');
+  assert.equal(result.model, 'sonnet');
+  assert.equal(result.effort, 'medium');
   await assert.rejects(() => configureBot('my-bot', 'my-bot/reports', ['../user'], execute), /Usage/);
   await assert.rejects(() => configureBot('my-bot', 'my-bot/reports', ['reviewer', 'reviewer'], execute), /Duplicate/);
 });

@@ -24,7 +24,8 @@ node ../reviary/scripts/configure-bot.js YOUR-BOT YOUR-BOT/reviary-reports YOUR-
 
 Add more requester logins as arguments.
 Add `"inbox": { "repo": "YOUR-BOT/reviary-reports", "issue": 1 }` to `bot-config.json` with your issue number.
-Set `"model": "sonnet"` and `"effort": "medium"`, or another supported combination.
+Generated settings use Sonnet and medium effort.
+Change those values for a different default.
 Request comments can [override these defaults](bot.md#review-options).
 Edit `publish.url` for custom domains.
 

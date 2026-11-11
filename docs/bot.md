@@ -32,7 +32,7 @@ VM reviews use a fresh Claude Code process on the worker.
 They leave saved cloud sessions unchanged.
 Cloud reviews reuse the PR session and its model and effort.
 A different cloud model or effort needs `--fresh` and a matching task preset.
-Missing VM model and effort values use the bot configuration, then Claude's defaults.
+Missing VM model and effort values use the bot configuration, then Sonnet and medium effort.
 Reviewer requests use the bot configuration.
 Use a model alias or full model ID your subscription supports.
 Effort accepts `low`, `medium`, `high`, `xhigh` and `max`.
