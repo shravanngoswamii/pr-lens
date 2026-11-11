@@ -31,14 +31,14 @@ Edit `publish.url` for custom domains.
 As the bot, save the configuration:
 
 ```sh
-gh variable set REVIARY_CONFIG --repo YOUR-BOT/reviary-reports < bot-config.json
+gh variable set REVIARY_CONFIG --repo YOUR-BOT/reviary-reports < bot-config.json && rm bot-config.json
 ```
 
 Copy [review-inbox.yml](../examples/review-inbox.yml) to `.github/workflows/review-inbox.yml` in the reports repository.
 Replace `OWNER/TOOL` with `shravanngoswamii/reviary` or your fork.
 Replace both `COMMIT_SHA` values with the same full tool commit.
-Commit it and the non-secret `bot-config.json` on the bot repository's default branch.
-After editing the JSON, save it to `REVIARY_CONFIG` again.
+Commit the workflow on the bot repository's default branch.
+Keep settings in `REVIARY_CONFIG` under **Settings > Secrets and variables > Actions > Variables**.
 
 ## Credentials
 
