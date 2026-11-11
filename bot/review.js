@@ -6,6 +6,7 @@ import { askClaude } from './claude.js';
 
 export function checkReview(doc, context) {
   validate(doc);
+  if (!doc.conclusion) throw new Error('Include an approve or hold conclusion');
   for (const key of ['url', 'title', 'base', 'head', 'diffBase', 'checkedAt']) if (doc.review[key] !== context.review[key]) throw new Error(`review.${key} does not match the collected PR`);
   if (!doc.sections.some(section => section.group === 'overview') || !doc.sections.some(section => section.group === 'review')) throw new Error('Include Overview and Review groups');
   const repo = new URL(context.review.url).pathname.split('/').slice(1, 3).join('/');

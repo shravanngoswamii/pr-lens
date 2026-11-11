@@ -33,7 +33,7 @@ export function validate(doc) {
     });
     return ids;
   };
-  object(doc, '$', ['version', 'id', 'title', 'summary', 'review', 'sources', 'sections']);
+  object(doc, '$', ['version', 'id', 'title', 'summary', 'review', 'sources', 'sections', 'conclusion']);
   if (doc.version !== 1) fail('$.version', 'expected 1');
   identifier(doc.id, '$.id');
   string(doc.title, '$.title');
@@ -69,6 +69,25 @@ export function validate(doc) {
     array(value, path);
     value.forEach((id, i) => { if (!sources.has(id)) fail(`${path}[${i}]`, `unknown source ${id}`); });
   };
+  if (doc.conclusion !== undefined) {
+    const c = doc.conclusion, p = '$.conclusion';
+    object(c, p, ['decision', 'summary', 'reasons']);
+    choice(c.decision, `${p}.decision`, ['approve', 'hold']);
+    string(c.summary, `${p}.summary`);
+    array(c.reasons, `${p}.reasons`, c.decision === 'hold');
+    if (c.decision === 'approve' && c.reasons.length) fail(`${p}.reasons`, 'approval cannot have hold reasons');
+    c.reasons.forEach((reason, i) => {
+      const r = `${p}.reasons[${i}]`;
+      object(reason, r, ['text', 'refs', 'code', 'language']);
+      string(reason.text, `${r}.text`);
+      array(reason.refs, `${r}.refs`, true);
+      refs(reason.refs, `${r}.refs`);
+      if (reason.code !== undefined || reason.language !== undefined) {
+        string(reason.code, `${r}.code`);
+        if (!/^[a-z][a-z0-9_+-]{0,30}$/.test(reason.language ?? '')) fail(`${r}.language`, 'use a code language such as julia');
+      }
+    });
+  }
   const checkGraph = (block, b) => {
     if (block.direction !== undefined) choice(block.direction, `${b}.direction`, ['LR', 'TB']);
     array(block.nodes, `${b}.nodes`, true);

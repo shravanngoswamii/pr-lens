@@ -40,6 +40,28 @@ IDs match `[a-zA-Z][a-zA-Z0-9_-]*` and stay stable across edits.
 Section, source and diagram IDs are unique across the document.
 Node and edge IDs are unique within a graph.
 
+## Conclusion
+
+New reviews include a merge recommendation:
+
+```json
+"conclusion": {
+  "decision": "hold",
+  "summary": "Confirm replay at a new input before merging.",
+  "reasons": [{
+    "text": "The changed replay path still needs a regression check.",
+    "refs": ["source-id"]
+  }]
+}
+```
+
+Use `approve` with an empty `reasons` array when no blocking issue remains in the checked scope.
+`hold` needs at least one reason with source references.
+A reason can include `code` and a lowercase `language`, such as `julia`.
+Bot replies use language-tagged code fences.
+The recommendation is advice, not a GitHub approval action.
+Older documents without a conclusion show Not assessed.
+
 ## Sources
 
 Sources have `{ id, label, url }`.

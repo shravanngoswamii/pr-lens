@@ -23,6 +23,18 @@ const makeDoc = () => {
   return doc;
 };
 
+test('states the decision and hold reasons with language-tagged code and one report link', () => {
+  const doc = makeDoc();
+  doc.conclusion = { decision: 'hold', summary: 'Confirm replay before merging.', reasons: [{ text: 'Check the second input.', refs: ['code'], code: 'x = "```"\nf(2)', language: 'julia' }] };
+  const body = reviewComment(doc, 'https://example.com/report/', { repo: 'owner/repo', id: 12 });
+  assert.ok(body.startsWith('**Recommendation: Hold**'));
+  assert.ok(body.includes('Check the second input.'));
+  assert.ok(body.includes('  ````julia\n  x = "```"\n  f(2)\n  ````'));
+  assert.ok(body.includes('[Review report]'));
+  assert.ok(!body.includes('review.json'));
+  assert.ok(!body.includes('claude.ai'));
+});
+
 test('accepts only the configured requester and an exact PR conversation command', () => {
   assert.deepEqual(parseRequest(commentURL), { repo: 'owner/repo', number: 1, id: 12 });
   assert.equal(isRequest(request, config), true);
@@ -140,7 +152,7 @@ test('posts only after browser and deployment checks and recovers a landed comme
     await runRequest({ ...config, stateDir }, gh, commentURL, state, async () => {}, { ...options, retry: true });
     assert.equal(state.requests[12].status, 'posted');
     assert.equal(comments.length, 1);
-    assert.match(comments[0].body, /Runtime|runtime/);
+    assert.match(comments[0].body, /Source review/);
     assert.equal(calls.filter(([, options]) => options?.body?.content === 'eyes').length, 1);
   } finally { await rm(stateDir, { recursive: true, force: true }); }
 });
@@ -175,14 +187,11 @@ test('does not publish a saved report from a replaced cloud session', async () =
   } finally { await rm(stateDir, { recursive: true, force: true }); }
 });
 
-test('keeps reply excerpts complete without splitting decimals into sentences', () => {
+test('keeps the conclusion literal and uses plain multiplication in prose', () => {
   const doc = makeDoc();
-  doc.summary = 'An exact posterior for u\u00b7v. Longer background.';
-  doc.sections.at(-1).blocks.push({ type: 'finding', title: 'Mean', status: 'suggestion', text: 'The mean is 0.571. This longer explanation belongs in the report.' });
+  doc.conclusion.summary = 'The mean is 0.571 for u\u00b7v.';
   const body = reviewComment(doc, 'https://example.com/report/', { repo: 'owner/repo', id: 12 });
-  assert.match(body, /The mean is 0\.571\./);
-  assert.ok(!body.includes('longer explanation'));
-  assert.ok(!body.includes('Longer background'));
+  assert.match(body, /The mean is 0\.571/);
   assert.ok(body.includes('u\\*v'));
   assert.ok(!body.includes('\u00b7'));
 });

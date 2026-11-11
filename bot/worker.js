@@ -14,21 +14,22 @@ import { publish, waitForPublication } from './publish.js';
 const markdown = text => text.replaceAll('\u00b7', '*').replace(/[\\`*_{}\[\]<>#]/g, '\\$&').replace(/@/g, '&#64;');
 // Earlier replies use this marker for deduplication.
 const reviewMarker = id => `<!-- review-docs:${id}:`;
-const excerpt = (text, limit) => {
-  const sentence = text.match(/^.*?[.!?](?:\s|$)/s)?.[0].trim() ?? text.trim();
-  return sentence.length <= limit ? sentence : sentence.slice(0, limit - 3).replace(/\s+\S*$/, '') + '...';
+const codeFence = (code, language) => {
+  const fence = '`'.repeat(Math.max(2, ...[...code.matchAll(/`+/g)].map(match => match[0].length)) + 1);
+  return `${fence}${language}\n${code}\n${fence}`;
 };
 
 export function reviewComment(doc, url, request) {
-  const findings = doc.sections.flatMap(section => section.blocks).filter(block => block.type === 'finding');
-  const lines = [`Reviewed [${doc.review.head.slice(0, 7)}](https://github.com/${request.repo}/commit/${doc.review.head}).`, '', markdown(excerpt(doc.summary, 320))];
-  for (const finding of findings.slice(0, 3)) {
-    const source = doc.sources.find(source => source.id === finding.refs?.[0]);
-    lines.push('', `- ${finding.status}: ${source ? `[${markdown(finding.title)}](${source.url})` : markdown(finding.title)}. ${markdown(excerpt(finding.text, 200))}`);
+  const c = doc.conclusion;
+  if (!c) throw new Error('Include an approve or hold conclusion');
+  const lines = [`**Recommendation: ${c.decision === 'approve' ? 'Approve' : 'Hold'}**`, '', markdown(c.summary)];
+  for (const reason of c.reasons.slice(0, 3)) {
+    const source = doc.sources.find(source => source.id === reason.refs[0]);
+    lines.push('', `- ${markdown(reason.text)}${source ? ` [Source](${source.url})` : ''}`);
+    if (reason.code) lines.push('', codeFence(reason.code, reason.language).split('\n').map(line => `  ${line}`).join('\n'));
   }
-  if (!findings.length) lines.push('', 'No findings reported in this source review.');
-  if (doc.review.agent?.session) lines.push('', `[Claude session](${doc.review.agent.session})`);
-  lines.push('', `[Review report](${url}) | [Editable source](${url}review.json)`, '', doc.review.agent?.session ? 'Source review. Package-test results were not verified.' : 'PR code and runtime tests were not run.', '', `${reviewMarker(request.id)}${doc.review.head} -->`);
+  if (c.reasons.length > 3) lines.push('', `${c.reasons.length - 3} more hold reasons are in the report.`);
+  lines.push('', `[Review report](${url})`, '', `Source review at [${doc.review.head.slice(0, 7)}](https://github.com/${request.repo}/commit/${doc.review.head}).`, '', `${reviewMarker(request.id)}${doc.review.head} -->`);
   return lines.join('\n');
 }
 

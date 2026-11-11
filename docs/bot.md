@@ -64,6 +64,12 @@ An optional comment or `#event-ID` request URL selects one request.
 Use **retry** only after a failed run.
 New revisions need a new comment or reviewer request.
 
+Reports start with an Approve or Hold recommendation.
+Hold reasons name the blocker and what would resolve it.
+Bot replies include that recommendation, up to three hold reasons and the report link.
+Editable JSON and cloud-session links stay in the report.
+Code snippets use language-tagged fences.
+
 Inbox requests get an eyes reaction on the inbox comment and a reply on the PR.
 Mention requests get an eyes reaction and a reply on the PR.
 Reviewer requests get a comment review pinned to the checked head.

@@ -6,6 +6,22 @@ import { document } from './fixture.js';
 
 test('accepts cycles and references across sections', () => assert.equal(validate(document()).id, 'tiny'));
 
+test('requires reasons and evidence for a hold recommendation', () => {
+  const doc = document();
+  doc.conclusion = { decision: 'approve', summary: 'No blocking issue in the checked scope.', reasons: [] };
+  assert.equal(validate(doc), doc);
+  doc.conclusion = { decision: 'hold', summary: 'Check replay at a new input.', reasons: [{ text: 'Replay remains unverified.', refs: ['code'], code: 'f(2)', language: 'julia' }] };
+  assert.equal(validate(doc), doc);
+  for (const [edit, error] of [
+    [d => { d.conclusion.reasons = []; }, /nonempty/],
+    [d => { d.conclusion.reasons[0].refs = ['missing']; }, /unknown source/],
+    [d => { delete d.conclusion.reasons[0].language; }, /language/],
+    [d => { d.conclusion.decision = 'approve'; }, /hold reasons/],
+  ]) {
+    const invalid = structuredClone(doc); edit(invalid); assert.throws(() => validate(invalid), error);
+  }
+});
+
 test('accepts UTC timestamps from common ISO serializers', () => {
   for (const checkedAt of ['2026-11-10T00:00:00Z', '2026-11-10T00:00:00.123Z', '2026-11-10T00:00:00.123456+00:00']) {
     const doc = document(); doc.review.checkedAt = checkedAt; assert.equal(validate(doc).review.checkedAt, checkedAt);

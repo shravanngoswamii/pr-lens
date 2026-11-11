@@ -104,6 +104,12 @@ Include only useful blocks:
 
 Use simple headings such as Overview, Example, Design, Changes, Findings and Checks.
 Omit a linked-work tree that contains only the PR itself.
+Write `conclusion` with an `approve` or `hold` recommendation for the reviewed scope.
+Hold only for a material defect or an essential unresolved check.
+Give each hold reason a source and a clear way to resolve it.
+Keep nonblocking questions and suggestions in Review.
+Use one short sentence for the recommendation summary.
+A source-only review must state its limits and must not imply runtime verification.
 Keep wording direct and factual.
 Avoid slogans, metaphors and dramatic phrasing.
 Keep the main explanation brief.
