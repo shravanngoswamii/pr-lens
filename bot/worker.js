@@ -38,9 +38,9 @@ export async function doctor(config, gh = github(config)) {
   return { github: config.login, requesters: config.requesters.map(user => user.login).join(', '), claude: auth.subscriptionType ?? auth.authMethod };
 }
 
-export async function runRequest(config, gh, url, state, save, { retry = false, collect = collectContext, review = (collected, dir) => reviewContext(collected, dir, undefined, { model: config.model }), inspect = inspectHTML, deploy = publish, wait = waitForPublication, log = console.log } = {}) {
+export async function runRequest(config, gh, url, state, save, { retry = false, collect = collectContext, review = (collected, dir, options) => reviewContext(collected, dir, undefined, options), inspect = inspectHTML, deploy = publish, wait = waitForPublication, log = console.log } = {}) {
   const reference = parseRequest(url);
-  const request = reference.inbox ? await checkRequest(reference, config, gh) : reference;
+  let request = reference.inbox ? await checkRequest(reference, config, gh) : reference;
   const previous = state.requests[request.id];
   if (previous?.status === 'posted') return previous;
   if (previous && !retry) throw new Error('Request already started. Use retry to resume it');
@@ -49,8 +49,10 @@ export async function runRequest(config, gh, url, state, save, { retry = false, 
   const findReply = async () => (await gh.pages(responsePath)).find(item => item.user?.login?.toLowerCase() === config.login.toLowerCase() && item.body?.includes(reviewMarker(request.id)));
   const posted = await findReply();
   if (posted) { state.requests[request.id] = { status: 'posted', comment: posted.html_url }; await save(); return state.requests[request.id]; }
-  await checkRequest(request, config, gh);
-  const job = state.requests[request.id] = { ...previous, status: 'running', request: url, updatedAt: new Date().toISOString() };
+  request = await checkRequest(request, config, gh);
+  const settings = { ...(config.model ? { model: config.model } : {}), ...(config.effort ? { effort: config.effort } : {}), ...request.options };
+  if (previous?.options && ['model', 'effort'].some(key => previous.options[key] !== settings[key])) throw new Error('Review settings changed. Post a new request');
+  const job = state.requests[request.id] = { ...previous, options: settings, status: 'running', request: url, updatedAt: new Date().toISOString() };
   await save();
   try {
     if (!request.eventId) await gh.api(`repos/${request.inbox?.repo ?? request.repo}/issues/comments/${request.inbox?.comment ?? request.id}/reactions`, { method: 'POST', body: { content: 'eyes' } });
@@ -64,7 +66,7 @@ export async function runRequest(config, gh, url, state, save, { retry = false, 
       log(`Collecting ${request.repo} #${request.number}`);
       const collected = await collect(gh, request, attempt);
       log('Reviewing with Claude');
-      doc = await review(collected, attempt);
+      doc = await review(collected, attempt, settings);
       await inspect(join(attempt, 'index.html'), doc);
       job.document = join(attempt, 'review.json');
       job.directory = attempt;

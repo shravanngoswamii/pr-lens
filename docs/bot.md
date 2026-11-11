@@ -3,10 +3,38 @@
 Post a public PR URL on the configured inbox issue for an immediate review.
 You can also comment `@YOUR-BOT review` on a public PR, or request the bot as a reviewer.
 Only accounts listed in the bot repository's `REVIARY_CONFIG` can request reviews.
-Use the whole comment for the PR URL or mention command.
+Use the whole comment for the PR URL or mention command with optional model and effort flags.
 Inline comments are not triggers.
 Reviewer requests require the bot to be a repository collaborator.
 The requester also needs GitHub's permission to assign reviewers.
+
+## Review options
+
+Append options to a mention or inbox URL:
+
+```text
+@YOUR-BOT review --model opus --effort high
+https://github.com/OWNER/REPO/pull/NUMBER --model sonnet --effort medium
+```
+
+| Model | Effort | Options |
+| --- | --- | --- |
+| Sonnet | Medium | `--model sonnet --effort medium` |
+| Sonnet | High | `--model sonnet --effort high` |
+| Opus | High | `--model opus --effort high` |
+| Opus | Extra high | `--model opus --effort xhigh` |
+| Opus | Max | `--model opus --effort max` |
+
+Either flag is optional.
+Missing values use the bot configuration, then Claude's defaults.
+Reviewer requests use the bot configuration.
+Use a model alias or full model ID your subscription supports.
+Effort accepts `low`, `medium`, `high`, `xhigh` and `max`.
+Available levels depend on the selected model.
+Higher effort can use more subscription allowance.
+Unknown flags, duplicate flags and extra text are rejected.
+Post a new comment to change options after a review starts.
+See [Claude model and effort settings](https://code.claude.com/docs/en/model-config).
 
 ## Where it runs
 
@@ -42,8 +70,8 @@ Deployment and the live revision are checked before replying.
 Follow [setup](setup.md) with your own accounts and credentials.
 Each bot owner chooses their requesters.
 GitHub account IDs pin their identities.
-Set `model` to a Claude Code model alias or full name.
-The report records the requested model and provider-reported model names under About this review.
+Set `model` and optional `effort` as the defaults.
+The report records the requested model, effort and provider-reported model names under About this review.
 Older reports may lack model metadata.
 
 The hosted worker currently supports Claude subscriptions.

@@ -1,5 +1,7 @@
 {
   "version": 1,
+  "model": "sonnet",
+  "effort": "medium",
   "sandbox": "your-bot",
   "login": "your-bot",
   "requesters": [

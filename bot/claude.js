@@ -1,4 +1,5 @@
 import { run } from './process.js';
+import { validateOptions } from './options.js';
 
 export const responseSchema = {
   type: 'object', properties: {
@@ -12,9 +13,10 @@ export function claudeEnvironment(env = process.env) {
   return Object.fromEntries(allowed.filter(key => env[key] !== undefined).map(key => [key, env[key]]));
 }
 
-export async function askClaude(prompt, cwd, execute = run, { model, onModels = () => {} } = {}) {
+export async function askClaude(prompt, cwd, execute = run, { model, effort, onModels = () => {} } = {}) {
+  validateOptions({ model, effort });
   const { stdout } = await execute('claude', ['-p', '--output-format', 'json', '--json-schema', JSON.stringify(responseSchema),
-    '--tools', '', '--disable-slash-commands', '--setting-sources', '', '--strict-mcp-config', '--mcp-config', '{"mcpServers":{}}', '--no-session-persistence', ...(model ? ['--model', model] : [])],
+    '--tools', '', '--disable-slash-commands', '--setting-sources', '', '--strict-mcp-config', '--mcp-config', '{"mcpServers":{}}', '--no-session-persistence', ...(model ? ['--model', model] : []), ...(effort ? ['--effort', effort] : [])],
   { input: prompt, cwd, env: claudeEnvironment(), timeout: 10 * 60 * 1000 });
   let output;
   try { output = JSON.parse(stdout); } catch { throw new Error('Claude returned invalid JSON'); }

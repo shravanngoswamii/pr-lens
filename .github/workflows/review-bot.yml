@@ -102,8 +102,8 @@ jobs:
           import { tmpdir } from 'node:os';
           import { join } from 'node:path';
           import { askClaude } from './bot/claude.js';
-          const { model } = JSON.parse(process.env.REVIEW_BOT_CONFIG);
-          const result = await askClaude('Return exactly {"files":[]}. This checks subscription authentication.', await mkdtemp(join(tmpdir(), 'reviary-check-')), undefined, { model, onModels: names => console.log(`Claude models: ${names.join(', ') || 'unreported'}`) });
+          const { model, effort } = JSON.parse(process.env.REVIEW_BOT_CONFIG);
+          const result = await askClaude('Return exactly {"files":[]}. This checks subscription authentication.', await mkdtemp(join(tmpdir(), 'reviary-check-')), undefined, { model, effort, onModels: names => console.log(`Claude models: ${names.join(', ') || 'unreported'}`) });
           if (!Array.isArray(result.files) || result.files.length) throw new Error('Subscription check did not complete');
           console.log('Claude subscription request completed.');
           JS

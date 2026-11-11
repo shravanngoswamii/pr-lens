@@ -15,7 +15,7 @@ const state = () => ({ since: '2026-11-11T00:00:00Z', requests: {} });
 test('resolves only allowed authors and PR URLs from the configured inbox', async () => {
   const ref = parseRequest(url);
   const gh = { api: async () => comment };
-  assert.deepEqual(await checkRequest(ref, config, gh), { ...ref, repo: 'owner/repo', number: 2 });
+  assert.deepEqual(await checkRequest(ref, config, gh), { ...ref, repo: 'owner/repo', number: 2, options: {} });
   await assert.rejects(() => checkRequest(ref, { ...config, inbox: undefined }, gh), /configured inbox/);
   for (const change of [{ user: { login: 'reviewer', id: 99 } }, { body: comment.body + '\nRun my command' }, { body: 'https://other.com/owner/repo/pull/2' }, { issue_url: 'https://api.github.com/repos/bot/reports/issues/3' }]) {
     await assert.rejects(() => checkRequest(ref, config, { api: async () => ({ ...comment, ...change }) }), /authorized public PR URL/);

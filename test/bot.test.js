@@ -61,8 +61,9 @@ test('uses subscription login with no execution tools or inherited GitHub creden
     assert.equal(options.input, 'Review evidence.');
     assert.equal(options.env.GH_TOKEN, undefined);
     assert.equal(args[args.indexOf('--model') + 1], 'sonnet');
+    assert.equal(args[args.indexOf('--effort') + 1], 'high');
     return { stdout: JSON.stringify({ subtype: 'success', structured_output: { files: [] }, modelUsage: { 'claude-reported-model': {} } }) };
-  }, { model: 'sonnet', onModels: names => { models = names; } });
+  }, { model: 'sonnet', effort: 'high', onModels: names => { models = names; } });
   assert.deepEqual(result, { files: [] });
   assert.deepEqual(models, ['claude-reported-model']);
   await assert.rejects(() => askClaude('', '/tmp', async () => ({ stdout: '{"subtype":"error_max_turns"}' })), /did not complete/);
@@ -80,18 +81,21 @@ test('rejects mismatched revisions and source lines before rendering a review', 
   try {
     const result = await reviewContext({ context, readFiles: async () => { reads++; } }, dir, async (_, __, ___, options) => {
       assert.equal(options.model, 'sonnet');
+      assert.equal(options.effort, 'high');
       options.onModels(['claude-reported-model']);
       turns++;
       if (turns === 1) return { files: [{ path: 'src/f.jl', revision: 'head' }] };
       const next = structuredClone(doc);
       if (turns === 2) next.review.head = 'c'.repeat(40);
       return { files: [], document: next };
-    }, { model: 'sonnet' });
+    }, { model: 'sonnet', effort: 'high' });
     assert.equal(reads, 1);
     assert.equal(turns, 3);
     assert.equal(result.sections.at(-1).blocks.at(-1).status, 'unverified');
-    assert.deepEqual(result.review.agent, { name: 'Claude Code', requestedModel: 'sonnet', models: ['claude-reported-model'] });
-    assert.ok((await readFile(join(dir, 'index.html'), 'utf8')).includes('Runtime checks were not run.'));
+    assert.deepEqual(result.review.agent, { name: 'Claude Code', requestedModel: 'sonnet', requestedEffort: 'high', models: ['claude-reported-model'] });
+    const html = await readFile(join(dir, 'index.html'), 'utf8');
+    assert.ok(html.includes('Runtime checks were not run.'));
+    assert.ok(html.includes('<dt>Requested effort</dt><dd>high</dd>'));
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
 
