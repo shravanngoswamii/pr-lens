@@ -32,6 +32,7 @@ const fixture = () => {
 test('reuses a cloud session, validates its output and renders a source-linked report', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'reviary-cloud-review-'));
   const value = fixture();
+  value.doc.review.checkedAt = '2026-11-11T16:00:00Z';
   let sends = 0;
   try {
     const result = await reviewCloud(config, value.gh, request, value.collected, dir, {}, { send: async (session, prompt) => {
@@ -44,6 +45,8 @@ test('reuses a cloud session, validates its output and renders a source-linked r
     assert.equal(sends, 1);
     assert.equal(result.review.agent.session, `https://claude.ai/code/${id}`);
     assert.equal(result.review.agent.requestedModel, 'sonnet');
+    assert.equal(result.review.checkedAt, value.collected.context.review.checkedAt);
+    assert.equal(value.doc.review.checkedAt, '2026-11-11T16:00:00Z');
     assert.ok((await readFile(join(dir, 'index.html'), 'utf8')).includes('Open in Claude'));
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
@@ -57,9 +60,13 @@ test('a pending review survives retries without queuing the same message twice',
     for (let i = 0; i < 2; i++) await assert.rejects(() => reviewCloud(config, value.gh, request, value.collected, dir, {}, options), /still pending/);
     assert.equal(sends, 1);
     value.ready();
-    await reviewCloud(config, value.gh, request, value.collected, dir, {}, options);
+    value.collected.context.review.checkedAt = '2026-11-11T16:05:00Z';
+    const result = await reviewCloud(config, value.gh, request, value.collected, dir, {}, options);
+    assert.equal(result.review.checkedAt, value.collected.context.review.checkedAt);
     assert.equal(sends, 1);
     await assert.rejects(() => reviewCloud(config, value.gh, { ...request, options: { model: 'opus' } }, value.collected, dir, {}, options), /needs --fresh/);
+    value.doc.review.head = 'f'.repeat(40);
+    await assert.rejects(() => reviewCloud(config, value.gh, request, value.collected, dir, {}, options), /review.head does not match/);
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
 

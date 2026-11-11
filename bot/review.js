@@ -23,6 +23,8 @@ export function checkReview(doc, context) {
 }
 
 export async function saveReview(doc, context, dir, agent) {
+  doc = structuredClone(doc);
+  if (doc?.review) doc.review.checkedAt = context.review.checkedAt;
   checkReview(doc, context);
   doc.review.agent = agent;
   const section = doc.sections.find(section => section.group === 'review');
