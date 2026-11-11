@@ -52,7 +52,7 @@ export function initReport(doc) {
       const summary = element('summary', '', details);
       element('span', `${edge ? `${edge.label}: ` : ''}${node.title}`, summary).className = 'linked-title';
       const shortName = node.url.replace('https://github.com/', '').replace(/\/(?:pull|issues)\//, '#');
-      element('span', `${shortName} · ${node.kind} · ${node.state} · ${node.status}${cycle ? ' · cycle back' : ''}`, summary).className = 'block-meta';
+      element('span', `${shortName} | ${node.kind} | ${node.state} | ${node.status}${cycle ? ' | cycle back' : ''}`, summary).className = 'block-meta';
       let filled = false;
       details.addEventListener('toggle', () => {
         if (!details.open || filled) return;

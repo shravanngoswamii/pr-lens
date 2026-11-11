@@ -89,7 +89,7 @@ async function draw(original, index, requestedMode) {
       const list = element('details', '', selection); list.className = 'definition-list';
       element('summary', `Changed definitions (${definitions.length})`, list);
       for (const item of definitions) {
-        const detail = element('details', '', list); element('summary', `${item.name} · ${item.change}`, detail);
+        const detail = element('details', '', list); element('summary', `${item.name} | ${item.change}`, detail);
         for (const side of ['before', 'after']) if (item[side]) {
           element('p', side === 'before' ? 'Base' : 'Head', detail);
           element('code', item[side].signature, element('pre', '', detail));
@@ -112,7 +112,7 @@ async function draw(original, index, requestedMode) {
       const from = graph.nodes.find(n => n.id === edge.from).label;
       const to = graph.nodes.find(n => n.id === edge.to).label;
       element('strong', `${from} ${edge.label} ${to}`, element('p', '', relationships));
-      element('p', `${edge.change && edge.change !== 'unchanged' ? edge.change + ' · ' : ''}${edge.status}: ${edge.text}`, relationships);
+      element('p', `${edge.change && edge.change !== 'unchanged' ? edge.change + ' | ' : ''}${edge.status}: ${edge.text}`, relationships);
       addRefs(edge.refs, relationships);
     }
     svg?.querySelectorAll('.node').forEach(n => n.setAttribute('aria-pressed', String(n.dataset.nodeIndex === String(i))));

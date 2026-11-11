@@ -27,7 +27,7 @@ export function reviewComment(doc, url, request) {
   }
   if (!findings.length) lines.push('', 'No findings reported in this source review.');
   if (doc.review.agent?.session) lines.push('', `[Claude session](${doc.review.agent.session})`);
-  lines.push('', `[Review report](${url}) · [Editable source](${url}review.json)`, '', doc.review.agent?.session ? 'Source review. Package-test results were not verified.' : 'PR code and runtime tests were not run.', '', `${reviewMarker(request.id)}${doc.review.head} -->`);
+  lines.push('', `[Review report](${url}) | [Editable source](${url}review.json)`, '', doc.review.agent?.session ? 'Source review. Package-test results were not verified.' : 'PR code and runtime tests were not run.', '', `${reviewMarker(request.id)}${doc.review.head} -->`);
   return lines.join('\n');
 }
 

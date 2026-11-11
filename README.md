@@ -4,7 +4,7 @@ Source-linked PR reviews with interactive diagrams.
 An agent writes JSON.
 The renderer builds offline HTML.
 
-[Skill](SKILL.md) · [Format](docs/format.md) · [Bot setup](docs/setup.md) · [Examples](examples/README.md)
+[Skill](SKILL.md) | [Format](docs/format.md) | [Bot setup](docs/setup.md) | [Examples](examples/README.md)
 
 ## Use
 

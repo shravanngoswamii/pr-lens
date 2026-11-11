@@ -110,7 +110,7 @@ export function initFeedback(doc) {
       check.checked = selected.has(comment.id);
       check.setAttribute('aria-label', `Include comment in agent prompt: ${comment.text.slice(0, 80)}`);
       check.addEventListener('change', () => { check.checked ? selected.add(comment.id) : selected.delete(comment.id); updatePrompt(); });
-      make('span', `${comment.kind}${comment.author ? ` by ${comment.author}` : ''} · ${comment.status}`, label);
+      make('span', `${comment.kind}${comment.author ? ` by ${comment.author}` : ''} | ${comment.status}`, label);
       const target = describeTarget(doc, comment.target);
       make('p', target.label, row, 'comment-location');
       if (target.missing) make('p', 'Location removed. Check its original context.', row, 'feedback-help');
