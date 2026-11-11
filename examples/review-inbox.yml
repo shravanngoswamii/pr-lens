@@ -23,16 +23,16 @@ permissions:
 jobs:
   review:
     if: >-
-      vars.PR_LENS_ENABLED == 'true' &&
+      vars.REVIARY_ENABLED == 'true' &&
       (github.event_name != 'issue_comment' ||
        (!github.event.issue.pull_request &&
-        github.event.issue.number == fromJSON(vars.PR_LENS_CONFIG).inbox.issue &&
-        contains(fromJSON(vars.PR_LENS_CONFIG).requesters.*.id, github.event.comment.user.id)))
+        github.event.issue.number == fromJSON(vars.REVIARY_CONFIG).inbox.issue &&
+        contains(fromJSON(vars.REVIARY_CONFIG).requesters.*.id, github.event.comment.user.id)))
     uses: OWNER/TOOL/.github/workflows/review-bot.yml@COMMIT_SHA
     with:
       tool_repository: OWNER/TOOL
       tool_ref: COMMIT_SHA
-      config_json: ${{ vars.PR_LENS_CONFIG }}
+      config_json: ${{ vars.REVIARY_CONFIG }}
       comment_url: ${{ inputs.comment_url || '' }}
       retry: ${{ inputs.retry || false }}
       check_subscription: ${{ inputs.check_subscription || false }}

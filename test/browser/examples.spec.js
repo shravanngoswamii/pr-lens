@@ -6,7 +6,7 @@ import { pathToFileURL } from 'node:url';
 import { render } from '../../src/render.js';
 
 test('renders both shipped reviews with offline node selection', async ({ page, context }) => {
-  const dir = await mkdtemp(join(tmpdir(), 'review-docs-examples-'));
+  const dir = await mkdtemp(join(tmpdir(), 'reviary-examples-'));
   try {
     await context.setOffline(true);
     for (const name of ['dynamicppl-1529', 'abstractmcmc-222']) {

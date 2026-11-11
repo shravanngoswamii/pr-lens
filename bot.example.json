@@ -8,12 +8,12 @@
       "id": 0
     }
   ],
-  "stateDir": "/absolute/path/to/review-docs/output/bot-state",
+  "stateDir": "/absolute/path/to/reviary/output/bot-state",
   "publish": {
     "checkout": "/absolute/path/to/site-checkout",
-    "repo": "your-bot/pr-lens-reports",
+    "repo": "your-bot/reviary-reports",
     "branch": "gh-pages",
     "prefix": "reviews",
-    "url": "https://your-bot.github.io/pr-lens-reports"
+    "url": "https://your-bot.github.io/reviary-reports"
   }
 }

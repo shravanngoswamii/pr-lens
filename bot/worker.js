@@ -9,6 +9,8 @@ import { inspectHTML } from './inspect.js';
 import { publish, waitForPublication } from './publish.js';
 
 const markdown = text => text.replace(/[\\`*_{}\[\]<>#]/g, '\\$&').replace(/@/g, '&#64;');
+// Earlier replies use this marker for deduplication.
+const reviewMarker = id => `<!-- review-docs:${id}:`;
 const excerpt = (text, limit) => {
   const sentence = text.match(/^.*?[.!?](?:\s|$)/s)?.[0].trim() ?? text.trim();
   return sentence.length <= limit ? sentence : sentence.slice(0, limit - 3).replace(/\s+\S*$/, '') + '...';
@@ -22,7 +24,7 @@ export function reviewComment(doc, url, request) {
     lines.push('', `- ${finding.status}: ${source ? `[${markdown(finding.title)}](${source.url})` : markdown(finding.title)}. ${markdown(excerpt(finding.text, 200))}`);
   }
   if (!findings.length) lines.push('', 'No findings reported in this source review.');
-  lines.push('', `[Review report](${url}) · [Editable source](${url}review.json)`, '', 'PR code and runtime tests were not run.', '', `<!-- review-docs:${request.id}:${doc.review.head} -->`);
+  lines.push('', `[Review report](${url}) · [Editable source](${url}review.json)`, '', 'PR code and runtime tests were not run.', '', `${reviewMarker(request.id)}${doc.review.head} -->`);
   return lines.join('\n');
 }
 
@@ -44,7 +46,7 @@ export async function runRequest(config, gh, url, state, save, { retry = false, 
   if (previous && !retry) throw new Error('Request already started. Use retry to resume it');
   if ((await gh.api(`repos/${request.repo}`)).private) throw new Error('Public PRs only. No private content will be published');
   const responsePath = request.eventId ? `repos/${request.repo}/pulls/${request.number}/reviews` : `repos/${request.repo}/issues/${request.number}/comments`;
-  const findReply = async () => (await gh.pages(responsePath)).find(item => item.user?.login?.toLowerCase() === config.login.toLowerCase() && item.body?.includes(`<!-- review-docs:${request.id}:`));
+  const findReply = async () => (await gh.pages(responsePath)).find(item => item.user?.login?.toLowerCase() === config.login.toLowerCase() && item.body?.includes(reviewMarker(request.id)));
   const posted = await findReply();
   if (posted) { state.requests[request.id] = { status: 'posted', comment: posted.html_url }; await save(); return state.requests[request.id]; }
   await checkRequest(request, config, gh);

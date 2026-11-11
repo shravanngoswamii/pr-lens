@@ -28,7 +28,7 @@ test('creates a portable configuration with resolved requester identities', asyn
 });
 
 test('prints configuration JSON without creating an instance file', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'pr-lens-config-cli-'));
+  const dir = await mkdtemp(join(tmpdir(), 'reviary-config-cli-'));
   try {
     await writeFile(join(dir, 'gh'), '#!/usr/bin/env node\nconsole.log(JSON.stringify({login:"reviewer",id:12}));\n', { mode: 0o755 });
     const script = fileURLToPath(new URL('../scripts/configure-bot.js', import.meta.url));
@@ -39,7 +39,7 @@ test('prints configuration JSON without creating an instance file', async () => 
 });
 
 test('requires caller configuration even when an instance file is present', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'pr-lens-config-source-'));
+  const dir = await mkdtemp(join(tmpdir(), 'reviary-config-source-'));
   const env = { ...process.env }; delete env.REVIEW_BOT_CONFIG;
   const script = fileURLToPath(new URL('../bot/hosted.js', import.meta.url));
   try {
@@ -77,7 +77,7 @@ test('uses the runner GitHub identity without changing local gh-sandbox behavior
 });
 
 test('checks requests before starting Claude and advances idle checkpoints', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'review-docs-hosted-scan-'));
+  const dir = await mkdtemp(join(tmpdir(), 'reviary-hosted-scan-'));
   const config = hostedConfig(input, dir);
   const paths = [];
   const gh = { api: async () => ({ login: 'review-bot' }), pages: async path => { paths.push(path); return []; } };
@@ -93,7 +93,7 @@ test('checks requests before starting Claude and advances idle checkpoints', asy
 });
 
 test('caches completed metadata while retaining failed review artifacts for retry', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'review-docs-hosted-state-'));
+  const dir = await mkdtemp(join(tmpdir(), 'reviary-hosted-state-'));
   const config = hostedConfig(input, dir);
   try {
     for (const name of ['12', '34', 'review-56', 'inbox-78', 'lock']) await mkdir(join(config.stateDir, name), { recursive: true });

@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { inventory } from '../scripts/inventory.js';
 
 test('compares parsed declarations without evaluating code and keeps scope and unknown expansion visible', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'review-docs-definitions-'));
+  const dir = mkdtempSync(join(tmpdir(), 'reviary-definitions-'));
   const git = args => execFileSync('git', ['-C', dir, ...args], { encoding: 'utf8' }).trim();
   const commit = () => { git(['add', '.']); git(['-c', 'user.name=Test', '-c', 'user.email=test@example.com', 'commit', '-qm', 'Change declarations']); return git(['rev-parse', 'HEAD']); };
   try {
@@ -32,10 +32,10 @@ test('compares parsed declarations without evaluating code and keeps scope and u
     assert.throws(() => inventory(dir, 'main', head), /full base/);
     assert.throws(() => inventory(dir, base, head, ['../']), /relative scope/);
     const output = join(dir, 'inventory.json');
-    execFileSync(process.execPath, ['bin/review-docs.js', 'inventory', dir, '--base', base, '--head', head, '--out', output]);
+    execFileSync(process.execPath, ['bin/reviary.js', 'inventory', dir, '--base', base, '--head', head, '--out', output]);
     assert.deepEqual(JSON.parse(readFileSync(output, 'utf8')), result);
     writeFileSync(file, 'function broken(');
     const broken = commit();
-    assert.throws(() => inventory(dir, head, broken), /review-docs:/);
+    assert.throws(() => inventory(dir, head, broken), /reviary:/);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });

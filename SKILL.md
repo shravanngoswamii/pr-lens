@@ -1,5 +1,5 @@
 ---
-name: review-docs
+name: reviary
 description: Turn a PR into an editable, source-linked HTML design review.
 ---
 
@@ -113,8 +113,8 @@ Review wording only when a replacement helps.
 ## Render
 
 ```sh
-node bin/review-docs.js validate review.json
-node bin/review-docs.js render review.json --out review.html
+node bin/reviary.js validate review.json
+node bin/reviary.js render review.json --out review.html
 ```
 
 Open the HTML offline at desktop and phone widths.

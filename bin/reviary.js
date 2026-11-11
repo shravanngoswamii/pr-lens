@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 import { validate } from '../src/document.js';
 import { validateFeedback, buildPrompt } from '../src/feedback.js';
 
-const usage = 'Usage: review-docs validate review.json\n       review-docs render review.json --out review.html [--feedback feedback.json]\n       review-docs inventory REPO --base SHA --head SHA --out inventory.json [--scope src/,ext/]\n       review-docs snapshot review.json --diagram ID --out design.json\n       review-docs baseline review.json --from design.json --out updated.json\n       review-docs prompt review.json --feedback feedback.json --out prompt.txt [--purpose review|code]\n       review-docs extract review.html --out review.json --feedback-out feedback.json';
+const usage = 'Usage: reviary validate review.json\n       reviary render review.json --out review.html [--feedback feedback.json]\n       reviary inventory REPO --base SHA --head SHA --out inventory.json [--scope src/,ext/]\n       reviary snapshot review.json --diagram ID --out design.json\n       reviary baseline review.json --from design.json --out updated.json\n       reviary prompt review.json --feedback feedback.json --out prompt.txt [--purpose review|code]\n       reviary extract review.html --out review.json --feedback-out feedback.json';
 try {
   const [command, input, ...args] = process.argv.slice(2);
   const flags = { snapshot: ['--diagram', '--view', '--out'], baseline: ['--from', '--out'], validate: [], render: ['--out', '--feedback'], inventory: ['--base', '--head', '--out', '--scope'], prompt: ['--out', '--feedback', '--purpose'], extract: ['--out', '--feedback-out'] };
@@ -50,6 +50,6 @@ try {
     }
   }
 } catch (error) {
-  console.error(`review-docs: ${error.message}`);
+  console.error(`reviary: ${error.message}`);
   process.exitCode = 1;
 }

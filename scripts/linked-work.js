@@ -163,5 +163,5 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     await writeFile(options['--out'], JSON.stringify(result, null, 2) + '\n');
     console.log(`${options['--out']}: ${result.block.nodes.length} discovered, ${result.block.nodes.filter(node => node.status === 'read').length} fully read. Complete: ${result.block.complete}.`);
     if (result.block.nodes.find(node => node.id === result.block.root).status === 'unreadable') process.exitCode = 1;
-  } catch (error) { console.error(`review-docs: ${error.message}`); process.exitCode = 1; }
+  } catch (error) { console.error(`reviary: ${error.message}`); process.exitCode = 1; }
 }

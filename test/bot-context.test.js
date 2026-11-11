@@ -7,7 +7,7 @@ import { run } from '../bot/process.js';
 import { collectContext } from '../bot/context.js';
 
 test('collects exact source snapshots without executing repository hooks or following symlinks', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'review-docs-bot-context-'));
+  const dir = await mkdtemp(join(tmpdir(), 'reviary-bot-context-'));
   const repo = join(dir, 'repo'), job = join(dir, 'job'), marker = join(dir, 'executed');
   await mkdir(repo); await mkdir(job);
   const git = async args => (await run('git', ['-C', repo, '-c', 'user.name=Test', '-c', 'user.email=test@example.com', '-c', 'commit.gpgsign=false', ...args])).stdout.trim();

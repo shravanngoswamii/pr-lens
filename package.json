@@ -1,10 +1,9 @@
 {
-  "name": "pr-lens",
+  "name": "reviary",
   "private": true,
   "type": "module",
   "bin": {
-    "pr-lens": "bin/review-docs.js",
-    "review-docs": "bin/review-docs.js",
+    "reviary": "bin/reviary.js",
     "review-bot": "bin/review-bot.js"
   },
   "engines": {

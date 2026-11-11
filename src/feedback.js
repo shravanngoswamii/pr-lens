@@ -91,7 +91,7 @@ export function buildPrompt(doc, feedback, { ids, purpose = 'review' } = {}) {
   const comments = feedback.comments.filter(comment => selected.has(comment.id));
   if (!comments.length) throw new Error('Select at least one comment');
   const lines = [purpose === 'review'
-    ? 'Use the review-docs skill to revise this review from the selected feedback.'
+    ? 'Use the reviary skill to revise this review from the selected feedback.'
     : 'Investigate the selected feedback. Return findings and proposed fixes.',
   '', `PR: ${doc.review.url}`, `Title: ${doc.review.title}`, `Document ID: ${doc.id}`,
   `Reviewed base: ${doc.review.base}`, `Reviewed head: ${doc.review.head}`,
@@ -119,7 +119,7 @@ export function buildPrompt(doc, feedback, { ids, purpose = 'review' } = {}) {
 }
 
 export function buildTaskPrompt(doc, instructions, refs = []) {
-  return ['Use the review-docs skill for this PR.', '', `PR: ${doc.review.url}`, `Reviewed base: ${doc.review.base}`, `Reviewed head: ${doc.review.head}`,
+  return ['Use the reviary skill for this PR.', '', `PR: ${doc.review.url}`, `Reviewed base: ${doc.review.base}`, `Reviewed head: ${doc.review.head}`,
     ...(doc.review.diffBase ? [`Diff base: ${doc.review.diffBase}`] : []), '', instructions, '',
     ...refs.map(id => `Source: ${doc.sources.find(source => source.id === id).url}`), '',
     'Read the current PR, discussion and linked work. Separate these revisions from newer code.',

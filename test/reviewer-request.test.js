@@ -42,7 +42,7 @@ test('requires an active request from an allowed actor before spending model all
 });
 
 test('submits a comment review at the checked commit and recovers a lost response', async () => {
-  const stateDir = await mkdtemp(join(tmpdir(), 'pr-lens-reviewer-'));
+  const stateDir = await mkdtemp(join(tmpdir(), 'reviary-reviewer-'));
   const doc = document(); doc.review.base = pr.base.sha; doc.review.head = pr.head.sha;
   const reviews = [], steps = [], checkpoint = state();
   const gh = api([event]);
@@ -74,7 +74,7 @@ test('submits a comment review at the checked commit and recovers a lost respons
 });
 
 test('stops a cancelled request before publishing', async () => {
-  const stateDir = await mkdtemp(join(tmpdir(), 'pr-lens-cancel-'));
+  const stateDir = await mkdtemp(join(tmpdir(), 'reviary-cancel-'));
   const events = [event], gh = api(events);
   try {
     await assert.rejects(() => runRequest({ ...config, stateDir }, gh, url, state(), async () => {}, {

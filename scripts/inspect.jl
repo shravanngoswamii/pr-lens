@@ -72,7 +72,7 @@ if abspath(PROGRAM_FILE) == @__FILE__
     try
         ReviewFacts.main(ARGS)
     catch err
-        println(stderr, "review-docs: ", sprint(showerror, err))
+        println(stderr, "reviary: ", sprint(showerror, err))
         exit(1)
     end
 end

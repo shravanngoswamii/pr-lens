@@ -10,7 +10,7 @@ import { document } from '../fixture.js';
 let dir;
 let url;
 test.beforeAll(async () => {
-  dir = await mkdtemp(join(tmpdir(), 'review-docs-feedback-'));
+  dir = await mkdtemp(join(tmpdir(), 'reviary-feedback-'));
   await writeFile(join(dir, 'review.html'), await render(document()));
   url = pathToFileURL(join(dir, 'review.html')).href;
 });

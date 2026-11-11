@@ -10,7 +10,7 @@ A file group can collect many declarations without claiming calls between them.
 For Julia, collect declarations before choosing diagrams:
 
 ```sh
-node bin/review-docs.js inventory /path/to/repo --base BASE_SHA --head HEAD_SHA --out inventory.json
+node bin/reviary.js inventory /path/to/repo --base BASE_SHA --head HEAD_SHA --out inventory.json
 ```
 
 Use the merge base for `BASE_SHA` and record `review.diffBase` when needed.
@@ -60,7 +60,7 @@ Check runtime effects separately.
 Export the reviewed head graph:
 
 ```sh
-node bin/review-docs.js snapshot review.json --diagram bindings --out design.json
+node bin/reviary.js snapshot review.json --diagram bindings --out design.json
 ```
 
 Add `--view base` to export the embedded baseline instead.
@@ -68,8 +68,8 @@ The snapshot keeps one revision, stable IDs and its source references.
 To reuse it in a later review with the same diagram ID:
 
 ```sh
-node bin/review-docs.js baseline next-review.json --from design.json --out with-baseline.json
-node bin/review-docs.js render with-baseline.json --out review.html
+node bin/reviary.js baseline next-review.json --from design.json --out with-baseline.json
+node bin/reviary.js render with-baseline.json --out review.html
 ```
 
 Import checks the repository and exact diff-base revision and handles source-ID collisions.

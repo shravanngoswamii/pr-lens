@@ -10,7 +10,7 @@ export function inventory(repo, base, head, scope = ['src/', 'ext/']) {
   const git = args => execFileSync('git', ['-C', repo, ...args], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
   const lists = new Map([base, head].map(sha => [sha, new Set(git(['ls-tree', '-r', '--name-only', '-z', sha]).split('\0').filter(Boolean))]));
   const files = git(['diff', '--name-only', '--no-renames', '-z', base, head, '--', '*.jl']).split('\0').filter(path => path && scope.some(prefix => prefix === '.' || path === prefix || path.startsWith(prefix.endsWith('/') ? prefix : prefix + '/'))).sort();
-  const dir = mkdtempSync(join(tmpdir(), 'review-docs-inventory-'));
+  const dir = mkdtempSync(join(tmpdir(), 'reviary-inventory-'));
   try {
     const entries = [];
     for (const sha of [base, head]) for (const path of files) {

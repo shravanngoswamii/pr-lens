@@ -25,5 +25,5 @@ if (process.argv[1] && import.meta.url === new URL(process.argv[1], 'file:').hre
     const args = process.argv.slice(2);
     if (args.length !== 3) throw new Error('Usage: changed-lines.js REPO BASE_SHA HEAD_SHA');
     console.log(JSON.stringify(changedLines(...args), null, 2));
-  } catch (err) { console.error(`review-docs: ${err.message}`); process.exitCode = 1; }
+  } catch (err) { console.error(`reviary: ${err.message}`); process.exitCode = 1; }
 }

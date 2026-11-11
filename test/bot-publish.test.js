@@ -7,7 +7,7 @@ import { run } from '../bot/process.js';
 import { publish, waitForPublication } from '../bot/publish.js';
 
 test('publishes only reviewed artifacts to a clean dedicated checkout without force pushing', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'review-docs-bot-publish-'));
+  const dir = await mkdtemp(join(tmpdir(), 'reviary-bot-publish-'));
   const remote = join(dir, 'remote.git'), checkout = join(dir, 'site'), artifact = join(dir, 'artifact');
   const git = async args => (await run('git', ['-c', 'user.name=Test', '-c', 'user.email=test@example.com', '-c', 'commit.gpgsign=false', ...args])).stdout.trim();
   try {

@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { changedLines } from '../scripts/changed-lines.js';
 
 test('reports additions, deletions and zero-length hunk sides from exact revisions', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'review-docs-diff-'));
+  const dir = mkdtempSync(join(tmpdir(), 'reviary-diff-'));
   const git = args => execFileSync('git', ['-C', dir, ...args], { encoding: 'utf8' }).trim();
   const commit = () => { git(['add', '.']); git(['-c', 'user.name=Test', '-c', 'user.email=test@example.com', 'commit', '-qm', 'Change the fixture']); return git(['rev-parse', 'HEAD']); };
   try {

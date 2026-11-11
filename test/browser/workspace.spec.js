@@ -8,7 +8,7 @@ import { document } from '../fixture.js';
 
 let dir, url, plain;
 test.beforeAll(async () => {
-  dir = await mkdtemp(join(tmpdir(), 'review-docs-workspace-'));
+  dir = await mkdtemp(join(tmpdir(), 'reviary-workspace-'));
   const doc = document();
   const second = structuredClone(doc.sections[0].blocks[0]);
   second.id = 'second'; second.title = 'Another call path';

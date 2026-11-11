@@ -7,7 +7,7 @@ import { render } from '../../src/render.js';
 import { designDocument } from '../design-fixture.js';
 let dir, url;
 test.beforeAll(async () => {
-  dir = await mkdtemp(join(tmpdir(), 'review-docs-design-'));
+  dir = await mkdtemp(join(tmpdir(), 'reviary-design-'));
   await writeFile(join(dir, 'review.html'), await render(designDocument()));
   url = pathToFileURL(join(dir, 'review.html')).href;
 });

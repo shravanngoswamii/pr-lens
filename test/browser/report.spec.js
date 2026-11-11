@@ -13,7 +13,7 @@ const change = { type: 'diff', title: 'Explain the extension hook', text: 'A pro
 const title = 'Store values on Model';
 const description = '\nA shorter description.\r\n\r\nKeep the migration link.\nLiteral </script><img src=x onerror="window.pwned=1">';
 test.beforeAll(async () => {
-  dir = await mkdtemp(join(tmpdir(), 'review-docs-report-'));
+  dir = await mkdtemp(join(tmpdir(), 'reviary-report-'));
   const doc = document();
   doc.review.agent = { name: 'Claude Code', requestedModel: 'sonnet', models: ['claude-reported-model'] };
   doc.sections.push({ id: 'suggestions', title: 'Review actions', blocks: [change,

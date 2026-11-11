@@ -9,7 +9,7 @@ import { document } from '../fixture.js';
 let dir;
 let url;
 test.beforeAll(async () => {
-  dir = await mkdtemp(join(tmpdir(), 'review-docs-'));
+  dir = await mkdtemp(join(tmpdir(), 'reviary-'));
   const doc = document();
   doc.sections[0].blocks.push(
     { type: 'compare', title: 'A comparison', before: 'Old behavior.', after: 'New behavior.' },

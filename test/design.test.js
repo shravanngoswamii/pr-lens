@@ -40,14 +40,14 @@ test('rejects stale baselines, invalid coverage and contradictory inventory reco
 });
 
 test('CLI round-trips a snapshot and resolves removed-node placements when attaching the baseline', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'review-docs-snapshot-'));
+  const dir = mkdtempSync(join(tmpdir(), 'reviary-snapshot-'));
   const base = designDocument();
   const head = designDocument(); delete head.sections[0].blocks[0].baseline;
   const input = join(dir, 'base.json'); const current = join(dir, 'head.json'); const saved = join(dir, 'design.json'); const output = join(dir, 'review.json');
   try {
     writeFileSync(input, JSON.stringify(base)); writeFileSync(current, JSON.stringify(head));
-    execFileSync(process.execPath, ['bin/review-docs.js', 'snapshot', input, '--diagram', 'calls', '--view', 'base', '--out', saved]);
-    execFileSync(process.execPath, ['bin/review-docs.js', 'baseline', current, '--from', saved, '--out', output]);
+    execFileSync(process.execPath, ['bin/reviary.js', 'snapshot', input, '--diagram', 'calls', '--view', 'base', '--out', saved]);
+    execFileSync(process.execPath, ['bin/reviary.js', 'baseline', current, '--from', saved, '--out', output]);
     const result = validate(JSON.parse(readFileSync(output, 'utf8')));
     assert.equal(result.sections[0].blocks[0].baseline.revision, base.review.base);
     assert.deepEqual(result.sections[1].blocks[0].links, head.sections[1].blocks[0].links);

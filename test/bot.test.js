@@ -75,7 +75,7 @@ test('rejects mismatched revisions and source lines before rendering a review', 
   assert.throws(() => checkReview(doc, context), /valid lines/);
   doc.sources[0].url = doc.sources[0].url.replace('#L2', '#L1');
   assert.equal(checkReview(doc, context), doc);
-  const dir = await mkdtemp(join(tmpdir(), 'review-docs-bot-review-'));
+  const dir = await mkdtemp(join(tmpdir(), 'reviary-bot-review-'));
   let reads = 0, turns = 0;
   try {
     const result = await reviewContext({ context, readFiles: async () => { reads++; } }, dir, async (_, __, ___, options) => {
@@ -96,7 +96,7 @@ test('rejects mismatched revisions and source lines before rendering a review', 
 });
 
 test('serializes workers and saves state atomically', async () => {
-  const stateDir = await mkdtemp(join(tmpdir(), 'review-docs-bot-state-'));
+  const stateDir = await mkdtemp(join(tmpdir(), 'reviary-bot-state-'));
   try {
     await withState({ ...config, stateDir }, async (state, save) => {
       state.requests[12] = { status: 'posted' }; await save();
@@ -122,7 +122,7 @@ test('posts only after browser and deployment checks and recovers a landed comme
     }
     return {};
   } };
-  const stateDir = await mkdtemp(join(tmpdir(), 'review-docs-bot-job-'));
+  const stateDir = await mkdtemp(join(tmpdir(), 'reviary-bot-job-'));
   const state = { requests: {} };
   const steps = [];
   const options = { collect: async () => ({}), review: async (_, dir) => { steps.push('review'); await writeFile(join(dir, 'review.json'), JSON.stringify(doc)); return doc; },

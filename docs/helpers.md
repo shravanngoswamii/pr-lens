@@ -45,7 +45,7 @@ See [Julia reflection](https://docs.julialang.org/en/v1/base/reflection/).
 ## Definition inventory
 
 ```sh
-node bin/review-docs.js inventory /path/to/repo --base BASE_SHA --head HEAD_SHA --out inventory.json
+node bin/reviary.js inventory /path/to/repo --base BASE_SHA --head HEAD_SHA --out inventory.json
 ```
 
 Parses changed Julia files at both commits without loading the project.

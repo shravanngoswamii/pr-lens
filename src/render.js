@@ -85,7 +85,7 @@ export async function render(input, { feedback } = {}) {
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>${escape(doc.title)}</title><style>@font-face{font-family:"IBM Plex Sans";src:url(data:font/ttf;base64,${font.toString('base64')}) format('truetype');font-weight:100 700;font-display:swap}${css}</style></head>
 <body><a class="skip" href="#content">Skip to review</a>
 <aside class="sidebar" id="view-navigation" aria-label="Review navigation">
-<a class="home" data-view="${reading[0].id}" href="#${reading[0].id}"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M5 6h5v5H5zM14 13h5v5h-5zM7.5 11v4.5H14M10 8.5h6.5V13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>Review docs</a>
+<a class="home" data-view="${reading[0].id}" href="#${reading[0].id}"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M5 6h5v5H5zM14 13h5v5h-5zM7.5 11v4.5H14M10 8.5h6.5V13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>Reviary</a>
 <a class="review-scope" href="${escape(doc.review.url)}" target="_blank" rel="noopener noreferrer">${escape(scope)}</a>
 <nav aria-label="Views">${reading.map(chapter => `<a data-view="${chapter.id}" href="#${chapter.id}"${chapter.supporting ? ' class="supporting-link"' : ''}>${escape(chapter.title)}</a>`).join('')}<a data-view="sources" href="#sources">Sources</a></nav>
 <details class="review-context"><summary>About this review</summary></details></aside>

@@ -5,6 +5,7 @@ export function initFeedback(doc) {
   const toggle = document.querySelector('#comments-toggle');
   toggle.setAttribute('aria-expanded', 'false');
   const choices = targets(doc);
+  // Preserve feedback saved by earlier reports.
   const storageKey = `review-docs:${doc.review.url}:${doc.id}:${doc.review.head}`;
   let feedback = validateFeedback(JSON.parse(document.querySelector('#feedback-data').textContent), doc);
   let storageNotice = 'Local comments. Save HTML to keep or share.';

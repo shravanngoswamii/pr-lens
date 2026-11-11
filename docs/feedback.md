@@ -54,9 +54,9 @@ Old revisions and missing targets are flagged and retained.
 Comments are requests to check, not verified findings.
 
 ```sh
-node bin/review-docs.js render review.json --feedback feedback.json --out review.html
-node bin/review-docs.js prompt review.json --feedback feedback.json --out prompt.txt
-node bin/review-docs.js extract saved.html --out review.json --feedback-out feedback.json
+node bin/reviary.js render review.json --feedback feedback.json --out review.html
+node bin/reviary.js prompt review.json --feedback feedback.json --out prompt.txt
+node bin/reviary.js extract saved.html --out review.json --feedback-out feedback.json
 ```
 
 CLI prompts include open comments by default.

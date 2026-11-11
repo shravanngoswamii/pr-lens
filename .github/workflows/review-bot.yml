@@ -33,7 +33,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   review:
-    if: vars.PR_LENS_ENABLED == 'true' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    if: vars.REVIARY_ENABLED == 'true' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
@@ -103,7 +103,7 @@ jobs:
           import { join } from 'node:path';
           import { askClaude } from './bot/claude.js';
           const { model } = JSON.parse(process.env.REVIEW_BOT_CONFIG);
-          const result = await askClaude('Return exactly {"files":[]}. This checks subscription authentication.', await mkdtemp(join(tmpdir(), 'review-docs-check-')), undefined, { model, onModels: names => console.log(`Claude models: ${names.join(', ') || 'unreported'}`) });
+          const result = await askClaude('Return exactly {"files":[]}. This checks subscription authentication.', await mkdtemp(join(tmpdir(), 'reviary-check-')), undefined, { model, onModels: names => console.log(`Claude models: ${names.join(', ') || 'unreported'}`) });
           if (!Array.isArray(result.files) || result.files.length) throw new Error('Subscription check did not complete');
           console.log('Claude subscription request completed.');
           JS

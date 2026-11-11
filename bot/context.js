@@ -70,7 +70,7 @@ export async function collectContext(gh, request, dir, { execute = run } = {}) {
   if (files.some(path => path.endsWith('.jl'))) {
     try {
       const output = join(dir, 'inventory.json');
-      await run(process.execPath, [new URL('../bin/review-docs.js', import.meta.url).pathname, 'inventory', repository, '--base', diffBase, '--head', pr.head.sha, '--scope', '.', '--out', output], { timeout: 120000 });
+      await run(process.execPath, [new URL('../bin/reviary.js', import.meta.url).pathname, 'inventory', repository, '--base', diffBase, '--head', pr.head.sha, '--scope', '.', '--out', output], { timeout: 120000 });
       const { readFile } = await import('node:fs/promises');
       context.inventory = JSON.parse(await readFile(output, 'utf8'));
     } catch { context.limits.push('Julia declaration inventory could not be collected. Definition coverage is unverified.'); }

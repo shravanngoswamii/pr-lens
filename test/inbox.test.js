@@ -31,7 +31,7 @@ test('polling recovers inbox requests and ignores completed or unauthorized comm
 });
 
 test('reacts in the inbox and posts one reply on the target PR', async () => {
-  const stateDir = await mkdtemp(join(tmpdir(), 'pr-lens-inbox-'));
+  const stateDir = await mkdtemp(join(tmpdir(), 'reviary-inbox-'));
   const doc = document(), calls = [], replies = [], checkpoint = state();
   const gh = { pages: async () => replies, api: async (path, options) => {
     calls.push([path, options]);
