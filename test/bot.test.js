@@ -50,6 +50,7 @@ test('isolates GitHub accounts, paginates notifications and obeys the server pol
 
 test('uses subscription login with no execution tools or inherited GitHub credentials', async () => {
   assert.deepEqual(claudeEnvironment({ PATH: '/bin', HOME: '/home/user', GH_TOKEN: 'secret', ANTHROPIC_API_KEY: 'secret', CLAUDECODE: 'nested' }), { PATH: '/bin', HOME: '/home/user' });
+  let models;
   const result = await askClaude('Review evidence.', '/tmp', async (command, args, options) => {
     assert.equal(command, 'claude');
     assert.equal(args[args.indexOf('--tools') + 1], '');
@@ -57,9 +58,11 @@ test('uses subscription login with no execution tools or inherited GitHub creden
     assert.equal(args[args.indexOf('--setting-sources') + 1], '');
     assert.equal(options.input, 'Review evidence.');
     assert.equal(options.env.GH_TOKEN, undefined);
-    return { stdout: JSON.stringify({ subtype: 'success', structured_output: { files: [] } }) };
-  });
+    assert.equal(args[args.indexOf('--model') + 1], 'sonnet');
+    return { stdout: JSON.stringify({ subtype: 'success', structured_output: { files: [] }, modelUsage: { 'claude-reported-model': {} } }) };
+  }, { model: 'sonnet', onModels: names => { models = names; } });
   assert.deepEqual(result, { files: [] });
+  assert.deepEqual(models, ['claude-reported-model']);
   await assert.rejects(() => askClaude('', '/tmp', async () => ({ stdout: '{"subtype":"error_max_turns"}' })), /did not complete/);
 });
 
@@ -73,16 +76,19 @@ test('rejects mismatched revisions and source lines before rendering a review', 
   const dir = await mkdtemp(join(tmpdir(), 'review-docs-bot-review-'));
   let reads = 0, turns = 0;
   try {
-    const result = await reviewContext({ context, readFiles: async () => { reads++; } }, dir, async () => {
+    const result = await reviewContext({ context, readFiles: async () => { reads++; } }, dir, async (_, __, ___, options) => {
+      assert.equal(options.model, 'sonnet');
+      options.onModels(['claude-reported-model']);
       turns++;
       if (turns === 1) return { files: [{ path: 'src/f.jl', revision: 'head' }] };
       const next = structuredClone(doc);
       if (turns === 2) next.review.head = 'c'.repeat(40);
       return { files: [], document: next };
-    });
+    }, { model: 'sonnet' });
     assert.equal(reads, 1);
     assert.equal(turns, 3);
     assert.equal(result.sections.at(-1).blocks.at(-1).status, 'unverified');
+    assert.deepEqual(result.review.agent, { name: 'Claude Code', requestedModel: 'sonnet', models: ['claude-reported-model'] });
     assert.ok((await readFile(join(dir, 'index.html'), 'utf8')).includes('Runtime checks were not run.'));
   } finally { await rm(dir, { recursive: true, force: true }); }
 });

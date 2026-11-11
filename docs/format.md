@@ -29,6 +29,8 @@ Prose is plain text with blank lines between paragraphs.
 Replace placeholder SHAs with full commits.
 `base` and `head` come from the PR API.
 Add `review.diffBase` when the diff uses a different merge base.
+Optional `review.agent` records `{ name, requestedModel, models }`.
+`models` contains names reported by the provider, or an empty list when unavailable.
 Name the pair used for behavior checks.
 Timestamps use UTC ISO with optional fractions and `Z` or `+00:00`.
 

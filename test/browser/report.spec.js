@@ -15,6 +15,7 @@ const description = '\nA shorter description.\r\n\r\nKeep the migration link.\nL
 test.beforeAll(async () => {
   dir = await mkdtemp(join(tmpdir(), 'review-docs-report-'));
   const doc = document();
+  doc.review.agent = { name: 'Claude Code', requestedModel: 'sonnet', models: ['claude-reported-model'] };
   doc.sections.push({ id: 'suggestions', title: 'Review actions', blocks: [change,
     { type: 'proposal', title: 'Use a direct title', text: 'Name the design change.', kind: 'title', current: 'Long old title', suggested: title },
     { type: 'proposal', title: 'Shorten the description', text: 'Retain the important migration.', kind: 'description', current: 'Original body', suggested: description },
@@ -28,6 +29,9 @@ test('copies literal suggestions, an applicable patch and a task with source con
   await context.setOffline(true);
   await page.addInitScript(() => Object.defineProperty(navigator, 'clipboard', { value: { writeText: async text => { window.copied = text; } } }));
   await page.goto(url);
+  await page.getByText('About this review', { exact: true }).click();
+  await page.getByText('Revisions', { exact: true }).click();
+  await expect(page.getByText('claude-reported-model', { exact: true })).toBeVisible();
   await page.locator('.sidebar a[data-view="section-suggestions"]').click();
   await page.getByRole('button', { name: 'Copy title', exact: true }).click();
   expect(await page.evaluate(() => window.copied)).toBe(title);

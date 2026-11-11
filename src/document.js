@@ -38,7 +38,13 @@ export function validate(doc) {
   identifier(doc.id, '$.id');
   string(doc.title, '$.title');
   string(doc.summary, '$.summary');
-  object(doc.review, '$.review', ['url', 'title', 'base', 'head', 'diffBase', 'checkedAt']);
+  object(doc.review, '$.review', ['url', 'title', 'base', 'head', 'diffBase', 'checkedAt', 'agent']);
+  if (doc.review.agent !== undefined) {
+    object(doc.review.agent, '$.review.agent', ['name', 'requestedModel', 'models']);
+    for (const key of ['name', 'requestedModel']) string(doc.review.agent[key], `$.review.agent.${key}`);
+    array(doc.review.agent.models, '$.review.agent.models');
+    doc.review.agent.models.forEach((name, i) => string(name, `$.review.agent.models[${i}]`));
+  }
   string(doc.review.title, '$.review.title');
   if (!/^https:\/\/github\.com\/[^/?#]+\/[^/?#]+\/pull\/[1-9]\d*$/.test(doc.review.url)) fail('$.review.url', 'expected a GitHub PR URL');
   for (const key of ['base', 'head']) if (!SHA.test(doc.review[key])) fail(`$.review.${key}`, 'expected a full 40-character commit SHA');

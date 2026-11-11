@@ -12,12 +12,13 @@ export function claudeEnvironment(env = process.env) {
   return Object.fromEntries(allowed.filter(key => env[key] !== undefined).map(key => [key, env[key]]));
 }
 
-export async function askClaude(prompt, cwd, execute = run) {
+export async function askClaude(prompt, cwd, execute = run, { model, onModels = () => {} } = {}) {
   const { stdout } = await execute('claude', ['-p', '--output-format', 'json', '--json-schema', JSON.stringify(responseSchema),
-    '--tools', '', '--disable-slash-commands', '--setting-sources', '', '--strict-mcp-config', '--mcp-config', '{"mcpServers":{}}', '--no-session-persistence'],
+    '--tools', '', '--disable-slash-commands', '--setting-sources', '', '--strict-mcp-config', '--mcp-config', '{"mcpServers":{}}', '--no-session-persistence', ...(model ? ['--model', model] : [])],
   { input: prompt, cwd, env: claudeEnvironment(), timeout: 10 * 60 * 1000 });
   let output;
   try { output = JSON.parse(stdout); } catch { throw new Error('Claude returned invalid JSON'); }
   if (output.is_error || output.subtype !== 'success' || !output.structured_output) throw new Error(`Claude did not complete (${output.subtype ?? 'unknown status'})`);
+  onModels(Object.keys(output.modelUsage ?? {}));
   return output.structured_output;
 }
