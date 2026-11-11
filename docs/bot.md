@@ -60,6 +60,7 @@ GitHub disables public schedules after 60 days without repository activity.
 Re-enable them with `gh workflow enable review-inbox.yml --repo OWNER/TOOL`.
 Idle checks do not call Claude.
 Use **Run workflow** for an immediate check.
+The cloud and subscription checks do not scan or review PR requests.
 An optional comment or `#event-ID` request URL selects one request.
 Use **retry** only after a failed run.
 New revisions need a new comment or reviewer request.

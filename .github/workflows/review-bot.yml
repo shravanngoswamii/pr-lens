@@ -71,7 +71,7 @@ jobs:
           restore-keys: review-bot-state-
       - name: Find review requests
         id: scan
-        if: '!inputs.check_cloud'
+        if: '!inputs.check_cloud && !inputs.check_subscription'
         env:
           COMMENT_URL: ${{ inputs.comment_url }}
         run: node bot/hosted.js scan
