@@ -20,6 +20,9 @@ on:
       check_subscription:
         type: boolean
         default: false
+      check_cloud:
+        type: boolean
+        default: false
     secrets:
       REVIEW_BOT_TOKEN:
         required: true
@@ -62,6 +65,7 @@ jobs:
           restore-keys: review-bot-state-
       - name: Find review requests
         id: scan
+        if: '!inputs.check_cloud'
         env:
           COMMENT_URL: ${{ inputs.comment_url }}
         run: node bot/hosted.js scan
@@ -72,10 +76,13 @@ jobs:
       - run: npm ci
         if: steps.scan.outputs.pending == 'true'
       - name: Install Claude Code
-        if: steps.scan.outputs.pending == 'true' || inputs.check_subscription
+        if: steps.scan.outputs.pending == 'true' || inputs.check_subscription || inputs.check_cloud
         run: |
           curl -fsSL https://claude.ai/install.sh | bash -s -- 2.1.322
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Check Claude cloud access
+        if: inputs.check_cloud
+        run: node bot/cloud.js
       - run: npx playwright install --with-deps chromium
         if: steps.scan.outputs.pending == 'true'
       - name: Prepare publishing checkout

@@ -83,12 +83,12 @@ Subscription limits and GitHub Actions limits apply separately.
 
 ## Claude cloud sessions
 
-[Claude cloud tasks](https://code.claude.com/docs/en/routines) use your subscription and can start through an API trigger.
-They run on Anthropic's infrastructure while your laptop is off.
-This worker still runs on GitHub Actions.
-A cloud adapter would keep requester checks, state and publishing in the bot repository, then validate the cloud result before publishing.
-The documented trigger accepts context text, so each model and effort combination would need its own configured task.
-Its trigger token is separate from `CLAUDE_CODE_OAUTH_TOKEN`.
+[Claude cloud sessions](https://code.claude.com/docs/en/claude-code-on-the-web#send-follow-ups-from-the-cli) accept follow-up messages through the signed-in CLI.
+Cloud-task triggers create a new session for each run.
+Reusing a PR session needs a saved session ID and follow-up delivery.
+Use **Run workflow > Check cloud access** to test the hosted credentials without creating a session or running a review.
+Inference access and cloud-session access are checked separately.
+The review worker still runs on GitHub Actions.
 
 ## Local
 

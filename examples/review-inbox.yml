@@ -17,6 +17,10 @@ on:
         description: Check Claude subscription and model
         type: boolean
         default: false
+      check_cloud:
+        description: Check cloud access without starting a review
+        type: boolean
+        default: false
 permissions:
   contents: read
   actions: read
@@ -36,6 +40,7 @@ jobs:
       comment_url: ${{ inputs.comment_url || '' }}
       retry: ${{ inputs.retry || false }}
       check_subscription: ${{ inputs.check_subscription || false }}
+      check_cloud: ${{ inputs.check_cloud || false }}
     secrets:
       REVIEW_BOT_TOKEN: ${{ secrets.REVIEW_BOT_TOKEN }}
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
